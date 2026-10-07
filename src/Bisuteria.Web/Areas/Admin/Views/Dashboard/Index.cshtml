@@ -1,0 +1,226 @@
+@model DashboardStats
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="admin-title mb-1">Panel de administración</h1>
+        <p class="text-muted mb-0">Resumen general del negocio.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-value">@Model.SalesToday.ToString("C")</div>
+            <div class="stat-label">Ventas hoy</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-bag-check"></i></div>
+            <div class="stat-value">@Model.OrdersToday</div>
+            <div class="stat-label">Pedidos hoy</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-value">@Model.SalesMonth.ToString("C")</div>
+            <div class="stat-label">Ventas del mes</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-value">@Model.PendingOrders</div>
+            <div class="stat-label">Pedidos pendientes</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-box2-heart"></i></div>
+            <div class="stat-value">@Model.ProductsSold</div>
+            <div class="stat-label">Productos vendidos</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-people"></i></div>
+            <div class="stat-value">@Model.RegisteredClients</div>
+            <div class="stat-label">Clientes registrados</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-box-seam"></i></div>
+            <div class="stat-value">@Model.TotalProducts</div>
+            <div class="stat-label">Productos activos</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-value text-success">@Model.AvailableProducts</div>
+            <div class="stat-label">Disponibles</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-slash-circle"></i></div>
+            <div class="stat-value @(Model.SoldOutProducts > 0 ? "text-danger" : "")">@Model.SoldOutProducts</div>
+            <div class="stat-label">Agotados</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-tags"></i></div>
+            <div class="stat-value">@Model.CategoriesCount</div>
+            <div class="stat-label">Categorías</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-receipt"></i></div>
+            <div class="stat-value">@Model.TotalOrders</div>
+            <div class="stat-label">Pedidos totales</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-piggy-bank"></i></div>
+            <div class="stat-value">@Model.TotalSales.ToString("C")</div>
+            <div class="stat-label">Ventas totales</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon mb-2"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-value @(Model.LowStockCount > 0 ? "text-danger" : "")">@Model.LowStockCount</div>
+            <div class="stat-label">Stock bajo</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card-admin p-3 h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-ticket-perforated me-2 text-gold"></i>Pedidos por estado</h6>
+            @foreach (var point in Model.OrdersByStatus)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>@point.Label</span>
+                    <strong>@point.Value</strong>
+                </div>
+                <div class="progress mb-3" style="height:8px;">
+                    <div class="progress-bar" style="width: @Math.Min(100, (double)point.Value / (double)Math.Max(1m, Model.OrdersByStatus.Sum(o => o.Value)) * 100)%;background:var(--brand-gold);"></div>
+                </div>
+            }
+            @if (Model.PendingReviews > 0)
+            {
+                <a class="btn btn-sm btn-outline-warning w-100 mt-2" asp-area="Admin" asp-controller="Reviews" asp-action="Index" asp-route-pendingOnly="true">
+                    <i class="bi bi-star me-1"></i>@Model.PendingReviews reseñas por aprobar
+                </a>
+            }
+            @if (Model.UnreadMessages > 0)
+            {
+                <a class="btn btn-sm btn-outline-primary w-100 mt-2" asp-area="Admin" asp-controller="Messages" asp-action="Index" asp-route-unreadOnly="true">
+                    <i class="bi bi-envelope me-1"></i>@Model.UnreadMessages mensajes sin leer
+                </a>
+            }
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card-admin p-3 h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-star-fill me-2 text-gold"></i>Top productos</h6>
+            <div class="table-responsive">
+            <table class="table table-admin mb-0">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Vendidos</th>
+                        <th class="text-end">Ingresos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model.TopProducts.Take(5))
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img class="product-mini-img" src="@(product.ImageUrl ?? "/img/placeholder.svg")" alt="@product.Name" />
+                                    <span>@product.Name</span>
+                                </div>
+                            </td>
+                            <td class="text-center">@product.QuantitySold</td>
+                            <td class="text-end fw-semibold">@product.Revenue.ToString("C")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card-admin p-3 h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-gold"></i>Ventas de los últimos 12 meses</h6>
+            <div class="sales-chart"><canvas id="salesChart" height="240"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card-admin p-3 h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-clock-history me-2 text-gold"></i>Pedidos recientes</h6>
+            @if (Model.RecentOrders.Count == 0)
+            {
+                <p class="text-muted small mb-0">Aún no hay pedidos.</p>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var order in Model.RecentOrders.Take(6))
+                    {
+                        <a class="d-flex justify-content-between align-items-center text-decoration-none text-body border-bottom pb-2"
+                           asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-orderNumber="@order.OrderNumber">
+                            <span><strong>@order.OrderNumber</strong><br><small class="text-muted">@order.CustomerName · @order.CreatedAt.ToString("dd MMM")</small></span>
+                            <span class="text-end">
+                                <strong class="text-gold">@order.Total.ToString("C")</strong><br>
+                                <span class="badge badge-status bg-secondary">@order.StatusLabel</span>
+                            </span>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth.Select(p => p.Label)));
+        const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth.Select(p => p.Value)));
+        new Chart(document.getElementById('salesChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Ventas (USD)',
+                    data: values,
+                    borderColor: '#b8860b',
+                    backgroundColor: 'rgba(184,134,11,.12)',
+                    fill: true,
+                    tension: .35,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { callback: v => '$' + v } } }
+            }
+        });
+    </script>
+}

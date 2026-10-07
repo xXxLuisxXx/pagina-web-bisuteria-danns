@@ -1,0 +1,50 @@
+# Compilación y herramientas .NET
+**/bin/
+**/obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.sln.docstates
+artifacts/
+publish/
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Dependencias de herramientas visuales
+**/node_modules/
+**/playwright-report/
+**/test-results/
+
+# Evidencia local y respaldos: conservar en disco, no versionar
+/audit/
+*.log
+*.bak
+*.backup
+*.tmp
+*.dmp
+*.mdf
+*.ldf
+*.bacpac
+
+# Configuración privada y certificados
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.*.local.json
+secrets.json
+*.pfx
+*.p12
+*.key
+
+# Contenido de usuarios: respaldar junto con la base, no como código
+/src/Bisuteria.Web/wwwroot/img/uploads/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini

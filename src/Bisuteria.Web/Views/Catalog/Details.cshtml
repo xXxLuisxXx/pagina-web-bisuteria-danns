@@ -1,0 +1,294 @@
+@model ProductDetailDto
+@using Bisuteria.Application.Interfaces
+@inject ISettingService SettingsService
+@{
+    var isFav = ViewBag.IsFavorite is bool f && f;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var images = Model.Images.Count > 0
+        ? Model.Images
+        : new[] { new ProductImageDto { ImageUrl = Model.MainImageUrl ?? "/img/placeholder.svg" } };
+    var seoSettings = await SettingsService.GetAllAsync();
+    var seoStoreName = seoSettings.GetValueOrDefault("StoreName") ?? "Bisuterias Dann's";
+    var seoBaseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
+@{
+    var structuredData = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org", ["@type"] = "Product", ["name"] = Model.Name,
+        ["description"] = Model.Description, ["image"] = images[0].ImageUrl, ["sku"] = Model.Sku,
+        ["brand"] = new Dictionary<string, object?> { ["@type"] = "Brand", ["name"] = seoStoreName },
+        ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["url"] = seoBaseUrl + Url.Action("Details", "Catalog", new { slug = Model.Slug }), ["priceCurrency"] = "USD", ["price"] = Model.EffectivePrice, ["availability"] = Model.Stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }
+    };
+}
+<script type="application/ld+json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(structuredData))</script>
+
+<nav aria-label="Ruta de navegación" class="container pt-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Inicio</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index">Catálogo</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+    </ol>
+</nav>
+
+<section class="container py-3">
+    <div class="row g-4">
+        <!-- Galería -->
+        <div class="col-lg-6">
+            <div class="product-gallery">
+                <div class="main-img-wrap product-detail-img">
+                    <img id="mainProductImage" src="@images[0].ImageUrl" alt="@Model.Name">
+                </div>
+                @if (images.Count > 1)
+                {
+                    <div class="thumb-row product-thumbs">
+                        @for (var i = 0; i < images.Count; i++)
+                        {
+                            <button type="button" class="product-thumb @(i == 0 ? "active" : "")" data-image="@images[i].ImageUrl">
+                                <img src="@images[i].ImageUrl" alt="@Model.Name">
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="col-lg-6">
+            @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+            {
+                <a class="cat-tag d-inline-block mb-2" asp-controller="Catalog" asp-action="Index" asp-route-categorySlug="@Model.CategorySlug">@Model.CategoryName</a>
+            }
+            <h1 class="product-title">@Model.Name</h1>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="product-rating">
+                    @for (var i = 1; i <= 5; i++)
+                    {
+                        <i class="bi @(i <= Model.AverageRating ? "bi-star-fill" : "bi-star")"></i>
+                    }
+                    <span class="rating-count ms-1">@Model.AverageRating.ToString("0.0") (@Model.ReviewCount reseñas)</span>
+                </span>
+                <span class="text-muted small">SKU: @Model.Sku</span>
+            </div>
+
+            <div class="product-price-box">
+                @if (Model.ComparePrice.HasValue && Model.ComparePrice.Value > Model.EffectivePrice)
+                {
+                    <span class="price-compare">@Model.ComparePrice.Value.ToString("C")</span>
+                }
+                <span class="price-current fs-2">@Model.EffectivePrice.ToString("C")</span>
+                @if (Model.Stock > 0)
+                {
+                    <span class="badge-stock text-success ms-2"><i class="bi bi-check-circle"></i> En stock</span>
+                }
+                else
+                {
+                    <span class="badge-stock text-danger ms-2"><i class="bi bi-x-circle"></i> Agotado</span>
+                }
+            </div>
+
+            <p class="product-desc mt-3">@Model.Description</p>
+
+            <ul class="product-specs list-unstyled mt-3">
+                @if (!string.IsNullOrWhiteSpace(Model.Material))
+                {
+                    <li><strong>Material:</strong> @Model.Material</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Colors))
+                {
+                    <li><strong>Colores:</strong> @Model.Colors</li>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Size))
+                {
+                    <li><strong>Tamaño:</strong> @Model.Size</li>
+                }
+            </ul>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-4 product-actions">
+                @if (Model.Stock > 0)
+                {
+                    <form asp-controller="Cart" asp-action="Add" method="post" class="d-flex flex-wrap align-items-center gap-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ProductId" value="@Model.Id" />
+                        <div class="qty-stepper">
+                            <button type="button" class="btn-qty" aria-label="Disminuir cantidad" data-dir="-1"><i class="bi bi-dash"></i></button>
+                            <input type="number" name="Quantity" value="1" min="1" max="50" class="qty-input" aria-label="Cantidad" />
+                            <button type="button" class="btn-qty" aria-label="Aumentar cantidad" data-dir="1"><i class="bi bi-plus"></i></button>
+                        </div>
+                        <button class="btn btn-brand btn-lg flex-grow-1" type="submit">
+                            <i class="bi bi-bag-plus me-2"></i>Agregar al carrito
+                        </button>
+                    </form>
+                }
+                @if (Model.IsCustomizable)
+                {
+                    <a class="btn btn-outline-brand btn-lg" asp-controller="Customizer" asp-action="Index" asp-route-productId="@Model.Id">
+                        <i class="bi bi-magic me-2"></i>Personalizar
+                    </a>
+                }
+                <button type="button" class="btn btn-outline-secondary rounded-circle p-3 fav-btn @(isFav ? "active" : "") @(isAuthenticated ? "" : "d-none")" data-product-id="@Model.Id" aria-label="Favoritos">
+                    <i class="bi @(isFav ? "bi-heart-fill" : "bi-heart")"></i>
+                </button>
+            </div>
+
+            @if (Model.IsCustomizable)
+            {
+                <div class="info-box mt-4">
+                    <i class="bi bi-magic text-gold fs-4"></i>
+                    <div>
+                        <strong>Este producto es personalizable.</strong>
+                        <div class="small text-muted">Añade nombres, iniciales, fechas o frases con nuestro personalizador online.</div>
+                    </div>
+                </div>
+            }
+
+            <div class="info-box mt-3">
+                <i class="bi bi-truck text-gold fs-4"></i>
+                <div>
+                    <strong>Envío a todo el país.</strong>
+                    <div class="small text-muted">Envíos seguros con empaque de regalo elegante y seguimiento de pedido.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Descripción -->
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-head">
+            <h2>Detalles del producto</h2>
+        </div>
+        <div class="mx-auto" style="max-width:820px;">
+            <p class="fs-5 lh-lg">@Model.Description</p>
+            <h5 class="mt-4 mb-3">¿Cómo cuidar tu pieza?</h5>
+            <ul>
+                <li>Evita el contacto con perfumes, cremas y agua.</li>
+                <li>Guarda tu bisutería en su bolsita o caja original.</li>
+                <li>Limpia suavemente con un paño seco después de cada uso.</li>
+                <li>Las piezas personalizadas son únicas y hechas a mano.</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Relacionados -->
+@if (ViewBag.Related is List<ProductCardDto> related && related.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <span class="eyebrow">Te puede interesar</span>
+                <h2>Productos relacionados</h2>
+            </div>
+            <div class="row g-4">
+                @foreach (var product in related)
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <partial name="_ProductCard" model="product" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Reseñas -->
+<section class="section section-beige">
+    <div class="container">
+        <div class="section-head">
+            <span class="eyebrow">Opiniones</span>
+            <h2>Reseñas de clientes</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="review-summary-card">
+                    <div class="fs-1 fw-bold">@Model.AverageRating.ToString("0.0")</div>
+                    <div class="product-rating mb-2">
+                        @for (var i = 1; i <= 5; i++)
+                        {
+                            <i class="bi @(i <= Model.AverageRating ? "bi-star-fill" : "bi-star")"></i>
+                        }
+                    </div>
+                    <span class="text-muted">@Model.ReviewCount reseñas verificadas</span>
+                    @if (isAuthenticated)
+                    {
+                        <hr>
+                        <button class="btn btn-brand w-100" data-bs-toggle="collapse" data-bs-target="#reviewForm">Escribir una reseña</button>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mt-3 mb-0">
+                            <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Context.Request.Path">Inicia sesión</a> para escribir una reseña.
+                        </p>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="collapse mb-4" id="reviewForm">
+                    <div class="card card-body bg-white shadow-sm">
+                        <h5>Tu opinión</h5>
+                        <form asp-controller="Catalog" asp-action="AddReview" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ProductId" value="@Model.Id" />
+                            <div class="mb-3">
+                                <label class="form-label">Calificación</label>
+                                <div class="star-input" id="starInput">
+                                    @for (var i = 1; i <= 5; i++)
+                                    {
+                                        <i class="bi bi-star" data-val="@i"></i>
+                                    }
+                                    <input type="hidden" name="Rating" id="Rating" value="5" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Título (opcional)</label>
+                                <input type="text" class="form-control" name="Title" maxlength="120" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Comentario *</label>
+                                <textarea name="Comment" class="form-control" rows="4" maxlength="1000" required></textarea>
+                            </div>
+                            <button class="btn btn-brand" type="submit"><i class="bi bi-send me-2"></i>Publicar reseña</button>
+                        </form>
+                    </div>
+                </div>
+
+                @if (Model.ApprovedReviews.Count == 0)
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-chat-square-text" style="font-size:2.5rem;"></i>
+                        <p class="mt-2 mb-0">Aún no hay reseñas. ¡Sé la primera persona en opinar!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var review in Model.ApprovedReviews)
+                        {
+                            <div class="review-item">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="avatar">@(string.IsNullOrWhiteSpace(review.CustomerName) ? "C" : review.CustomerName[..1].ToUpper())</span>
+                                    <div class="flex-grow-1">
+                                        <strong>@review.CustomerName</strong>
+                                        <div class="product-rating">
+                                            @for (var i = 1; i <= 5; i++)
+                                            {
+                                                <i class="bi @(i <= review.Rating ? "bi-star-fill" : "bi-star")"></i>
+                                            }
+                                        </div>
+                                    </div>
+                                    <span class="small text-muted">@review.ReviewDate.ToString("dd MMM yyyy")</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(review.Title))
+                                {
+                                    <h6 class="mt-2 mb-1">@review.Title</h6>
+                                }
+                                <p class="mb-0">@review.Comment</p>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>

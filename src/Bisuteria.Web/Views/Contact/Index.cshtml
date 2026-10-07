@@ -1,0 +1,155 @@
+@model ContactViewModel
+@using Bisuteria.Application.Interfaces
+@inject ISettingService SettingsService
+@{
+    var contactSettings = await SettingsService.GetAllAsync();
+    var whatsappNumber = contactSettings.GetValueOrDefault("WhatsApp");
+    var contactEmail = contactSettings.GetValueOrDefault("ContactEmail");
+    var instagramUrl = contactSettings.GetValueOrDefault("InstagramUrl");
+    var instagramHandle = contactSettings.GetValueOrDefault("InstagramHandle") ?? "bisuterias_danns";
+    var tiktokUrl = contactSettings.GetValueOrDefault("TikTokUrl");
+    var tiktokHandle = contactSettings.GetValueOrDefault("TikTokHandle") ?? "bisuteria_danns";
+    ViewData["Title"] = "Contacto · Bisutería y Accesorios Personalizados";
+}
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Contacto</h1>
+        <p>Información para clientes. ¿Tienes una idea, un pedido especial o alguna duda? Estamos para ayudarte.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    <div class="row g-4">
+        <!-- Información para clientes -->
+        <div class="col-lg-5">
+            <div class="card card-body shadow-sm h-100">
+                <h5 class="mb-3"><i class="bi bi-chat-heart me-2 text-gold"></i>Información para clientes</h5>
+                @if (!string.IsNullOrWhiteSpace(whatsappNumber))
+                {
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="feature-icon"><i class="bi bi-whatsapp"></i></div>
+                        <div>
+                            <strong>WhatsApp</strong>
+                            <div class="text-muted">@whatsappNumber</div>
+                            <div class="small text-muted">Respuesta más rápida · Usa el botón verde de la pantalla</div>
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(contactEmail))
+                {
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="feature-icon"><i class="bi bi-envelope"></i></div>
+                        <div>
+                            <strong>Correo</strong>
+                            <div class="text-muted">@contactEmail</div>
+                        </div>
+                    </div>
+                }
+                <div class="d-flex gap-3 mb-3">
+                    <div class="feature-icon"><i class="bi bi-clock"></i></div>
+                    <div>
+                        <strong>Horario de atención</strong>
+                        <div class="text-muted">Lunes a sábado · 9:00 - 18:00</div>
+                    </div>
+                </div>
+                <hr>
+                <p class="small text-muted mb-0">
+                    Para pedidos corporativos y personalizados al mayoreo, escríbenos y te cotizamos.
+                </p>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="col-lg-7">
+            <div class="card card-body shadow-sm">
+                <h5 class="mb-3"><i class="bi bi-pencil-square me-2 text-gold"></i>Envíanos un mensaje</h5>
+                <form asp-action="Index" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" type="email" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Subject" class="form-label"></label>
+                            <input asp-for="Subject" class="form-control" />
+                            <span asp-validation-for="Subject" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Message" class="form-label"></label>
+                            <textarea asp-for="Message" class="form-control" rows="5"></textarea>
+                            <span asp-validation-for="Message" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand btn-lg" type="submit"><i class="bi bi-send me-2"></i>Enviar mensaje</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redes sociales -->
+    @if (!string.IsNullOrWhiteSpace(instagramUrl) || !string.IsNullOrWhiteSpace(tiktokUrl))
+    {
+        <section class="contact-social-section mt-5" aria-labelledby="socialTitle">
+            <div class="section-head">
+                <span class="eyebrow">Redes sociales</span>
+                <h2 id="socialTitle">Síguenos en nuestras redes</h2>
+                <p>Entérate primero de nuevos diseños, colecciones y promociones.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                @if (!string.IsNullOrWhiteSpace(instagramUrl))
+                {
+                    <div class="col-12 col-md-6 col-lg-5">
+                        <a href="@instagramUrl" target="_blank" rel="noopener noreferrer"
+                           class="social-card social-instagram animate-on-scroll"
+                           aria-label="Visitar Instagram de Bisuterias Dann's (@@@instagramHandle)">
+                            <span class="social-icon" aria-hidden="true"><i class="bi bi-instagram"></i></span>
+                            <span class="social-info">
+                                <span class="social-name">Instagram</span>
+                                <span class="social-handle">@($"@{instagramHandle}")</span>
+                                <span class="social-desc">Nuevos diseños, procesos y novedades cada semana.</span>
+                                <span class="social-cta">Visitar Instagram <i class="bi bi-arrow-up-right"></i></span>
+                            </span>
+                        </a>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(tiktokUrl))
+                {
+                    <div class="col-12 col-md-6 col-lg-5">
+                        <a href="@tiktokUrl" target="_blank" rel="noopener noreferrer"
+                           class="social-card social-tiktok animate-on-scroll"
+                           aria-label="Visitar TikTok de Bisuteria Dann's (@@@tiktokHandle)">
+                            <span class="social-icon" aria-hidden="true"><i class="bi bi-tiktok"></i></span>
+                            <span class="social-info">
+                                <span class="social-name">TikTok</span>
+                                <span class="social-handle">@($"@{tiktokHandle}")</span>
+                                <span class="social-desc">Videos, tendencias y detrás de cámaras de cada pieza.</span>
+                                <span class="social-cta">Visitar TikTok <i class="bi bi-arrow-up-right"></i></span>
+                            </span>
+                        </a>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

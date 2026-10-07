@@ -1,0 +1,75 @@
+@model IReadOnlyList<CouponDto>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="admin-title mb-0">Cupones</h1>
+    <a class="btn btn-gold" asp-action="Create"><i class="bi bi-plus-lg me-1"></i>Nuevo cupón</a>
+</div>
+
+<div class="card-admin">
+    <div class="table-responsive">
+        <table class="table table-admin mb-0">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Valor</th>
+                    <th class="text-center">Mínimo</th>
+                    <th class="text-center">Usos</th>
+                    <th>Vigencia</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var coupon in Model)
+                {
+                    var expired = coupon.ExpiresAt.HasValue && coupon.ExpiresAt < DateTime.UtcNow;
+                    <tr class="@(coupon.IsActive && !expired ? "" : "opacity-50")">
+                        <td><strong>@coupon.Code</strong><br><small class="text-muted">@coupon.Description</small></td>
+                        <td>@(coupon.Type == DiscountType.Percentage ? "%" : "$")</td>
+                        <td class="text-end fw-semibold">@(coupon.Type == DiscountType.Percentage ? coupon.Value.ToString("0.#") + "%" : coupon.Value.ToString("C"))</td>
+                        <td class="text-center">@coupon.MinAmount.ToString("C")</td>
+                        <td class="text-center">@coupon.UsedCount / @(coupon.MaxUses?.ToString() ?? "∞")</td>
+                        <td class="small">
+                            @if (coupon.StartsAt.HasValue)
+                            {
+                                <div>Inicio: @coupon.StartsAt.Value.ToString("dd MMM yyyy")</div>
+                            }
+                            @if (coupon.ExpiresAt.HasValue)
+                            {
+                                <div class="@(expired ? "text-danger" : "")">Expira: @coupon.ExpiresAt.Value.ToString("dd MMM yyyy") @(expired ? "(expirado)" : "")</div>
+                            }
+                            @if (!coupon.StartsAt.HasValue && !coupon.ExpiresAt.HasValue)
+                            {
+                                <span class="text-muted">Sin límite</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (coupon.IsActive && !expired)
+                            {
+                                <span class="badge badge-status bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-status bg-secondary">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@coupon.Id" title="Editar"><i class="bi bi-pencil"></i></a>
+                                <form asp-action="ToggleActive" asp-route-id="@coupon.Id" method="post" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-warning" type="submit" title="Activar/Desactivar"><i class="bi @(coupon.IsActive ? "bi-pause" : "bi-play")"></i></button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@coupon.Id" method="post" class="m-0" onsubmit="return confirm('¿Eliminar este cupón?');">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

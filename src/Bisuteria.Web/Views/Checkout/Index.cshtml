@@ -1,0 +1,206 @@
+@model CheckoutViewModel
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Finalizar compra</h1>
+        <p>Completa tus datos de envío y confirma tu pedido.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    <form asp-action="Index" method="post" class="row g-4">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" role="alert" class="text-danger"></div>
+
+        <div class="col-lg-7">
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-person me-2 text-gold"></i>Datos de contacto</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="CustomerName" class="form-label"></label>
+                        <input asp-for="CustomerName" class="form-control" />
+                        <span asp-validation-for="CustomerName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CustomerPhone" class="form-label"></label>
+                        <input asp-for="CustomerPhone" class="form-control" />
+                        <span asp-validation-for="CustomerPhone" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="CustomerEmail" class="form-label"></label>
+                        <input asp-for="CustomerEmail" class="form-control" type="email" />
+                        <span asp-validation-for="CustomerEmail" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-geo-alt me-2 text-gold"></i>Dirección de envío</h5>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label asp-for="AddressLine1" class="form-label"></label>
+                        <input asp-for="AddressLine1" class="form-control" />
+                        <span asp-validation-for="AddressLine1" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="AddressLine2" class="form-label"></label>
+                        <input asp-for="AddressLine2" class="form-control" />
+                        <span asp-validation-for="AddressLine2" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <label asp-for="City" class="form-label"></label>
+                        <input asp-for="City" class="form-control" />
+                        <span asp-validation-for="City" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Province" class="form-label"></label>
+                        <input asp-for="Province" class="form-control" />
+                        <span asp-validation-for="Province" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="PostalCode" class="form-label"></label>
+                        <input asp-for="PostalCode" class="form-control" />
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Observations" class="form-label"></label>
+                        <textarea asp-for="Observations" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-body shadow-sm mb-4 gift-card">
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="IsGift" class="form-check-input" type="checkbox" role="switch" id="giftSwitch"
+                           data-bs-toggle="collapse" data-bs-target="#giftDetails" aria-expanded="false" aria-controls="giftDetails" />
+                    <label asp-for="IsGift" class="form-check-label fw-semibold"></label>
+                </div>
+                <div class="collapse @(Model.IsGift ? "show" : "")" id="giftDetails">
+                    <p class="small text-muted mb-3">Incluye empaque especial y una nota personalizada sin precios visibles.</p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="GiftRecipientName" class="form-label"></label>
+                            <input asp-for="GiftRecipientName" class="form-control" placeholder="¿Para quién es?" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="GiftMessage" class="form-label"></label>
+                            <textarea asp-for="GiftMessage" class="form-control" rows="2" maxlength="300"
+                                      placeholder="Ej: Feliz cumpleaños, que todos tus deseos se cumplan ✨"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-truck me-2 text-gold"></i>Método de entrega</h5>
+                <div class="d-flex flex-column gap-2" id="deliveryOptions">
+                    <label class="payment-option">
+                        <input type="radio" asp-for="DeliveryMethod" value="Shipping" />
+                        <i class="bi bi-box-seam"></i>
+                        <div>
+                            <strong>Envío a domicilio</strong>
+                            <div class="small text-muted">Recíbelo en la puerta de tu casa u oficina.</div>
+                        </div>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" asp-for="DeliveryMethod" value="LocalDelivery" />
+                        <i class="bi bi-geo-alt"></i>
+                        <div>
+                            <strong>Entrega local</strong>
+                            <div class="small text-muted">Coordinamos la entrega dentro de la ciudad, sin costo de envío.</div>
+                        </div>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" asp-for="DeliveryMethod" value="Pickup" />
+                        <i class="bi bi-shop"></i>
+                        <div>
+                            <strong>Retiro en tienda</strong>
+                            <div class="small text-muted">Retira tu pedido coordinando con nosotros por WhatsApp.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-credit-card me-2 text-gold"></i>Método de pago</h5>
+                @{ var methods = ViewBag.AvailablePayments as Bisuteria.Domain.Enums.PaymentMethod[] ?? []; }
+                @if (methods.Length == 0)
+                {
+                    <p role="status">Las compras están pendientes de la configuración de pago. Contacta con la tienda para más información.</p>
+                }
+                @foreach (var method in methods)
+                {
+                    <label class="payment-option"><input type="radio" asp-for="PaymentMethod" value="@method" />
+                    @(method == Bisuteria.Domain.Enums.PaymentMethod.BankTransfer ? "Transferencia bancaria" : "Contra entrega")</label>
+                }
+
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="cart-summary card shadow-sm sticky-lg-top" style="top:100px;">
+                <h5 class="mb-3">Tu pedido</h5>
+                @foreach (var item in Model.Cart.Items)
+                {
+                    <div class="d-flex gap-2 mb-2 align-items-center">
+                        <div class="checkout-thumb"><img src="@(item.ImageUrl ?? "/img/placeholder.svg")" alt="@item.Name"></div>
+                        <div class="flex-grow-1 small">
+                            <div>@item.Name <span class="text-muted">x @item.Quantity</span></div>
+                            @if (item.IsPersonalized)
+                            {
+                                <div class="text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
+                            }
+                        </div>
+                        <strong class="small">@item.LineTotal.ToString("C")</strong>
+                    </div>
+                }
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal</span><strong>@Model.Cart.Subtotal.ToString("C")</strong>
+                </div>
+                @if (Model.Cart.Discount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Descuento (@Model.Cart.CouponCode)</span><strong>-@Model.Cart.Discount.ToString("C")</strong>
+                    </div>
+                }
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Envío</span><strong id="shippingDisplay">@(Model.Cart.ShippingCost == 0 ? "Gratis" : Model.Cart.ShippingCost.ToString("C"))</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fs-5">Total</span>
+                    <strong class="fs-4 text-gold" id="totalDisplay">@Model.Cart.Total.ToString("C")</strong>
+                </div>
+                <button class="btn btn-brand btn-lg w-100" type="submit" disabled="@(methods.Length == 0)">
+                    <i class="bi bi-check2-circle me-2"></i>Confirmar pedido
+                </button>
+                <a class="btn btn-link w-100 mt-2" asp-controller="Cart" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Volver al carrito</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var radios = document.querySelectorAll('#deliveryOptions input[type="radio"]');
+            var shipRow = document.getElementById('shippingDisplay');
+            var subtotal = @((Model.Cart.Subtotal - Model.Cart.Discount).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var baseShipping = @Model.Cart.ShippingCost.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            function update() {
+                var selected = document.querySelector('#deliveryOptions input[type="radio"]:checked');
+                if (!selected || !shipRow) return;
+                var free = selected.value !== 'Shipping';
+                document.getElementById('totalDisplay').textContent = (Math.max(0, subtotal) + (free ? 0 : baseShipping)).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+                shipRow.textContent = free ? 'Gratis' : baseShipping.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+            }
+
+            radios.forEach(function (r) { r.addEventListener('change', update); });
+            update();
+        })();
+    </script>
+}

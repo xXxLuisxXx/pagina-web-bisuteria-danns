@@ -1,0 +1,9 @@
+@model ErrorViewModel
+@{ Layout = null; }
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>No se pudo completar la solicitud</title><link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css"></head>
+<body><main class="container py-5" style="max-width:720px">
+<h1>@(Model.StatusCode == 404 ? "Página no encontrada" : Model.StatusCode == 403 ? "Acceso denegado" : Model.StatusCode == 400 ? "Solicitud no válida" : Model.StatusCode == 429 ? "Demasiadas solicitudes" : "No se pudo completar la solicitud")</h1>
+<p>Verifica la dirección o inténtalo nuevamente más tarde.</p>
+<a href="/">Volver al inicio</a>
+</main></body></html>

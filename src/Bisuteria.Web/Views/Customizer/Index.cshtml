@@ -1,0 +1,273 @@
+@{
+    ViewData["Title"] = "Personalizador";
+    var baseProducts = ViewBag.BaseProducts as List<ProductCardDto> ?? new();
+    var selected = ViewBag.SelectedProduct as ProductCardDto;
+}
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Personalizador</h1>
+        <p>Diseña tu pieza única: elige el texto, la fuente, el color y los detalles. Tú lo imaginas, nosotros lo creamos.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    <form id="customizerForm" asp-controller="Cart" asp-action="Add" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ProductId" id="cProductId" value="@(selected?.Id ?? 0)" />
+        <input type="hidden" name="Quantity" id="cQuantity" value="1" />
+        <input type="hidden" name="Customization.Quantity" id="cCustomQuantity" value="1" />
+
+        <div class="row g-4">
+            <!-- Vista previa -->
+            <div class="col-lg-6">
+                <div class="customizer-preview">
+                    <div class="preview-stage">
+                        <img id="previewBase" src="@(selected?.MainImageUrl ?? "/img/placeholder.svg")"
+                             alt="Vista previa de tu pieza" />
+                        <div id="previewText" class="preview-text font-serif" data-display="Texto">Texto</div>
+                        <div id="previewCharm" class="preview-charm" style="display:none;"><i class="bi bi-heart-fill"></i></div>
+                        <div class="preview-badge">Vista previa ilustrativa</div>
+                    </div>
+                    <div class="preview-price-box">
+                        <span>Precio estimado</span>
+                        <strong id="previewPrice">$0.00</strong>
+                    </div>
+                </div>
+
+                <div class="card card-body mt-3 bg-white shadow-sm">
+                    <h6 class="mb-2"><i class="bi bi-palette me-2 text-gold"></i>Elige el color de tu personalización</h6>
+                    <div class="d-flex gap-2 flex-wrap">
+                        @foreach (var opt in new[] { ("#8B6914", "Oro"), ("#C0C0C0", "Plata"), ("#E8A0B4", "Rosa"), ("#111", "Negro"), ("#fff", "Blanco") })
+                        {
+                            <label class="color-swatch" title="@opt.Item2">
+                                <input type="radio" name="Customization.Color" value="@opt.Item1" @(opt.Item2 == "Oro" ? "checked" : "") />
+                                <span style="background:@opt.Item1; @(opt.Item2 == "Blanco" ? "border:1px solid #ccc;" : "")"></span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opciones -->
+            <div class="col-lg-6">
+                <div class="card card-body shadow-sm mb-4">
+                    <h5 class="mb-3"><i class="bi bi-box-seam me-2 text-gold"></i>1. Elige tu producto base</h5>
+                    @if (baseProducts.Count == 0)
+                    {
+                        <p class="text-muted small mb-0">Pronto tendremos más productos personalizables disponibles.</p>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var p in baseProducts)
+                            {
+                                <div class="col-6 col-md-4">
+                                    <label class="product-option @(selected?.Id == p.Id ? "active" : "")" data-id="@p.Id" data-name="@p.Name" data-img="@(p.MainImageUrl ?? "/img/placeholder.svg")" data-price="@p.EffectivePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                        <input type="radio" name="__base" value="@p.Id" @(selected?.Id == p.Id ? "checked" : "") />
+                                        <img src="@(p.MainImageUrl ?? "/img/placeholder.svg")" alt="@p.Name" />
+                                        <span>@p.Name</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="card card-body shadow-sm mb-4">
+                    <h5 class="mb-3"><i class="bi bi-type me-2 text-gold"></i>2. Texto personalizado</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre / texto principal</label>
+                            <input type="text" class="form-control" name="Customization.Text" id="cText" maxlength="20" placeholder="Ej: María" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Iniciales (hasta 3)</label>
+                            <input type="text" class="form-control" name="Customization.Initials" id="cInitials" maxlength="3" placeholder="Ej: MGA" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha importante</label>
+                            <input type="date" class="form-control" name="Customization.Date" id="cDate" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Frase / palabra (hasta 30)</label>
+                            <input type="text" class="form-control" name="Customization.Phrase" id="cPhrase" maxlength="30" placeholder="Ej: Te amo mamá" />
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Fuente</label>
+                            <select class="form-select" name="Customization.Font" id="cFont">
+                                <option value="serif" selected>Elegante (serif)</option>
+                                <option value="script">Caligráfica</option>
+                                <option value="sans">Moderna (sans)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Dije adicional</label>
+                            <select class="form-select" name="Customization.Charm" id="cCharm">
+                                <option value="">Sin dije</option>
+                                <option value="heart">Corazón</option>
+                                <option value="star">Estrella</option>
+                                <option value="butterfly">Mariposa</option>
+                                <option value="moon">Luna</option>
+                                <option value="cross">Cruz</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-body shadow-sm mb-4">
+                    <h5 class="mb-3"><i class="bi bi-sliders me-2 text-gold"></i>3. Acabados</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Material</label>
+                            <select class="form-select" name="Customization.Material" id="cMaterial">
+                                <option value="Acero inoxidable dorado">Acero inoxidable dorado</option>
+                                <option value="Acero inoxidable plateado">Acero inoxidable plateado</option>
+                                <option value="Baño de oro 18k">Baño de oro 18k</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tamaño / ajuste</label>
+                            <select class="form-select" name="Customization.Size" id="cSize">
+                                <option value="Ajustable">Ajustable</option>
+                                <option value="Pequeño">Pequeño</option>
+                                <option value="Mediano">Mediano</option>
+                                <option value="Grande">Grande</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cantidad</label>
+                            <div class="qty-stepper">
+                                <button type="button" class="btn-qty" aria-label="Disminuir cantidad" data-cqty="-1"><i class="bi bi-dash"></i></button>
+                                <input type="number" id="cQtyInput" value="1" min="1" max="50" class="qty-input" readonly />
+                                <button type="button" class="btn-qty" aria-label="Aumentar cantidad" data-cqty="1"><i class="bi bi-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="Customization.GiftWrap" id="cGift" value="true" />
+                                <label class="form-check-label" for="cGift">Empaque de regalo (+$3)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Nota para el artesano (opcional)</label>
+                        <textarea class="form-control" name="Customization.Note" rows="2" maxlength="300" placeholder="Ej: Prefiero cadena larga..."></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column flex-md-row gap-3 align-items-center">
+                    <button type="submit" class="btn btn-brand btn-lg flex-grow-1" id="cSubmitBtn">
+                        <i class="bi bi-bag-plus me-2"></i>Agregar al carrito · <span id="submitPrice">$0.00</span>
+                    </button>
+                    <a class="btn btn-outline-brand btn-lg" asp-controller="Catalog" asp-action="Index">Seguir comprando</a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const prices = {
+                Text: 4, Initials: 3, Date: 3, Phrase: 5, Charm: 5, GiftWrap: 3
+            };
+            const charmIcons = { heart: 'bi-heart-fill', star: 'bi-star-fill', butterfly: 'bi-flower2', moon: 'bi-moon-stars-fill', cross: 'bi-emoji-heart-eyes' };
+
+            function getBasePrice() {
+                const opt = document.querySelector('.product-option.active');
+                return opt ? parseFloat(opt.dataset.price || 0) : 0;
+            }
+            function getPrice() {
+                let total = getBasePrice();
+                if (document.getElementById('cText').value.trim()) total += prices.Text;
+                if (document.getElementById('cInitials').value.trim()) total += prices.Initials;
+                if (document.getElementById('cDate').value) total += prices.Date;
+                if (document.getElementById('cPhrase').value.trim()) total += prices.Phrase;
+                if (document.getElementById('cCharm').value) total += prices.Charm;
+                if (document.getElementById('cGift').checked) total += prices.GiftWrap;
+                const qty = parseInt(document.getElementById('cQuantity').value || '1');
+                total *= qty;
+                return total;
+            }
+            function render() {
+                const total = getPrice();
+                const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+                document.getElementById('previewPrice').textContent = fmt.format(total);
+                document.getElementById('submitPrice').textContent = fmt.format(total);
+            }
+
+            // Selección de producto base
+            document.querySelectorAll('.product-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.product-option').forEach(o => o.classList.remove('active'));
+                    opt.classList.add('active');
+                    opt.querySelector('input').checked = true;
+                    document.getElementById('cProductId').value = opt.dataset.id;
+                    document.getElementById('previewBase').src = opt.dataset.img || '/img/placeholder.svg';
+                    render();
+                });
+            });
+
+            // Texto en vista previa
+            const textEl = document.getElementById('previewText');
+            function updatePreview() {
+                const text = document.getElementById('cText').value.trim() || 'Texto';
+                const initials = document.getElementById('cInitials').value.trim();
+                const date = document.getElementById('cDate').value;
+                const phrase = document.getElementById('cPhrase').value.trim();
+                let shown = text;
+                if (!shown || shown === 'Texto') {
+                    if (initials) shown = initials;
+                    else if (date) shown = date.split('-').reverse().join('/');
+                    else if (phrase) shown = phrase;
+                }
+                textEl.textContent = shown;
+                const font = document.getElementById('cFont').value;
+                textEl.className = 'preview-text font-' + font;
+            }
+            ['cText', 'cInitials', 'cDate', 'cPhrase', 'cFont'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => { updatePreview(); render(); });
+                document.getElementById(id).addEventListener('change', () => { updatePreview(); render(); });
+            });
+
+            // Color
+            document.querySelectorAll('.color-swatch input').forEach(inp => {
+                inp.addEventListener('change', () => {
+                    textEl.style.color = inp.value;
+                });
+            });
+
+            // Dije
+            document.getElementById('cCharm').addEventListener('change', e => {
+                const charm = document.getElementById('previewCharm');
+                const icon = charm.querySelector('i');
+                if (e.target.value) {
+                    icon.className = 'bi ' + (charmIcons[e.target.value] || 'bi-heart-fill');
+                    charm.style.display = 'block';
+                } else {
+                    charm.style.display = 'none';
+                }
+                render();
+            });
+
+            // Cantidad
+            document.getElementById('cGift').addEventListener('change', render);
+            document.querySelectorAll('[data-cqty]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const q = Math.max(1, Math.min(50, (parseInt(document.getElementById('cQuantity').value) || 1) + parseInt(btn.dataset.cqty)));
+                    document.getElementById('cQuantity').value = q;
+                    document.getElementById('cCustomQuantity').value = q;
+                    document.getElementById('cQtyInput').value = q;
+                    render();
+                });
+            });
+
+            updatePreview();
+            render();
+        })();
+    </script>
+}

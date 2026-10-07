@@ -1,0 +1,77 @@
+@model Dictionary<string, string>
+
+@{
+    var groups = new[] { "General", "Contacto", "Redes", "Compras" };
+}
+
+<div class="mb-4">
+    <h1 class="admin-title mb-1">Configuración</h1>
+    <p class="text-muted mb-0">Ajusta la información general de la tienda.</p>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+
+    @foreach (var group in groups)
+    {
+        var items = Model.Where(s => GetGroup(s.Key) == group).ToList();
+        if (items.Count == 0) continue;
+
+        <div class="card-admin p-3 mb-3">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-gear me-2 text-gold"></i>@group</h6>
+            <div class="row g-3">
+                @foreach (var item in items)
+                {
+                    <div class="@(item.Key.Contains("Description") || item.Key.Contains("Text") ? "col-12" : "col-md-6")">
+                        <label class="form-label" for="values_@item.Key">@Humanize(item.Key)</label>
+                        @if (item.Key.Contains("Description") || item.Key.Contains("HeroSubtitle"))
+                        {
+                            <textarea id="values_@item.Key" name="values[@item.Key]" class="form-control" rows="2">@item.Value</textarea>
+                        }
+                        else
+                        {
+                            <input id="values_@item.Key" readonly="@(item.Key is "WhatsApp" or "InstagramUrl" or "InstagramHandle" or "TikTokUrl" or "TikTokHandle")" name="values[@item.Key]" class="form-control" value="@item.Value" />
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <button class="btn btn-gold btn-lg" type="submit"><i class="bi bi-check2 me-2"></i>Guardar configuración</button>
+</form>
+
+@functions {
+    private string GetGroup(string key) => key switch
+    {
+        "StoreName" or "StoreSlogan" or "StoreDescription" => "General",
+        "WhatsApp" or "ContactEmail" or "ContactPhone" or "ContactAddress" => "Contacto",
+        "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
+        _ => "Compras"
+    };
+
+    private string Humanize(string key)
+    {
+        var text = System.Text.RegularExpressions.Regex.Replace(key, "([A-Z])", " $1").Trim();
+        return text switch
+        {
+            "Store Name" => "Nombre de la tienda",
+            "Store Slogan" => "Eslogan",
+            "Store Description" => "Descripción de la tienda",
+            "Whats App" => "WhatsApp",
+            "Contact Email" => "Correo de contacto",
+            "Contact Phone" => "Teléfono de contacto",
+            "Contact Address" => "Dirección",
+            "Facebook Url" => "Facebook",
+            "Instagram Url" => "Instagram",
+            "Tik Tok Url" => "TikTok",
+            "Shipping Cost" => "Costo de envío ($)",
+            "Free Shipping Threshold" => "Envío gratis desde ($)",
+            "Instagram Handle" => "Usuario de Instagram",
+            "Tik Tok Handle" => "Usuario de TikTok",
+            "Hero Title" => "Título de portada",
+            "Hero Subtitle" => "Subtítulo de portada",
+            _ => text
+        };
+    }
+}

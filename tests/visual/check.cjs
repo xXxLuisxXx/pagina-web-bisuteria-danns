@@ -1,0 +1,57 @@
+const { chromium } = require('playwright');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const root = path.resolve(__dirname, '../..');
+(async () => {
+ const assert = require('node:assert/strict');
+ const browser = await chromium.launch({headless:true,...(process.env.BROWSER_PATH ? {executablePath:process.env.BROWSER_PATH} : {channel:'msedge'})});
+ const context = await browser.newContext();
+ await context.route('https://audit.local/**', async route => {
+  const url = new URL(route.request().url());
+  const rel = decodeURIComponent(url.pathname);
+  const file = rel.endsWith('.html') ? path.join(root,process.env.RENDERED_DIR || 'audit/rendered',path.basename(rel)) : path.join(root,'src/Bisuteria.Web/wwwroot',rel);
+  if (!file.startsWith(root + path.sep)) return route.abort();
+  try { await route.fulfill({path:file}); } catch { await route.fulfill({status:404,body:'No encontrado'}); }
+ });
+ const page = await context.newPage();
+ const results=[];
+ await fs.mkdir(path.join(root,'audit/screenshots'),{recursive:true});
+ let errors=[];
+ page.on('pageerror', e=>errors.push(e.message));
+ for(const name of ['home','catalog','product','contact','login','register','forgot','profile','cart','checkout','admin','admin-products','admin-form','customizer']) {
+  for(const width of [390,768,1440]) {
+   await page.setViewportSize({width,height:900});errors=[];
+   await page.goto('https://audit.local/'+name+'.html',{waitUntil:'load',timeout:20000});
+   await page.evaluate(()=>{document.getElementById('appLoader')?.remove();document.querySelectorAll('.animate-on-scroll').forEach(e=>e.classList.add('visible'));});
+   await page.evaluate(async()=>{
+    const images=[...document.images];
+    images.forEach(img=>{img.loading='eager';});
+    await Promise.all(images.map(img=>img.decode().catch(()=>{})));
+   });
+   const metrics=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth,brokenImages:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).length,overflow:[...document.querySelectorAll('body *')].filter(e=>{let r=e.getBoundingClientRect();return r.right>innerWidth+2&&r.width>0&&getComputedStyle(e).position!=='fixed';}).slice(0,8).map(e=>e.tagName+'.'+e.className)}));
+   results.push({name,width,...metrics,errors:[...errors]});
+   await page.screenshot({path:path.join(root,'audit/screenshots',name+'-'+width+'.png'),fullPage:true,animations:'disabled'});
+  }
+  console.log(name+': comprobado en 3 tamaños');
+ }
+ await page.setViewportSize({width:390,height:900});
+ await page.goto('https://audit.local/customizer.html',{waitUntil:'load'});
+ await page.evaluate(()=>document.getElementById('appLoader')?.remove());
+ const basePrice=Number(await page.locator('.product-option.active').getAttribute('data-price'));
+ await page.locator('#cText').fill('Ana');
+ assert.equal(await page.locator('#previewText').textContent(),'Ana');
+ assert.equal(await page.locator('#previewPrice').textContent(),'$'+(basePrice+4).toFixed(2));
+ await page.locator('#cGift').check();
+ assert.equal(await page.locator('#previewPrice').textContent(),'$'+(basePrice+7).toFixed(2));
+ await page.locator('.navbar-toggler').click();
+ await page.waitForFunction(()=>document.querySelector('#mainNav').classList.contains('show'));
+ assert.equal(await page.locator('.navbar-toggler').getAttribute('aria-expanded'),'true');
+ await page.locator('.navbar-toggler').click();
+ await page.waitForFunction(()=>!document.querySelector('#mainNav').classList.contains('show'));
+ await fs.writeFile(path.join(root,'audit/visual-interactions.json'),JSON.stringify({inputDirectory:process.env.RENDERED_DIR||'audit/rendered',passed:['texto de personalización','recargo por texto','recargo por regalo','abrir menú móvil','cerrar menú móvil']},null,2));
+ await fs.writeFile(path.join(root,'audit/visual-results.json'),JSON.stringify(results,null,2));
+ const issues=results.filter(x=>x.scroll>x.width||x.errors.length||x.brokenImages);
+ console.log(JSON.stringify({checks:results.length,issues},null,2));
+ if(issues.length) process.exitCode=1;
+ await browser.close();
+})().catch(error=>{console.error(error);process.exitCode=1;});

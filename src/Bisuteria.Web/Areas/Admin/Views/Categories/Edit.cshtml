@@ -1,0 +1,40 @@
+@model CategoryInputDto
+
+<div class="mb-4">
+    <a class="text-muted small text-decoration-none" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Volver a categorías</a>
+    <h1 class="admin-title mt-2 mb-0">@(Model.Id == 0 ? "Nueva categoría" : "Editar categoría")</h1>
+</div>
+
+<div class="card-admin p-3" style="max-width:640px;">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="All" role="alert" class="text-danger mb-3"></div>
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="DisplayOrder" class="form-label"></label>
+                <input asp-for="DisplayOrder" class="form-control" type="number" min="0" />
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check form-switch mb-2">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label">Categoría activa</label>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-gold mt-3" type="submit"><i class="bi bi-check2 me-2"></i>Guardar</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Bisuteria.Application/Bisuteria.Application.csproj" />
+    <Project Path="src/Bisuteria.Domain/Bisuteria.Domain.csproj" />
+    <Project Path="src/Bisuteria.Infrastructure/Bisuteria.Infrastructure.csproj" />
+    <Project Path="src/Bisuteria.Web/Bisuteria.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Bisuteria.Tests/Bisuteria.Tests.csproj" />
+  </Folder>
+</Solution>

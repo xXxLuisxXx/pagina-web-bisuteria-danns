@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" role="img" aria-label="Imagen no disponible">
+  <rect width="600" height="450" fill="#F7F1E3"/>
+  <circle cx="300" cy="205" r="86" fill="none" stroke="#C9A227" stroke-width="2.5" opacity="0.85"/>
+  <circle cx="300" cy="205" r="76" fill="none" stroke="#E6C766" stroke-width="1" opacity="0.6"/>
+  <text x="285" y="232" font-family="Georgia, 'Times New Roman', serif"
+        font-size="64" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+  <text x="318" y="232" font-family="Georgia, 'Times New Roman', serif"
+        font-size="64" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+  <text x="300" y="330" font-family="Arial, sans-serif" font-size="17"
+        letter-spacing="4" fill="#6B6B6B" text-anchor="middle">BISUTERIAS DANN'S</text>
+</svg>

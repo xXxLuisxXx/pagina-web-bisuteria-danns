@@ -1,0 +1,6 @@
+{
+  "name": "bisuteria-visual-checks",
+  "private": true,
+  "scripts": { "check": "node check.cjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}

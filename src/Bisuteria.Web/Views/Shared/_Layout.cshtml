@@ -1,0 +1,246 @@
+@using Bisuteria.Application.Interfaces
+@using Bisuteria.Web.Cart
+@inject ISettingService Settings
+@inject CartManager Cart
+@{
+    var settings = await Settings.GetAllAsync();
+    var storeName = settings.GetValueOrDefault("StoreName") ?? "Bisuterias Dann's";
+    var storeSlogan = settings.GetValueOrDefault("StoreSlogan") ?? "Bisutería hecha a mano para realzar tu estilo ✨.";
+    var storeDescription = settings.GetValueOrDefault("StoreDescription") ?? "Descubre Bisuterias Dann's, accesorios hechos a mano y personalizados para realzar tu estilo.";
+    var whatsapp = "+593 98 259 9801";
+    var instagram = settings.GetValueOrDefault("InstagramUrl");
+    var facebook = settings.GetValueOrDefault("FacebookUrl");
+    var tiktok = settings.GetValueOrDefault("TikTokUrl");
+    var cartCount = await Cart.CountAsync();
+    var pageTitle = ViewData["Title"] is string t && t.Length > 0 ? t + " · " + storeName : storeName + " | Bisutería personalizada hecha a mano";
+}
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@pageTitle</title>
+    <meta name="description" content="@storeDescription" />
+    <meta name="author" content="@storeName" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="@storeName" />
+    <meta property="og:title" content="@pageTitle" />
+    <meta property="og:description" content="@storeDescription" />
+    <meta property="og:image" content="~/img/logo-danns.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@pageTitle" />
+    <meta name="twitter:description" content="@storeDescription" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="icon" type="image/svg+xml" href="~/img/favicon.svg" />
+</head>
+<body>
+    <a class="visually-hidden-focusable" href="#contenido">Saltar al contenido</a>
+    @Html.AntiForgeryToken()
+    <noscript><style>.loader-overlay{display:none}.animate-on-scroll{opacity:1;transform:none}</style></noscript>
+
+    <!-- Loader -->
+    <div class="loader-overlay" id="appLoader">
+        <div class="loader-diamond"></div>
+    </div>
+
+    <!-- Barra superior -->
+    <div class="topbar d-none d-lg-block">
+        <div class="container d-flex justify-content-between align-items-center py-2">
+            <div class="topbar-left small">
+                <span><i class="bi bi-truck"></i> Envíos a todo el país</span>
+                <span class="ms-3"><i class="bi bi-patch-check"></i> Hecho a mano con amor</span>
+            </div>
+            <div class="topbar-right small">
+                @if (!string.IsNullOrWhiteSpace(instagram))
+                {
+                    <a href="@instagram" target="_blank" rel="noopener noreferrer" class="topbar-link" aria-label="Visitar Instagram de Bisuterias Dann's"><i class="bi bi-instagram me-1"></i>@(settings.GetValueOrDefault("InstagramHandle") ?? "bisuterias_danns")</a>
+                }
+                @if (!string.IsNullOrWhiteSpace(facebook))
+                {
+                    <a href="@facebook" target="_blank" rel="noopener noreferrer" class="topbar-link ms-3" aria-label="Facebook de Bisuterias Dann's"><i class="bi bi-facebook"></i></a>
+                }
+                @if (!string.IsNullOrWhiteSpace(tiktok))
+                {
+                    <a href="@tiktok" target="_blank" rel="noopener noreferrer" class="topbar-link ms-2" aria-label="Visitar TikTok de Bisuteria Dann's"><i class="bi bi-tiktok"></i></a>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Navbar principal -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top main-navbar">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="58" fill="#0B0B0B"/>
+                        <circle cx="60" cy="60" r="53" fill="none" stroke="#C9A227" stroke-width="4"/>
+                        <circle cx="60" cy="60" r="47.5" fill="none" stroke="#E6C766" stroke-width="1.6" opacity="0.55"/>
+                        <path d="M60 17.5 l4.2 4.2 -4.2 4.2 -4.2 -4.2 Z" fill="#E6C766"/>
+                        <text x="41" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+                        <text x="72" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+                        <circle cx="21" cy="60" r="1.8" fill="#C9A227"/>
+                        <circle cx="99" cy="60" r="1.8" fill="#C9A227"/>
+                    </svg>
+                </span>
+                <span class="brand-text">
+                    <span class="brand-name">DANN'S</span>
+                    <span class="brand-tagline">Bisutería &amp; Accesorios</span>
+                </span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                    aria-controls="mainNav" aria-expanded="false" aria-label="Abrir o cerrar navegación">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Catalog" asp-action="Index">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Customizer" asp-action="Index">Personalizar</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Gallery" asp-action="Index">Galería</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Home" asp-action="About">Nosotros</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-area="" asp-controller="Contact" asp-action="Index">Contacto</a></li>
+                </ul>
+                <div class="d-flex align-items-center gap-2">
+                    <form class="search-form d-none d-md-flex" asp-area="" asp-controller="Catalog" asp-action="Index" method="get">
+                        <input class="form-control form-control-sm" type="search" name="search" placeholder="Buscar..." aria-label="Buscar">
+                        <button class="btn btn-link" type="submit" aria-label="Buscar"><i class="bi bi-search"></i></button>
+                    </form>
+                    <button class="icon-btn" id="themeToggle" type="button" aria-label="Cambiar tema">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+                    <a class="icon-btn position-relative" asp-area="" asp-controller="Cart" asp-action="Index" aria-label="Carrito">
+                        <i class="bi bi-bag-heart"></i>
+                        <span class="cart-badge" id="cartCount">@cartCount</span>
+                    </a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="dropdown">
+                            <button class="icon-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Cuenta">
+                                <i class="bi bi-person-circle"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><h6 class="dropdown-header">@User.Identity!.Name</h6></li>
+                                <li><a class="dropdown-item" asp-area="" asp-controller="Order" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Mis pedidos</a></li>
+                                <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="bi bi-person-gear me-2"></i>Mi perfil</a></li>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2 me-2"></i>Panel de administración</a></li>
+                                }
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+                                        <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn btn-brand btn-sm" asp-area="" asp-controller="Account" asp-action="Login">Ingresar</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main role="main" id="contenido">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="footer-brand">
+                        <span class="brand-mark light" aria-hidden="true">
+                            <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="60" cy="60" r="58" fill="#0B0B0B"/>
+                                <circle cx="60" cy="60" r="53" fill="none" stroke="#C9A227" stroke-width="4"/>
+                                <circle cx="60" cy="60" r="47.5" fill="none" stroke="#E6C766" stroke-width="1.6" opacity="0.55"/>
+                                <path d="M60 17.5 l4.2 4.2 -4.2 4.2 -4.2 -4.2 Z" fill="#E6C766"/>
+                                <text x="41" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+                                <text x="72" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+                            </svg>
+                        </span>
+                        <span class="brand-name">@storeName</span>
+                    </div>
+                    <p class="footer-about mt-3">@storeSlogan</p>
+                    <div class="footer-social">
+                        @if (!string.IsNullOrWhiteSpace(instagram))
+                        {
+                            <a href="@instagram" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram de Bisuterias Dann's"><i class="bi bi-instagram"></i></a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(facebook))
+                        {
+                            <a href="@facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook de Bisuterias Dann's"><i class="bi bi-facebook"></i></a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(tiktok))
+                        {
+                            <a href="@tiktok" target="_blank" rel="noopener noreferrer" aria-label="Visitar TikTok de Bisuteria Dann's"><i class="bi bi-tiktok"></i></a>
+                        }
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <h5 class="footer-title">Tienda</h5>
+                    <ul class="footer-links">
+                        <li><a asp-area="" asp-controller="Home" asp-action="Index">Inicio</a></li>
+                        <li><a asp-area="" asp-controller="Catalog" asp-action="Index">Catálogo</a></li>
+                        <li><a asp-area="" asp-controller="Customizer" asp-action="Index">Personalizar</a></li>
+                        <li><a asp-area="" asp-controller="Gallery" asp-action="Index">Galería</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Shipping">Envíos y políticas</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Faq">Preguntas frecuentes</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <h5 class="footer-title">Empresa</h5>
+                    <ul class="footer-links">
+                        <li><a asp-area="" asp-controller="Home" asp-action="About">Nuestra Historia</a></li>
+                        <li><a asp-area="" asp-controller="Blog" asp-action="Index">Blog</a></li>
+                        <li><a asp-area="" asp-controller="Contact" asp-action="Index">Contacto</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Privacidad</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>&copy; @DateTime.UtcNow.Year @storeName. Todos los derechos reservados.</span>
+                <span>Hecho a mano, con <i class="bi bi-heart-fill text-danger"></i> y mucho brillo ✨</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- WhatsApp flotante -->
+    @if (!string.IsNullOrWhiteSpace(whatsapp))
+    {
+        var wa = whatsapp.Replace("+", "").Replace(" ", "").Replace("-", "");
+        var waMessage = "Hola, estoy interesado/a en conocer sus productos de bisutería personalizada. Me gustaría recibir información sobre sus productos y precios.";
+        var waUrl = $"https://wa.me/{wa}?text={Uri.EscapeDataString(waMessage)}";
+        <a href="@waUrl" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Contáctanos por WhatsApp"
+           data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Contáctanos por WhatsApp">
+            <i class="bi bi-whatsapp"></i>
+        </a>
+    }
+
+    <!-- Volver arriba -->
+    <button class="back-to-top" id="backToTop" aria-label="Volver arriba">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- Toasts -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

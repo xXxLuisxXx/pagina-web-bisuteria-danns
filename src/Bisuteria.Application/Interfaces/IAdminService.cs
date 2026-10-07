@@ -1,0 +1,31 @@
+using Bisuteria.Application.DTOs.Admin;
+using Bisuteria.Domain.Enums;
+
+namespace Bisuteria.Application.Interfaces;
+
+/// <summary>
+/// Servicio de administración: dashboard, inventario, usuarios y reportes.
+/// </summary>
+public interface IAdminService
+{
+    Task<DashboardStats> GetDashboardAsync(CancellationToken cancellationToken = default);
+
+    Task<int> AddStockAsync(int productId, int quantity, string reason, string? createdBy, CancellationToken cancellationToken = default);
+
+    Task<int> RemoveStockAsync(int productId, int quantity, string reason, string? createdBy, CancellationToken cancellationToken = default);
+
+    Task<List<(int ProductId, string Name, int Stock, int MinStock)>> GetLowStockAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Historial de movimientos de inventario (más recientes primero).</summary>
+    Task<List<StockMovementRow>> GetStockMovementsAsync(int? productId = null, int limit = 100, CancellationToken cancellationToken = default);
+
+    Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> SetUserActiveAsync(string userId, bool isActive, CancellationToken cancellationToken = default);
+
+    Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+
+    Task<List<ProductReportRow>> GetProductReportAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+
+    Task<List<SalesReportRow>> GetReportByPeriodAsync(OrderStatus? status = null, CancellationToken cancellationToken = default);
+}

@@ -1,0 +1,62 @@
+@model RegisterViewModel
+
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-card mx-auto shadow-sm">
+            <div class="text-center mb-4">
+                <span class="eyebrow">Únete a nosotros</span>
+                <h2>Crear cuenta</h2>
+                <p class="text-muted">Regístrate para guardar favoritos, seguir tus pedidos y comprar más rápido.</p>
+            </div>
+
+            @await Html.PartialAsync("_Alerts")
+
+            <form asp-action="Register" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="All" role="alert" class="text-danger mb-3"></div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="FirstName" class="form-label"></label>
+                        <input asp-for="FirstName" class="form-control" />
+                        <span asp-validation-for="FirstName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="LastName" class="form-label"></label>
+                        <input asp-for="LastName" class="form-control" />
+                        <span asp-validation-for="LastName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" type="email" autocomplete="email" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" />
+                        <span asp-validation-for="Phone" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+                </div>
+                <button class="btn btn-brand w-100 btn-lg mt-4" type="submit"><i class="bi bi-person-plus me-2"></i>Crear cuenta</button>
+            </form>
+
+            <p class="text-center mt-4 mb-0">
+                ¿Ya tienes cuenta? <a class="text-gold fw-semibold" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Inicia sesión</a>
+            </p>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

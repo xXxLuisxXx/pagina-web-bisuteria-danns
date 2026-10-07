@@ -1,0 +1,90 @@
+@model ProfileViewModel
+@{
+    var favorites = ViewBag.Favorites as List<ProductCardDto> ?? new();
+}
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Mi perfil</h1>
+        <p>Gestiona tu información personal y tus favoritos.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card card-body shadow-sm">
+                <h5 class="mb-3"><i class="bi bi-person-gear me-2 text-gold"></i>Datos personales</h5>
+                <form asp-action="Profile" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" type="email" readonly />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Province" class="form-label"></label>
+                            <input asp-for="Province" class="form-control" />
+                        </div>
+                    </div>
+                    <button class="btn btn-brand mt-4 w-100" type="submit"><i class="bi bi-check2 me-2"></i>Guardar cambios</button>
+                </form>
+                <hr>
+                <a class="btn btn-outline-brand w-100 mb-2" asp-controller="Order" asp-action="Index"><i class="bi bi-receipt me-2"></i>Mis pedidos</a>
+                <form asp-action="Logout" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-outline-danger w-100" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <h5 class="mb-3"><i class="bi bi-heart-fill me-2 text-gold"></i>Mis favoritos</h5>
+            @if (favorites.Count == 0)
+            {
+                <div class="card card-body text-center text-muted py-5">
+                    <i class="bi bi-heart" style="font-size:2.5rem;"></i>
+                    <p class="mt-2 mb-0">Aún no has guardado favoritos.</p>
+                    <a class="btn btn-outline-brand mt-3 mx-auto" asp-controller="Catalog" asp-action="Index">Descubrir piezas</a>
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var product in favorites)
+                    {
+                        <div class="col-6 col-md-4">
+                            <partial name="_ProductCard" model="product" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

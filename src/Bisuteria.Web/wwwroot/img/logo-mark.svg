@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Bisuterias Dann's">
+  <!-- Isotipo Dann's: monograma B+D circular, negro y dorado -->
+  <circle cx="60" cy="60" r="58" fill="#0B0B0B"/>
+  <circle cx="60" cy="60" r="53" fill="none" stroke="#C9A227" stroke-width="2.5"/>
+  <circle cx="60" cy="60" r="47.5" fill="none" stroke="#E6C766" stroke-width="1" opacity="0.55"/>
+  <!-- Diamante superior -->
+  <path d="M60 17.5 l4.2 4.2 -4.2 4.2 -4.2 -4.2 Z" fill="#E6C766"/>
+  <!-- Monograma B + D entrelazado -->
+  <text x="41" y="76" font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+        font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+  <text x="72" y="76" font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+        font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+  <!-- Detalles laterales -->
+  <circle cx="21" cy="60" r="1.8" fill="#C9A227"/>
+  <circle cx="99" cy="60" r="1.8" fill="#C9A227"/>
+</svg>

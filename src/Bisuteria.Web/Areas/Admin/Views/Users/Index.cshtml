@@ -1,0 +1,69 @@
+@model IReadOnlyList<UserDto>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="admin-title mb-0">Usuarios</h1>
+</div>
+
+<div class="card-admin">
+    <div class="table-responsive">
+        <table class="table table-admin mb-0">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Contacto</th>
+                    <th>Registro</th>
+                    <th class="text-center">Pedidos</th>
+                    <th class="text-end">Total gastado</th>
+                    <th class="text-center">Rol</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="avatar-admin">@user.FullName.Substring(0, 1).ToUpper()</span>
+                                <strong>@user.FullName</strong>
+                            </div>
+                        </td>
+                        <td>
+                            @user.Email<br>
+                            <small class="text-muted">@(user.City ?? "-") · @(user.Province ?? "-")</small>
+                        </td>
+                        <td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td class="text-center">@user.OrderCount</td>
+                        <td class="text-end fw-semibold">@user.TotalSpent.ToString("C")</td>
+                        <td class="text-center">
+                            @foreach (var role in user.Roles)
+                            {
+                                <span class="badge badge-status @(role == "Admin" ? "bg-gold text-white" : "bg-secondary")">@role</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            @if (user.IsActive)
+                            {
+                                <span class="badge badge-status bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-status bg-danger">Desactivado</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0"
+                                  onsubmit="return confirm('¿Cambiar el estado de este usuario?');">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-secondary" type="submit" title="Cambiar estado">
+                                    <i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

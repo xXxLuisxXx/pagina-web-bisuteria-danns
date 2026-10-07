@@ -1,0 +1,126 @@
+@model CartDto
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Tu carrito</h1>
+        <p>Revisa tus piezas antes de finalizar la compra.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    @if (Model.IsEmpty)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-bag" style="font-size:4rem;color:var(--brand-gold);"></i>
+            <h3 class="mt-3">Tu carrito está vacío</h3>
+            <p class="text-muted">Descubre piezas únicas listas para personalizar.</p>
+            <a class="btn btn-brand btn-lg" asp-controller="Catalog" asp-action="Index">Explorar catálogo</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var item in Model.Items)
+                    {
+                        <div class="cart-item">
+                            <div class="cart-img">
+                                <a asp-controller="Catalog" asp-action="Details" asp-route-slug="@item.Slug">
+                                    <img src="@(item.ImageUrl ?? "/img/placeholder.svg")" alt="@item.Name">
+                                </a>
+                            </div>
+                            <div class="cart-info">
+                                <h5><a asp-controller="Catalog" asp-action="Details" asp-route-slug="@item.Slug">@item.Name</a></h5>
+                                @if (item.IsPersonalized)
+                                {
+                                    <div class="small text-gold"><i class="bi bi-magic me-1"></i>@item.CustomizationSummary</div>
+                                }
+                                <span class="text-muted small">@item.UnitPrice.ToString("C") c/u</span>
+                                <div class="d-flex align-items-center gap-3 mt-2">
+                                    <form asp-controller="Cart" asp-action="UpdateQuantity" method="post" class="d-inline-flex align-items-center gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ProductId" value="@item.ProductId" />
+                                        <input type="hidden" name="CustomizationId" value="@item.CustomizationId" />
+                                        <div class="qty-stepper">
+                                            <button type="button" class="btn-qty" aria-label="Disminuir cantidad" data-dir="-1"><i class="bi bi-dash"></i></button>
+                                            <input type="number" name="Quantity" value="@item.Quantity" min="1" max="50" class="qty-input" aria-label="Cantidad" />
+                                            <button type="button" class="btn-qty" aria-label="Aumentar cantidad" data-dir="1"><i class="bi bi-plus"></i></button>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit" title="Actualizar"><i class="bi bi-arrow-repeat"></i></button>
+                                    </form>
+                                    <form asp-controller="Cart" asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ProductId" value="@item.ProductId" />
+                                        <input type="hidden" name="CustomizationId" value="@item.CustomizationId" />
+                                        <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="cart-price">@item.LineTotal.ToString("C")</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a class="btn btn-outline-brand" asp-controller="Catalog" asp-action="Index"><i class="bi bi-arrow-left me-2"></i>Seguir comprando</a>
+                    <form asp-controller="Cart" asp-action="Clear" method="post" onsubmit="return confirm('¿Vaciar el carrito?');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-link text-danger" type="submit"><i class="bi bi-trash me-1"></i>Vaciar carrito</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="cart-summary card shadow-sm">
+                    <h5 class="mb-3">Resumen del pedido</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal (@Model.TotalItems artículo(s))</span>
+                        <strong>@Model.Subtotal.ToString("C")</strong>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.CouponCode))
+                    {
+                        <div class="coupon-active">
+                            <span><i class="bi bi-ticket-perforated"></i> @Model.CouponCode</span>
+                            <form asp-controller="Cart" asp-action="RemoveCoupon" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-link text-danger p-0" type="submit"><i class="bi bi-x"></i></button>
+                            </form>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Descuento</span>
+                            <strong>-@Model.Discount.ToString("C")</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-controller="Cart" asp-action="ApplyCoupon" method="post" class="coupon-form mb-3">
+                            @Html.AntiForgeryToken()
+                            <div class="input-group">
+                                <input type="text" name="Code" class="form-control" placeholder="¿Tienes un cupón?" maxlength="30" />
+                                <button class="btn btn-outline-brand" type="submit">Aplicar</button>
+                            </div>
+                        </form>
+                    }
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Envío</span>
+                        <strong>@(Model.ShippingCost == 0 ? "Gratis" : Model.ShippingCost.ToString("C"))</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fs-5">Total</span>
+                        <strong class="fs-4 text-gold">@Model.Total.ToString("C")</strong>
+                    </div>
+                    <a class="btn btn-brand btn-lg w-100" asp-controller="Checkout" asp-action="Index">
+                        <i class="bi bi-lock me-2"></i>Finalizar compra
+                    </a>
+                    <p class="small text-muted text-center mt-3 mb-0"><i class="bi bi-shield-check me-1"></i>Revisa tus datos antes de confirmar</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

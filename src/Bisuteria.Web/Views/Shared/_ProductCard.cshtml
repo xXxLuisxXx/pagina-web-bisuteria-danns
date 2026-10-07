@@ -1,0 +1,60 @@
+@model ProductCardDto
+@{
+    var isFav = ViewBag.Favorites is Dictionary<int, bool> favs && favs.TryGetValue(Model.Id, out var f) && f;
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+}
+<div class="product-card animate-on-scroll">
+    <div class="img-wrap">
+        @if (Model.ComparePrice.HasValue && Model.ComparePrice.Value > Model.EffectivePrice)
+        {
+            <span class="product-badge badge-sale">-@((int)Math.Round((1 - Model.EffectivePrice / Model.ComparePrice.Value) * 100))%</span>
+        }
+        else if (Model.IsNew)
+        {
+            <span class="product-badge badge-new">Nuevo</span>
+        }
+        @if (Model.Stock <= 0)
+        {
+            <span class="product-badge badge-out">Agotado</span>
+        }
+        <button type="button"
+                class="fav-btn @(isFav ? "active" : "") @(isAuthenticated ? "" : "d-none")"
+                data-product-id="@Model.Id"
+                aria-label="Agregar a favoritos"
+                title="Favoritos">
+            <i class="bi @(isFav ? "bi-heart-fill" : "bi-heart")"></i>
+        </button>
+        <img loading="lazy" src="@(Model.MainImageUrl ?? "/img/placeholder.svg")" alt="@Model.Name" onerror="this.onerror=null;this.src='/img/placeholder.svg';">
+    </div>
+    <div class="body">
+        @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+        {
+            <span class="cat-tag">@Model.CategoryName</span>
+        }
+        <h3><a asp-action="Details" asp-controller="Catalog" asp-route-slug="@Model.Slug">@Model.Name</a></h3>
+        <div class="product-rating">
+            <i class="bi bi-star-fill"></i>
+            <span class="rating-count">@Model.AverageRating.ToString("0.0") (@Model.ReviewCount reseñas)</span>
+        </div>
+        <div class="price-row">
+            <div>
+                @if (Model.ComparePrice.HasValue && Model.ComparePrice.Value > Model.EffectivePrice)
+                {
+                    <span class="price-compare">@Model.ComparePrice.Value.ToString("C")</span>
+                }
+                <span class="price-current">@Model.EffectivePrice.ToString("C")</span>
+            </div>
+            @if (Model.Stock > 0)
+            {
+                <form asp-controller="Cart" asp-action="Add" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ProductId" value="@Model.Id" />
+                    <input type="hidden" name="Quantity" value="1" />
+                    <button type="submit" class="add-cart-btn" title="Añadir al carrito" aria-label="Añadir al carrito">
+                        <i class="bi bi-bag-plus"></i>
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</div>

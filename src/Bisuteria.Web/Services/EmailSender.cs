@@ -1,0 +1,59 @@
+using System.Net;
+using System.Net.Mail;
+
+namespace Bisuteria.Web.Services;
+
+public interface IEmailSender
+{
+    Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default);
+}
+
+public sealed class SmtpEmailSender : IEmailSender
+{
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<SmtpEmailSender> _logger;
+    private readonly IWebHostEnvironment _environment;
+
+    public SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger, IWebHostEnvironment environment)
+    {
+        _configuration = configuration;
+        _logger = logger;
+        _environment = environment;
+    }
+
+    public async Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default)
+    {
+        var host = _configuration["Smtp:Host"];
+        var sender = _configuration["Smtp:From"];
+        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(sender))
+        {
+            if (_environment.IsDevelopment())
+            {
+                _logger.LogWarning("SMTP no configurado: no se envió el correo de recuperación.");
+                return;
+            }
+
+            throw new InvalidOperationException("El correo de recuperación no está configurado.");
+        }
+
+        var port = int.TryParse(_configuration["Smtp:Port"], out var configuredPort) ? configuredPort : 587;
+        using var client = new SmtpClient(host, port)
+        {
+            EnableSsl = bool.TryParse(_configuration["Smtp:UseSsl"], out var useSsl) ? useSsl : true
+        };
+
+        var username = _configuration["Smtp:Username"];
+        var password = _configuration["Smtp:Password"];
+        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+            client.Credentials = new NetworkCredential(username, password);
+
+        using var message = new MailMessage(sender, email)
+        {
+            Subject = "Restablece tu contraseña | Bisuterias Dann's",
+            Body = $"<p>Solicitaste restablecer tu contraseña.</p><p><a href=\"{WebUtility.HtmlEncode(resetUrl)}\">Restablecer contraseña</a></p><p>Si no hiciste esta solicitud, ignora este correo.</p>",
+            IsBodyHtml = true
+        };
+
+        await client.SendMailAsync(message, ct);
+    }
+}

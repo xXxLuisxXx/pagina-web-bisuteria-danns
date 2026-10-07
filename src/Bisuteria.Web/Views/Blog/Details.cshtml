@@ -1,0 +1,61 @@
+@model BlogPostDto
+@{
+    var related = ViewBag.Related as List<BlogPostDto> ?? new();
+}
+
+<section class="container py-4">
+    <nav aria-label="Ruta de navegación">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Inicio</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Blog" asp-action="Index">Blog</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
+
+    <article class="blog-article mx-auto" style="max-width:820px;">
+        <div class="blog-meta">
+            @if (Model.PublishedAt.HasValue)
+            {
+                <span>@Model.PublishedAt.Value.ToString("dd MMMM yyyy")</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Author))
+            {
+                <span> · Por @Model.Author</span>
+            }
+            <span> · @Model.Views vistas</span>
+        </div>
+        <h1 class="mt-2 mb-4">@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.CoverImage))
+        {
+            <img src="@Model.CoverImage" alt="@Model.Title" class="img-fluid rounded mb-4 w-100" />
+        }
+        <div class="blog-content">
+            @Model.Content
+        </div>
+    </article>
+
+    @if (related.Count > 0)
+    {
+        <section class="section">
+            <div class="section-head">
+                <span class="eyebrow">Sigue leyendo</span>
+                <h2>Artículos relacionados</h2>
+            </div>
+            <div class="row g-4">
+                @foreach (var post in related.Where(p => p.Id != Model.Id).Take(3))
+                {
+                    <div class="col-md-4">
+                        <article class="blog-card">
+                            <div class="img-wrap">
+                                <img loading="lazy" src="@(post.CoverImage ?? "/img/placeholder.svg")" alt="@post.Title">
+                            </div>
+                            <div class="body">
+                                <h3><a asp-controller="Blog" asp-action="Details" asp-route-slug="@post.Slug">@post.Title</a></h3>
+                            </div>
+                        </article>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</section>

@@ -1,0 +1,147 @@
+@{
+    var lowStock = ViewBag.LowStock as List<(int ProductId, string Name, int Stock, int MinStock)> ?? new();
+    var movements = ViewBag.Movements as List<Bisuteria.Application.DTOs.Admin.StockMovementRow> ?? new();
+    var products = ViewBag.Products as Bisuteria.Application.DTOs.Common.PaginatedResult<Bisuteria.Application.DTOs.Catalog.ProductCardDto>;
+}
+
+<div class="mb-4">
+    <h1 class="admin-title mb-0">Inventario</h1>
+    <span class="text-muted small">Control de stock y movimientos</span>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card-admin p-3 mb-3">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-plus-slash-minus me-2"></i>Registrar movimiento</h6>
+            <form asp-action="AddStock" method="post" class="mb-2">
+                @Html.AntiForgeryToken()
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small">Producto</label>
+                        <select name="productId" class="form-select" required>
+                            <option value="">Selecciona un producto...</option>
+                            @if (products is not null)
+                            {
+                                @foreach (var p in products.Items)
+                                {
+                                    <option value="@p.Id">@p.Name (stock: @p.Stock)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" name="quantity" class="form-control" min="1" value="1" required />
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label small">Motivo</label>
+                        <input type="text" name="reason" class="form-control" placeholder="Compra a proveedor" required />
+                    </div>
+                    <div class="col-12 d-grid">
+                        <button class="btn btn-gold" type="submit"><i class="bi bi-box-arrow-in-down me-2"></i>Agregar stock (entrada)</button>
+                    </div>
+                </div>
+            </form>
+            <hr />
+            <form asp-action="RemoveStock" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small">Producto</label>
+                        <select name="productId" class="form-select" required>
+                            <option value="">Selecciona un producto...</option>
+                            @if (products is not null)
+                            {
+                                @foreach (var p in products.Items)
+                                {
+                                    <option value="@p.Id">@p.Name (stock: @p.Stock)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" name="quantity" class="form-control" min="1" value="1" required />
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label small">Motivo</label>
+                        <input type="text" name="reason" class="form-control" placeholder="Merma, daño, ajuste" required />
+                    </div>
+                    <div class="col-12 d-grid">
+                        <button class="btn btn-outline-danger" type="submit"><i class="bi bi-box-arrow-up me-2"></i>Descontar stock (salida)</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-admin p-3">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Stock bajo (@lowStock.Count)</h6>
+            @if (lowStock.Count == 0)
+            {
+                <p class="text-muted small mb-0">Todos los productos tienen stock suficiente.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr><th>Producto</th><th>Stock</th><th>Mín.</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in lowStock)
+                            {
+                                <tr>
+                                    <td class="small">@item.Name</td>
+                                    <td><span class="badge bg-danger">@item.Stock</span></td>
+                                    <td class="small">@item.MinStock</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card-admin p-3">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-clock-history me-2"></i>Últimos movimientos</h6>
+            @if (movements.Count == 0)
+            {
+                <p class="text-muted small mb-0">Aún no hay movimientos registrados.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cant.</th>
+                                <th>Resultado</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in movements)
+                            {
+                                <tr>
+                                    <td class="small text-nowrap">@m.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</td>
+                                    <td class="small">@m.ProductName</td>
+                                    <td>
+                                        <span class="badge @(m.Type == "Entrada" ? "bg-success" : "bg-secondary")">@m.Type</span>
+                                    </td>
+                                    <td class="small">@m.Quantity</td>
+                                    <td class="small">@m.StockAfter</td>
+                                    <td class="small text-muted">@m.Reason</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

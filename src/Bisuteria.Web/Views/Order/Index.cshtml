@@ -1,0 +1,50 @@
+@model IReadOnlyList<OrderDto>
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Mis pedidos</h1>
+        <p>Consulta el estado de tus pedidos y su detalle.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    @if (Model.Count == 0)
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-receipt" style="font-size:4rem;color:var(--brand-gold);"></i>
+            <h3 class="mt-3">Aún no tienes pedidos</h3>
+            <p class="text-muted">Cuando realices tu primera compra la verás aquí.</p>
+            <a class="btn btn-brand btn-lg" asp-controller="Catalog" asp-action="Index">Explorar catálogo</a>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var order in Model)
+            {
+                <div class="card card-body order-row shadow-sm">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-3">
+                            <div class="small text-muted">Pedido</div>
+                            <strong>@order.OrderNumber</strong>
+                            <div class="small text-muted">@order.CreatedAt.ToString("dd MMM yyyy")</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Total</div>
+                            <strong class="text-gold">@order.Total.ToString("C")</strong>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Estado</div>
+                            <span class="badge order-status status-@order.Status.ToString().ToLower()">@order.StatusLabel</span>
+                        </div>
+                        <div class="col-md-3 text-md-end">
+                            <a class="btn btn-outline-brand" asp-action="Details" asp-route-orderNumber="@order.OrderNumber">Ver detalle</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

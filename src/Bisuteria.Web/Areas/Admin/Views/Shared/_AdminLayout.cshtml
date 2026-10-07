@@ -1,0 +1,276 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<Bisuteria.Infrastructure.Identity.ApplicationUser> UserManager
+@{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var displayName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}" : "Administrador";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Dann's Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --brand-gold: #C9A227;
+            --brand-dark: #0B0B0B;
+            --brand-cream: #F7F1E3;
+        }
+
+        body.admin-body {
+            background: #f4f1ec;
+            font-family: 'Poppins', sans-serif;
+            padding-top: 64px;
+        }
+
+        .admin-topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--brand-dark);
+            color: #fff;
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            gap: 1rem;
+        }
+
+        .admin-topbar .brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: .5px;
+        }
+
+        .admin-topbar .brand i {
+            color: var(--brand-gold);
+        }
+
+        .admin-topbar .spacer { flex: 1; }
+
+        .admin-topbar .btn-outline-light {
+            border-color: rgba(255,255,255,.35);
+            color: #fff;
+        }
+
+        .admin-sidebar {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            bottom: 0;
+            width: 240px;
+            background: #26221c;
+            padding: 1rem .5rem;
+            overflow-y: auto;
+            z-index: 1040;
+        }
+
+        .admin-sidebar .nav-link {
+            color: rgba(255,255,255,.75);
+            padding: .6rem .9rem;
+            border-radius: .5rem;
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+
+        .admin-sidebar .nav-link:hover {
+            background: rgba(255,255,255,.08);
+            color: #fff;
+        }
+
+        .admin-sidebar .nav-link.active {
+            background: var(--brand-gold);
+            color: #fff;
+        }
+
+        .admin-sidebar .nav-link .badge {
+            margin-left: auto;
+        }
+
+        .admin-content {
+            margin-left: 240px;
+            padding: 1.5rem 2rem;
+            min-height: calc(100vh - 64px);
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: .75rem;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            height: 100%;
+        }
+
+        .stat-card .stat-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: .6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: rgba(184,134,11,.12);
+            color: var(--brand-gold);
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .stat-card .stat-label {
+            color: #8a857d;
+            font-size: .8rem;
+        }
+
+        .card-admin {
+            background: #fff;
+            border-radius: .75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            border: none;
+        }
+
+        .table-admin thead th {
+            background: #f6f3ee;
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: #6d675e;
+            border-bottom: none;
+        }
+
+        .table-admin td {
+            vertical-align: middle;
+        }
+
+        .admin-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+        }
+
+        .btn-gold {
+            background: var(--brand-gold);
+            color: #0B0B0B;
+        }
+
+        .btn-gold:hover { color: #fff; background: #9a7209; }
+
+        .product-mini-img {
+            width: 46px;
+            height: 46px;
+            object-fit: cover;
+            border-radius: .5rem;
+        }
+
+        .badge-status {
+            font-size: .72rem;
+            font-weight: 600;
+            padding: .35em .7em;
+            border-radius: .4em;
+        }
+
+        .avatar-admin {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(184,134,11,.15);
+            color: var(--brand-gold);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .85rem;
+        }
+
+        .pagination .page-link {
+            color: var(--brand-gold);
+        }
+
+        .pagination .page-item.active .page-link {
+            background: var(--brand-gold);
+            border-color: var(--brand-gold);
+            color: #fff;
+        }
+
+        .form-label { font-weight: 500; }
+
+        @@media (max-width: 991.98px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+            }
+            .admin-sidebar.open { transform: translateX(0); }
+            .admin-content { margin-left: 0; }
+            .admin-body { padding-top: 0; }
+        }
+    </style>
+</head>
+<body class="admin-body">
+
+    <header class="admin-topbar">
+        <button class="btn btn-outline-light d-lg-none" type="button" id="adminMenuToggle" aria-label="Abrir o cerrar administración" aria-controls="adminSidebar" aria-expanded="false">
+            <i class="bi bi-list"></i>
+        </button>
+        <a class="brand" asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-gem me-2"></i>Dann's Bisutería</a>
+        <div class="spacer"></div>
+        <span class="d-none d-md-inline text-light small me-2"><i class="bi bi-person-circle me-1"></i>@displayName</span>
+        <a class="btn btn-outline-light btn-sm" asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-shop me-1"></i>Ver tienda</a>
+        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-light btn-sm" type="submit"><i class="bi bi-box-arrow-right"></i></button>
+        </form>
+    </header>
+
+    <nav class="admin-sidebar" id="adminSidebar">
+        <div class="nav flex-column gap-1">
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i>Panel de administración</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i>Productos</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i>Categorías</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i>Pedidos</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i>Usuarios</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reviews" ? "active" : "")" asp-area="Admin" asp-controller="Reviews" asp-action="Index"><i class="bi bi-star"></i>Reseñas</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Messages" ? "active" : "")" asp-area="Admin" asp-controller="Messages" asp-action="Index"><i class="bi bi-envelope"></i>Mensajes</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Coupons" ? "active" : "")" asp-area="Admin" asp-controller="Coupons" asp-action="Index"><i class="bi bi-ticket-perforated"></i>Cupones</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Blog" ? "active" : "")" asp-area="Admin" asp-controller="Blog" asp-action="Index"><i class="bi bi-journal-text"></i>Blog</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Gallery" ? "active" : "")" asp-area="Admin" asp-controller="Gallery" asp-action="Index"><i class="bi bi-images"></i>Galería</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Inventory" ? "active" : "")" asp-area="Admin" asp-controller="Inventory" asp-action="Index"><i class="bi bi-clipboard-data"></i>Inventario</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" asp-area="Admin" asp-controller="Reports" asp-action="Index"><i class="bi bi-graph-up"></i>Reportes</a>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" asp-area="Admin" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear"></i>Configuración</a>
+        </div>
+    </nav>
+
+    <main class="admin-content">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@success
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>@error
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        }
+        @RenderBody()
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

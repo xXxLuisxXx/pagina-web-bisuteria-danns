@@ -1,0 +1,84 @@
+@model OrderDto
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Pedido @Model.OrderNumber</h1>
+        <p>Realizado el @Model.CreatedAt.ToString("dd MMM yyyy 'a las' HH:mm")</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-box-seam me-2 text-gold"></i>Artículos</h5>
+                @foreach (var item in Model.Items)
+                {
+                    <div class="d-flex gap-3 mb-3 align-items-center">
+                        <div class="checkout-thumb"><img src="@(item.ImageUrl ?? "/img/placeholder.svg")" alt="@item.ProductName"></div>
+                        <div class="flex-grow-1">
+                            <div>@item.ProductName <span class="text-muted">x @item.Quantity</span></div>
+                            @if (!string.IsNullOrWhiteSpace(item.CustomizationSummary))
+                            {
+                                <div class="text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
+                            }
+                        </div>
+                        <strong>@item.LineTotal.ToString("C")</strong>
+                    </div>
+                }
+                <hr>
+                <div class="d-flex justify-content-between mb-1"><span>Subtotal</span><strong>@Model.Subtotal.ToString("C")</strong></div>
+                @if (Model.Discount > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 text-success"><span>Descuento</span><strong>-@Model.Discount.ToString("C")</strong></div>
+                }
+                <div class="d-flex justify-content-between mb-1"><span>Envío</span><strong>@(Model.ShippingCost == 0 ? "Gratis" : Model.ShippingCost.ToString("C"))</strong></div>
+                <hr>
+                <div class="d-flex justify-content-between fs-5"><span>Total</span><strong class="text-gold">@Model.Total.ToString("C")</strong></div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card card-body shadow-sm mb-4">
+                <h5 class="mb-3"><i class="bi bi-info-circle me-2 text-gold"></i>Estado</h5>
+                <span class="badge order-status status-@Model.Status.ToString().ToLower()">@Model.StatusLabel</span>
+                <hr>
+                <div class="small">
+                    <div class="mb-2"><strong>Pago:</strong> @Model.PaymentMethodLabel</div>
+                    <div class="mb-2"><strong>Entrega:</strong> @Model.DeliveryMethodLabel</div>
+                    <div class="mb-2"><strong>Cliente:</strong> @Model.CustomerName</div>
+                    <div class="mb-2"><strong>Contacto:</strong> @Model.CustomerEmail · @Model.CustomerPhone</div>
+                    @if (Model.DeliveryMethod == Bisuteria.Domain.Enums.DeliveryMethod.Shipping && !string.IsNullOrWhiteSpace(Model.AddressLine1))
+                    {
+                        <div class="mb-2"><strong>Envío:</strong> @Model.AddressLine1, @Model.City, @Model.Province</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.AddressLine2))
+                        {
+                            <p class="mb-1"><strong>Dirección complementaria:</strong> @Model.AddressLine2</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.PostalCode))
+                        {
+                            <p class="mb-1"><strong>Código postal:</strong> @Model.PostalCode</p>
+                        }
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.TrackingNumber))
+                    {
+                        <div class="mb-2"><strong>Guía de envío:</strong> @Model.TrackingNumber</div>
+                    }
+                    @if (Model.IsGift)
+                    {
+                        <div class="mb-2 gift-order-note">
+                            <strong><i class="bi bi-gift me-1 text-gold"></i>Es un regalo:</strong>
+                            @(string.IsNullOrWhiteSpace(Model.GiftRecipientName) ? "" : "Para " + Model.GiftRecipientName + ". ")
+                            @(Model.GiftMessage ?? "")
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Observations))
+                    {
+                        <div class="mb-2"><strong>Observaciones:</strong> @Model.Observations</div>
+                    }
+                </div>
+            </div>
+            <a class="btn btn-outline-brand w-100" asp-action="Index"><i class="bi bi-arrow-left me-2"></i>Volver a mis pedidos</a>
+        </div>
+    </div>
+</div>

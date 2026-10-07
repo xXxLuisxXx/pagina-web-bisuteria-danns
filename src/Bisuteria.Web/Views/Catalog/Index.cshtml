@@ -1,0 +1,140 @@
+@model CatalogViewModel
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Catálogo</h1>
+        <p>Encuentra la pieza perfecta entre nuestras colecciones de bisutería personalizada.</p>
+    </div>
+</section>
+
+<div class="container py-4">
+    @await Html.PartialAsync("_Alerts")
+
+    <!-- Barra de filtros -->
+    <div class="row g-3 align-items-center mb-4">
+        <div class="col-lg-7">
+            <form asp-action="Index" method="get" class="row g-2">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="search" name="search" class="form-control" placeholder="Buscar producto..." value="@Model.Query.Search" />
+                    </div>
+                </div>
+                <div class="col-4 col-md-3">
+                    <select name="sort" class="form-select">
+                        <option value="relevance" selected="@(Model.Query.Sort == "relevance")">Relevancia</option>
+                        <option value="newest" selected="@(Model.Query.Sort == "newest")">Más nuevos</option>
+                        <option value="price_asc" selected="@(Model.Query.Sort == "price_asc")">Precio: menor</option>
+                        <option value="price_desc" selected="@(Model.Query.Sort == "price_desc")">Precio: mayor</option>
+                        <option value="bestsellers" selected="@(Model.Query.Sort == "bestsellers")">Más vendidos</option>
+                    </select>
+                </div>
+                <div class="col-4 col-md-2">
+                    <input type="number" name="maxPrice" class="form-control" placeholder="Máx $" value="@Model.Query.MaxPrice" min="0" />
+                </div>
+                <div class="col-4 col-md-2 d-grid">
+                    <button class="btn btn-brand" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+                </div>
+                <input type="hidden" name="categorySlug" value="@Model.Query.CategorySlug" />
+                <input type="hidden" name="page" value="1" />
+            </form>
+        </div>
+        <div class="col-lg-5 text-lg-end">
+            <span class="text-muted small">@Model.Products.TotalCount producto(s) encontrado(s)</span>
+        </div>
+    </div>
+
+    <!-- Categorías -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a class="btn btn-sm @(string.IsNullOrEmpty(Model.Query.CategorySlug) ? "btn-dark-brand" : "btn-outline-brand")"
+           asp-action="Index">Todas</a>
+        @foreach (var category in Model.Categories)
+        {
+            <a class="btn btn-sm @(Model.Query.CategorySlug == category.Slug ? "btn-dark-brand" : "btn-outline-brand")"
+               asp-action="Index" asp-route-categorySlug="@category.Slug" asp-route-search="@Model.Query.Search" asp-route-sort="@Model.Query.Sort">
+                @category.Name
+            </a>
+        }
+    </div>
+
+    <!-- Productos -->
+    @if (Model.Products.Items.Count == 0)
+    {
+        var hasFilters = !string.IsNullOrWhiteSpace(Model.Query.Search)
+            || !string.IsNullOrWhiteSpace(Model.Query.CategorySlug)
+            || Model.Query.MaxPrice.HasValue;
+        <div class="empty-state my-5">
+            <div class="empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="60" cy="60" r="57" fill="#F7F1E3"/>
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="#C9A227" stroke-width="2"/>
+                    <text x="41" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+                    <text x="72" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+                </svg>
+            </div>
+            @if (hasFilters)
+            {
+                <h2>No encontramos productos</h2>
+                <p class="text-muted">Prueba con otros términos o explora todas nuestras colecciones.</p>
+                <a class="btn btn-brand" asp-action="Index">Ver todo el catálogo</a>
+            }
+            else
+            {
+                <h2>Nueva colección en camino</h2>
+                <p class="lead text-muted">Próximamente encontrarás nuestras nuevas creaciones.</p>
+                <p class="text-muted mb-4">Estamos preparando piezas únicas hechas a mano para ti. Contáctanos y entérate primero del lanzamiento.</p>
+                <a class="btn btn-brand" asp-controller="Contact" asp-action="Index"><i class="bi bi-envelope me-2"></i>Escríbenos</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var product in Model.Products.Items)
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <partial name="_ProductCard" model="product" />
+                </div>
+            }
+        </div>
+
+        <!-- Paginación -->
+        @if (Model.Products.TotalPages > 1)
+        {
+            <nav class="mt-5" aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(Model.Products.HasPrevious ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@(Model.Products.Page - 1)"
+                           asp-route-categorySlug="@Model.Query.CategorySlug"
+                           asp-route-search="@Model.Query.Search"
+                           asp-route-sort="@Model.Query.Sort"
+                           asp-route-maxPrice="@Model.Query.MaxPrice">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    @for (var i = 1; i <= Model.Products.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Products.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-page="@i"
+                               asp-route-categorySlug="@Model.Query.CategorySlug"
+                               asp-route-search="@Model.Query.Search"
+                               asp-route-sort="@Model.Query.Sort"
+                               asp-route-maxPrice="@Model.Query.MaxPrice">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Products.HasNext ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@(Model.Products.Page + 1)"
+                           asp-route-categorySlug="@Model.Query.CategorySlug"
+                           asp-route-search="@Model.Query.Search"
+                           asp-route-sort="@Model.Query.Sort"
+                           asp-route-maxPrice="@Model.Query.MaxPrice">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>

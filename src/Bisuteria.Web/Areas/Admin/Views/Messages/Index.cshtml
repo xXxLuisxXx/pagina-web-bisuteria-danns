@@ -1,0 +1,61 @@
+@model IReadOnlyList<ContactMessageDto>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="admin-title mb-0">Mensajes</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm @((bool)ViewBag.UnreadOnly ? "btn-outline-secondary" : "btn-gold")"
+           asp-action="Index" asp-route-unreadOnly="false">Todos</a>
+        <a class="btn btn-sm @((bool)ViewBag.UnreadOnly ? "btn-gold" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-unreadOnly="true">Sin leer (@ViewBag.UnreadCount)</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var message in Model)
+    {
+        <div class="col-lg-6">
+            <div class="card-admin p-3 @(message.IsRead ? "opacity-75" : "")">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <strong>@message.Name</strong>
+                        <span class="text-muted">· @message.Email</span>
+                        @if (!string.IsNullOrWhiteSpace(message.Phone))
+                        {
+                            <span class="text-muted">· @message.Phone</span>
+                        }
+                    </div>
+                    @if (!message.IsRead)
+                    {
+                        <span class="badge badge-status bg-warning text-dark">Nuevo</span>
+                    }
+                </div>
+                <h6 class="mb-1">@message.Subject</h6>
+                <p class="text-muted mb-3 small">@message.CreatedAt.ToString("dd MMM yyyy HH:mm")</p>
+                <p class="mb-3">@message.Message</p>
+                <div class="d-flex gap-2">
+                    @if (!message.IsRead)
+                    {
+                        <form asp-action="MarkAsRead" asp-route-id="@message.Id" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-envelope-open me-1"></i>Marcar leído</button>
+                        </form>
+                    }
+                    <a class="btn btn-sm btn-outline-primary" href="mailto:@message.Email"><i class="bi bi-reply me-1"></i>Responder</a>
+                    <form asp-action="Delete" asp-route-id="@message.Id" method="post" class="m-0" onsubmit="return confirm('¿Eliminar este mensaje?');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash me-1"></i>Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    @if (Model.Count == 0)
+    {
+        <div class="col-12">
+            <div class="card-admin p-4 text-center text-muted">
+                <i class="bi bi-envelope" style="font-size:2.5rem;"></i>
+                <p class="mt-2 mb-0">No hay mensajes.</p>
+            </div>
+        </div>
+    }
+</div>

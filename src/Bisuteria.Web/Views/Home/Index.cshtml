@@ -1,0 +1,270 @@
+@model HomeViewModel
+@using Bisuteria.Application.Interfaces
+@inject ISettingService SettingsService
+@{
+    var heroSettings = await SettingsService.GetAllAsync();
+    var heroTitle = heroSettings.GetValueOrDefault("HeroTitle") ?? "Bisutería que cuenta tu historia";
+    var heroSubtitle = heroSettings.GetValueOrDefault("HeroSubtitle") ?? "Piezas únicas y personalizadas, hechas a mano con elegancia y pasión.";
+    var instagramUrl = heroSettings.GetValueOrDefault("InstagramUrl");
+    var instagramHandle = heroSettings.GetValueOrDefault("InstagramHandle") ?? "bisuterias_danns";
+    var hasProducts = Model.Featured.Count > 0 || Model.NewArrivals.Count > 0 || Model.BestSellers.Count > 0;
+    var heroWords = heroTitle.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var heroAccent = heroWords.Length >= 3 ? string.Join(" ", heroWords.TakeLast(2)) : "";
+    var heroMain = heroWords.Length >= 3 ? string.Join(" ", heroWords.Take(heroWords.Length - 2)) : heroTitle;
+}
+
+<!-- Hero -->
+<section class="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="hero-badge"><i class="bi bi-gem"></i> Piezas únicas · Hechas a mano</span>
+                <h1>
+                    @heroMain
+                    @if (heroAccent.Length > 0)
+                    {
+                        <span class="accent">@heroAccent</span>
+                    }
+                </h1>
+                <p class="lead">@heroSubtitle</p>
+                <div class="hero-cta">
+                    <a class="btn btn-brand btn-lg text-uppercase fw-semibold" asp-controller="Catalog" asp-action="Index">
+                        Ver colección
+                    </a>
+                    <a class="btn btn-outline-brand btn-lg text-uppercase fw-semibold" asp-controller="Home" asp-action="About">
+                        Conoce nuestra historia
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-logo-composition" aria-hidden="true">
+                    <div class="hero-ring ring-1"></div>
+                    <div class="hero-ring ring-2"></div>
+                    <div class="hero-ring ring-3"></div>
+                    <div class="hero-sparkle s1">✦</div>
+                    <div class="hero-sparkle s2">✧</div>
+                    <div class="hero-sparkle s3">✦</div>
+                    <div class="hero-monogram">
+                        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="60" cy="60" r="58" fill="#0B0B0B"/>
+                            <circle cx="60" cy="60" r="53" fill="none" stroke="#C9A227" stroke-width="2.5"/>
+                            <circle cx="60" cy="60" r="47.5" fill="none" stroke="#E6C766" stroke-width="1" opacity="0.55"/>
+                            <path d="M60 17.5 l4.2 4.2 -4.2 4.2 -4.2 -4.2 Z" fill="#E6C766"/>
+                            <text x="41" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+                            <text x="72" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+                            <circle cx="21" cy="60" r="1.8" fill="#C9A227"/>
+                            <circle cx="99" cy="60" r="1.8" fill="#C9A227"/>
+                        </svg>
+                    </div>
+                    <div class="hero-wordmark">DANN'S</div>
+                    <div class="hero-tagline">Bisutería &amp; Accesorios</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@await Html.PartialAsync("_Alerts")
+
+<!-- Categorías -->
+@if (Model.Categories.Count > 0)
+{
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <span class="eyebrow">Colecciones</span>
+                <h2>Encuentra tu estilo</h2>
+                <p>Explora nuestras colecciones hechas a mano con materiales hipoalergénicos y acabados premium.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                @foreach (var category in Model.Categories.Take(8))
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <a class="category-tile animate-on-scroll" asp-controller="Catalog" asp-action="Index" asp-route-categorySlug="@category.Slug">
+                            <span class="tile-mark" aria-hidden="true">
+                                <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="60" cy="60" r="57" fill="#F7F1E3"/>
+                                    <circle cx="60" cy="60" r="52" fill="none" stroke="#C9A227" stroke-width="2"/>
+                                    <text x="60" y="74" font-family="'Playfair Display', Georgia, serif" font-size="44" font-weight="700" fill="#C9A227" text-anchor="middle">@(category.Name.Substring(0, 1))</text>
+                                </svg>
+                            </span>
+                            <span class="cat-name">@category.Name</span>
+                            <span class="cat-count">@category.ProductCount producto@(category.ProductCount == 1 ? "" : "s")</span>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Destacados -->
+@if (Model.Featured.Count > 0)
+{
+    <section class="section section-alt">
+        <div class="container">
+            <div class="section-head">
+                <span class="eyebrow">Los favoritos</span>
+                <h2>Destacados</h2>
+                <p>Las piezas más deseadas por nuestra comunidad.</p>
+            </div>
+            <div class="row g-4">
+                @foreach (var product in Model.Featured)
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <partial name="_ProductCard" model="product" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+else if (!hasProducts)
+{
+    <section class="section section-alt">
+        <div class="container">
+            <div class="empty-state animate-on-scroll">
+                <div class="empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="57" fill="#F7F1E3"/>
+                        <circle cx="60" cy="60" r="52" fill="none" stroke="#C9A227" stroke-width="2"/>
+                        <path d="M60 17.5 l4.2 4.2 -4.2 4.2 -4.2 -4.2 Z" fill="#E6C766"/>
+                        <text x="41" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#C9A227" text-anchor="middle">B</text>
+                        <text x="72" y="76" font-family="'Playfair Display', Georgia, serif" font-size="46" font-weight="700" fill="#E6C766" text-anchor="middle">D</text>
+                    </svg>
+                </div>
+                <h2>Nueva colección en camino</h2>
+                <p class="lead text-muted">Próximamente encontrarás nuestras nuevas creaciones.</p>
+                <p class="text-muted mb-4">Estamos preparando piezas únicas hechas a mano para ti. Mientras tanto, contáctanos por WhatsApp y entérate primero del lanzamiento.</p>
+                <a class="btn btn-brand" asp-controller="Contact" asp-action="Index"><i class="bi bi-envelope me-2"></i>Escríbenos</a>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Personalizador CTA -->
+<section class="section">
+    <div class="container">
+        <div class="cta-banner animate-on-scroll">
+            <span class="eyebrow" style="color:#6b551f;">¿Buscas algo único?</span>
+            <h2>Crea tu pieza personalizada</h2>
+            <p>Elige el producto base, el texto, la fuente, el color y los detalles. ¡Tú lo diseñas y nosotros lo creamos!</p>
+            <a class="btn btn-dark-brand btn-lg" asp-controller="Customizer" asp-action="Index">
+                <i class="bi bi-magic me-2"></i>Ir al personalizador
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Más vendidos -->
+@if (Model.BestSellers.Count > 0)
+{
+    <section class="section section-beige">
+        <div class="container">
+            <div class="section-head">
+                <span class="eyebrow">Éxito garantizado</span>
+                <h2>Los más vendidos</h2>
+                <p>Piezas que han conquistado corazones.</p>
+            </div>
+            <div class="row g-4">
+                @foreach (var product in Model.BestSellers)
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <partial name="_ProductCard" model="product" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Características -->
+<section class="section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <div class="feature-box animate-on-scroll">
+                    <div class="feature-icon"><i class="bi bi-hand-thumbs-up"></i></div>
+                    <h4>Materiales de calidad</h4>
+                    <p>Hipoalergénicos y resistentes al agua</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="feature-box animate-on-scroll">
+                    <div class="feature-icon"><i class="bi bi-brush"></i></div>
+                    <h4>Hecho a mano</h4>
+                    <p>Cada pieza es única y artesanal</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="feature-box animate-on-scroll">
+                    <div class="feature-icon"><i class="bi bi-truck"></i></div>
+                    <h4>Envío seguro</h4>
+                    <p>Empaque especial y entregas a tiempo</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="feature-box animate-on-scroll">
+                    <div class="feature-icon"><i class="bi bi-gift"></i></div>
+                    <h4>Listo para regalar</h4>
+                    <p>Empaque elegante con opción de regalo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Nuevos -->
+@if (Model.NewArrivals.Count > 0)
+{
+    <section class="section section-alt">
+        <div class="container">
+            <div class="section-head">
+                <span class="eyebrow">Recién llegados</span>
+                <h2>Novedades</h2>
+                <p>Descubre las piezas más recientes de nuestra colección.</p>
+            </div>
+            <div class="row g-4">
+                @foreach (var product in Model.NewArrivals)
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <partial name="_ProductCard" model="product" />
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+<!-- Instagram -->
+@if (!string.IsNullOrWhiteSpace(instagramUrl))
+{
+    <section class="section instagram-section">
+        <div class="container text-center">
+            <div class="instagram-card animate-on-scroll">
+                <div class="ig-icon"><i class="bi bi-instagram"></i></div>
+                <h2>Síguenos en Instagram</h2>
+                <p class="lead">Descubre nuestros nuevos diseños, procesos y novedades en tiempo real.</p>
+                <a class="btn btn-dark-brand btn-lg text-uppercase fw-semibold" href="@instagramUrl" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-instagram me-2"></i>Visitar Instagram
+                </a>
+                <div class="ig-handle mt-3">@($"@{instagramHandle}")</div>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- CTA final -->
+<section class="section">
+    <div class="container">
+        <div class="cta-banner animate-on-scroll">
+            <span class="eyebrow" style="color:#6b551f;">Regala momentos</span>
+            <h2>¿Tienes una fecha especial?</h2>
+            <p>Creamos la pieza perfecta para aniversarios, cumpleaños, baby showers y más.</p>
+            <div class="hero-cta justify-content-center">
+                <a class="btn btn-dark-brand btn-lg" asp-controller="Contact" asp-action="Index">Contáctanos</a>
+                <a class="btn btn-outline-brand btn-lg" asp-controller="Catalog" asp-action="Index">Ver productos</a>
+            </div>
+        </div>
+    </div>
+</section>

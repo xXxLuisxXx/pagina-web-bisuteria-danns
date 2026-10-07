@@ -1,0 +1,85 @@
+@model IReadOnlyList<ReviewAdminDto>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="admin-title mb-0">Reseñas</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm @((bool)ViewBag.PendingOnly ? "btn-gold" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-pendingOnly="false">Todas</a>
+        <a class="btn btn-sm @((bool)ViewBag.PendingOnly ? "btn-outline-secondary" : "btn-gold")"
+           asp-action="Index" asp-route-pendingOnly="true">Por aprobar (@ViewBag.PendingCount)</a>
+    </div>
+</div>
+
+<div class="card-admin">
+    <div class="table-responsive">
+        <table class="table table-admin mb-0">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cliente</th>
+                    <th>Opinión</th>
+                    <th class="text-center">Calificación</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var review in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <img class="product-mini-img" src="@review.ProductImageUrl" alt="@review.ProductName" />
+                                <a class="text-body text-decoration-none" asp-area="" asp-controller="Catalog" asp-action="Details" asp-route-id="@review.ProductId">@review.ProductName</a>
+                            </div>
+                        </td>
+                        <td>@review.CustomerName</td>
+                        <td style="max-width:300px;">
+                            @if (!string.IsNullOrWhiteSpace(review.Title))
+                            {
+                                <strong>@review.Title</strong><br>
+                            }
+                            <span class="text-muted small">@review.Comment</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="text-gold">@review.Rating <i class="bi bi-star-fill"></i></span>
+                        </td>
+                        <td class="small">@review.ReviewDate.ToString("dd MMM yyyy")</td>
+                        <td class="text-center">
+                            @if (review.IsApproved)
+                            {
+                                <span class="badge badge-status bg-success">Publicada</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-status bg-warning text-dark">Pendiente</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                @if (!review.IsApproved)
+                                {
+                                    <form asp-action="Approve" asp-route-id="@review.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-success" type="submit" title="Aprobar"><i class="bi bi-check-lg"></i></button>
+                                    </form>
+                                }
+                                <form asp-action="Delete" asp-route-id="@review.Id" method="post" class="m-0" onsubmit="return confirm('¿Eliminar esta reseña?');">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No hay reseñas.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

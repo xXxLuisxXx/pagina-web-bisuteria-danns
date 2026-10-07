@@ -1,0 +1,58 @@
+@model IReadOnlyList<ProductReportRow>
+
+<div class="mb-4">
+    <a class="text-muted small text-decoration-none" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Volver a reportes</a>
+    <h1 class="admin-title mt-2 mb-0">Reporte de productos</h1>
+</div>
+
+<form asp-action="Products" method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+    <div>
+        <label class="form-label small mb-0">Desde</label>
+        <input type="date" name="from" class="form-control form-control-sm" value="@(ViewBag.From?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div>
+        <label class="form-label small mb-0">Hasta</label>
+        <input type="date" name="to" class="form-control form-control-sm" value="@(ViewBag.To?.ToString("yyyy-MM-dd"))" />
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    <a class="btn btn-sm btn-outline-success" asp-action="ExportProducts" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+    <a class="btn btn-sm btn-outline-info" asp-action="ExportCsv" asp-route-report="products" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-filetype-csv me-1"></i>CSV</a>
+</form>
+
+<div class="card-admin">
+    <div class="table-responsive">
+        <table class="table table-admin mb-0">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th>SKU</th>
+                    <th class="text-end">Precio</th>
+                    <th class="text-center">Stock</th>
+                    <th class="text-center">Vendidos</th>
+                    <th class="text-end">Ingresos</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model)
+                {
+                    <tr>
+                        <td><strong>@row.Name</strong></td>
+                        <td>@row.Category</td>
+                        <td class="text-muted">@row.Sku</td>
+                        <td class="text-end">@row.Price.ToString("C")</td>
+                        <td class="text-center">
+                            <span class="badge badge-status @(row.Stock <= 5 ? "bg-warning text-dark" : "bg-success")">@row.Stock</span>
+                        </td>
+                        <td class="text-center">@row.Sold</td>
+                        <td class="text-end fw-semibold text-gold">@row.Revenue.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3">
+    <strong>Ingresos totales:</strong> <span class="text-gold">@ViewBag.TotalRevenue.ToString("C")</span>
+</div>
