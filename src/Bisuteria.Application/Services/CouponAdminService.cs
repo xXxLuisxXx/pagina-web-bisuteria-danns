@@ -67,13 +67,13 @@ public class CouponAdminService : ICouponAdminService
         Coupon coupon;
         var isNew = dto.Id == 0;
         if (await repo.AnyAsync(c => c.Id != dto.Id && c.Code == dto.Code.Trim().ToUpper(), ct))
-            throw new InvalidOperationException("Ya existe un cupón con ese código.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("Ya existe un cupón con ese código.");
 
         if (isNew)
         {
             var codeExists = await repo.AnyAsync(c => c.Code.ToUpper() == dto.Code.Trim().ToUpper(), ct);
             if (codeExists)
-                throw new InvalidOperationException("Ya existe un cupón con ese código.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("Ya existe un cupón con ese código.");
 
             coupon = new Coupon();
             await repo.AddAsync(coupon, ct);
@@ -82,7 +82,7 @@ public class CouponAdminService : ICouponAdminService
         {
             coupon = (await repo.GetByIdAsync(dto.Id, ct))!;
             if (coupon is null)
-                throw new InvalidOperationException("El cupón no existe.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("El cupón no existe.");
         }
 
         coupon.Code = dto.Code.Trim().ToUpperInvariant();

@@ -433,6 +433,13 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<string>("AdminNotes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("CheckoutToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CouponCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -522,6 +529,10 @@ namespace Bisuteria.Infrastructure.Migrations
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
+
+                    b.HasIndex("CheckoutToken")
+                        .IsUnique()
+                        .HasFilter("[CheckoutToken] IS NOT NULL");
 
                     b.HasIndex("Status");
 
@@ -708,6 +719,9 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("Sku");
+                    b.HasIndex(new[] { "Sku" }, "UX_Products_Sku")
+                        .IsUnique()
+                        .HasFilter("[Sku] IS NOT NULL");
 
                     b.HasIndex("Slug")
                         .IsUnique();

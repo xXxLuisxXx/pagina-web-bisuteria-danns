@@ -97,7 +97,9 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         using(var scope=f.Services.CreateScope())
         { var manager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();Assert.True((await manager.CreateAsync(new ApplicationUser{Email=email,UserName=email,IsActive=true},AuditFactory.Password)).Succeeded); }
         var result=await AuditFactory.Post(client,"/Account/ForgotPassword",new(){["Email"]=email});
-        Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);Assert.StartsWith("https://localhost/Account/ResetPassword",f.Mail.Url);
+        Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);
+        for (var attempt = 0; attempt < 100 && f.Mail.Url is null; attempt++) await Task.Delay(50);
+        Assert.StartsWith("https://localhost/Account/ResetPassword",f.Mail.Url);
         var query=Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(f.Mail.Url!).Query);
         var fields=new Dictionary<string,string>{["Email"]=email,["Token"]=query["token"].ToString(),["Password"]="Changed-Only!12345",["ConfirmPassword"]="Changed-Only!12345"};
         result=await AuditFactory.Post(client,"/Account/ResetPassword",fields);Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);
@@ -155,7 +157,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         db.Add(product);await db.SaveChangesAsync();
         var orders=scope.ServiceProvider.GetRequiredService<IOrderService>();
         var count=await db.Orders.CountAsync();
-        var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>orders.CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=product.Id,Quantity=4,UnitPrice=20},new CartItemDto{ProductId=product.Id,Quantity=4,UnitPrice=20}]},null));
+        var error=await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>orders.CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=product.Id,Quantity=4,UnitPrice=20},new CartItemDto{ProductId=product.Id,Quantity=4,UnitPrice=20}]},null));
         Assert.StartsWith("Stock insuficiente",error.Message);
         Assert.Equal(5,(await db.Products.AsNoTracking().SingleAsync(p=>p.Id==product.Id)).Stock);
         Assert.Equal(count,await db.Orders.CountAsync());
@@ -165,7 +167,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     [Fact] public async Task SocialLinksAndSingleWhatsApp()
     {
         var html=await f.Client().GetStringAsync("/Contact");Assert.Single(Regex.Matches(html,"class=\"whatsapp-float\""));
-        Assert.Contains("wa.me/593982599801",html);Assert.Contains("instagram.com/bisuterias_danns/",html);Assert.Contains("tiktok.com/@bisuteria_danns",html);Assert.DoesNotContain("newsletter",html,StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("wa.me/12025550100",html);Assert.Contains("instagram.com/example/",html);Assert.Contains("tiktok.com/@example",html);Assert.DoesNotContain("newsletter",html,StringComparison.OrdinalIgnoreCase);
     }
     [Fact] public async Task SitemapLinksBindSlug()
     { var xml=await f.Client().GetStringAsync("/sitemap.xml");Assert.Contains("slug=audit-product",xml);Assert.DoesNotContain("audit-hidden",xml); }
@@ -221,13 +223,13 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         using(var image=new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgb24>(4,4)) await SixLabors.ImageSharp.ImageExtensions.SaveAsPngAsync(image,png);
         png.Position=0;
         var file=new Microsoft.AspNetCore.Http.FormFile(png,0,png.Length,"image","safe.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>service.SaveOptimizedAsync(file,"../escape"));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveOptimizedAsync(file,"../escape"));
         var url=await service.SaveOptimizedAsync(file,"products");Assert.EndsWith(".jpg",url);
         using var text=new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<script>alert(1)</script>"));
         var fake=new Microsoft.AspNetCore.Http.FormFile(text,0,text.Length,"image","fake.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>service.SaveOptimizedAsync(fake,"products"));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveOptimizedAsync(fake,"products"));
         var large=new Microsoft.AspNetCore.Http.FormFile(text,0,9*1024*1024,"image","big.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>service.SaveOptimizedAsync(large,"products"));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveOptimizedAsync(large,"products"));
         Directory.Delete(folder,true); // Solo el directorio temporal exclusivo de esta prueba.
     }
     [Fact] public async Task ExportRenderedPagesForResponsiveChecks()

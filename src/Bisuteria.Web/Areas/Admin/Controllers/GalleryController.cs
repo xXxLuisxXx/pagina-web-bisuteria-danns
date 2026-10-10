@@ -51,14 +51,14 @@ public class GalleryController : AdminBaseController
                 dto.ImageUrl = uploadedUrl;
             }
             if (string.IsNullOrWhiteSpace(dto.ImageUrl))
-                throw new InvalidOperationException("Debes subir una imagen o indicar una URL.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("Debes subir una imagen o indicar una URL.");
             if (dto.Id == 0) await _gallery.CreateAsync(dto, ct);
             else await _gallery.UpdateAsync(dto, ct);
             saved = true;
             TempData["Success"] = "Imagen guardada correctamente.";
             return RedirectToAction(nameof(Index));
         }
-        catch (InvalidOperationException ex)
+        catch (Bisuteria.Application.Services.BusinessRuleException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             return View(dto);

@@ -56,7 +56,7 @@ public class GalleryAdminService : IGalleryAdminService
     public async Task<int> CreateAsync(GalleryImageDto dto, CancellationToken ct = default)
     {
         InputValidation.Check(new GalleryImageValidator(), dto);
-        if (string.IsNullOrWhiteSpace(dto.ImageUrl)) throw new InvalidOperationException("Indica una imagen válida.");
+        if (string.IsNullOrWhiteSpace(dto.ImageUrl)) throw new Bisuteria.Application.Services.BusinessRuleException("Indica una imagen válida.");
         var entity = new GalleryImage
         {
             ImageUrl = dto.ImageUrl,
@@ -73,9 +73,9 @@ public class GalleryAdminService : IGalleryAdminService
     public async Task UpdateAsync(GalleryImageDto dto, CancellationToken ct = default)
     {
         InputValidation.Check(new GalleryImageValidator(), dto);
-        if (string.IsNullOrWhiteSpace(dto.ImageUrl)) throw new InvalidOperationException("Indica una imagen válida.");
+        if (string.IsNullOrWhiteSpace(dto.ImageUrl)) throw new Bisuteria.Application.Services.BusinessRuleException("Indica una imagen válida.");
         var entity = await _db.GalleryImages.FirstOrDefaultAsync(g => g.Id == dto.Id, ct)
-            ?? throw new InvalidOperationException("La imagen no existe.");
+            ?? throw new Bisuteria.Application.Services.BusinessRuleException("La imagen no existe.");
 
         entity.ImageUrl = dto.ImageUrl;
         entity.Title = dto.Title;

@@ -10,6 +10,7 @@ namespace Bisuteria.Web.Controllers;
 
 public class CheckoutController : Controller
 {
+    private const string TokenKey = "Bisuteria.CheckoutToken";
     private readonly CartManager _cart;
     private readonly IOrderService _orders;
     private readonly IConfiguration _configuration;
@@ -35,15 +36,19 @@ public class CheckoutController : Controller
 
         var model = new CheckoutViewModel
         {
+            CheckoutToken = Guid.TryParse(HttpContext.Session.GetString(TokenKey), out var saved) ? saved : Guid.NewGuid(),
             Cart = cart,
             CouponCode = cart.CouponCode,
             PaymentMethod = AvailablePayments.FirstOrDefault()
         };
+        HttpContext.Session.SetString(TokenKey, model.CheckoutToken.Value.ToString());
 
         // Pre-rellenar datos del cliente autenticado.
         if (User.Identity?.IsAuthenticated == true)
         {
-            model.CustomerName = User.Identity.Name ?? string.Empty;
+            var users = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Bisuteria.Infrastructure.Identity.ApplicationUser>>();
+            var user = await users.GetUserAsync(User);
+            model.CustomerName = user is null ? "" : $"{user.FirstName} {user.LastName}".Trim();
             model.CustomerEmail = User.Identity.Name ?? string.Empty;
         }
 
@@ -56,6 +61,8 @@ public class CheckoutController : Controller
     {
         ViewData["Title"] = "Finalizar compra";
         ViewBag.AvailablePayments = AvailablePayments;
+        if (!model.CheckoutToken.HasValue || !Guid.TryParse(HttpContext.Session.GetString(TokenKey), out var expected) || expected != model.CheckoutToken)
+            return BadRequest("La sesión de compra expiró. Recarga el formulario.");
         var cart = await _cart.GetCartAsync(ct);
         model.Cart = cart;
 
@@ -78,13 +85,14 @@ public class CheckoutController : Controller
         {
             order = await _orders.CreateAsync(dto, cart, userId, ct);
         }
-        catch (InvalidOperationException ex)
+        catch (Bisuteria.Application.Services.BusinessRuleException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             return View(model);
         }
 
         await _cart.ClearAsync();
+        HttpContext.Session.Remove(TokenKey);
 
         TempData["OrderNumber"] = order.OrderNumber;
         HttpContext.Session.SetString("Bisuteria.LastOrderNumber", order.OrderNumber);

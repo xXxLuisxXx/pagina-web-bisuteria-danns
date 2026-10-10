@@ -66,9 +66,7 @@ public class Product : BaseEntity
                                          .ThenBy(i => i.DisplayOrder)
                                          .FirstOrDefault()?.ImageUrl;
 
-    /// <summary>Precio final (considera compare price si aplica).</summary>
+    /// <summary>Precio cobrado. ComparePrice solo informa el precio anterior.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public decimal EffectivePrice => ComparePrice.HasValue && ComparePrice.Value > 0 && ComparePrice.Value < Price
-        ? ComparePrice.Value
-        : Price;
+    public decimal EffectivePrice => Price;
 }

@@ -6,7 +6,7 @@ public static class InputValidation
     {
         var result = validator.Validate(value);
         if (!result.IsValid)
-            throw new InvalidOperationException(string.Join(" ", result.Errors.Select(x => x.ErrorMessage).Distinct()));
+            throw new Bisuteria.Application.Services.BusinessRuleException(string.Join(" ", result.Errors.Select(x => x.ErrorMessage).Distinct()));
     }
 
     public static bool IsImageUrl(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 500 &&

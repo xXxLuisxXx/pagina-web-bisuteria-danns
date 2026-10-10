@@ -55,7 +55,7 @@ public partial class AuditTests
         image.Id=await gallery.CreateAsync(image);image.Title="Título actualizado";await gallery.UpdateAsync(image);
         Assert.Equal(image.Title,(await gallery.GetByIdAsync(image.Id))!.Title);
         await gallery.DeleteAsync(image.Id);Assert.Null(await gallery.GetByIdAsync(image.Id));
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>gallery.CreateAsync(new GalleryImageDto{ImageUrl="javascript:alert(1)"}));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>gallery.CreateAsync(new GalleryImageDto{ImageUrl="javascript:alert(1)"}));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public partial class AuditTests
         using var verify=f.Services.CreateScope();var db=verify.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.Equal(1,(await db.Coupons.SingleAsync(c=>c.Code==code)).UsedCount);
         var stock=(await db.Products.FindAsync(f.ProductId))!.Stock;
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>verify.ServiceProvider.GetRequiredService<IOrderService>().CreateAsync(Checkout(),new CartDto{CouponCode="NOEXISTE",Items=[new CartItemDto{ProductId=f.ProductId,Quantity=1}]},null));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>verify.ServiceProvider.GetRequiredService<IOrderService>().CreateAsync(Checkout(),new CartDto{CouponCode="NOEXISTE",Items=[new CartItemDto{ProductId=f.ProductId,Quantity=1}]},null));
         Assert.Equal(stock,(await db.Products.AsNoTracking().SingleAsync(p=>p.Id==f.ProductId)).Stock);
     }
 
@@ -99,7 +99,7 @@ public partial class AuditTests
         using var png=new MemoryStream();using(var image=new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgb24>(4,4))await SixLabors.ImageSharp.ImageExtensions.SaveAsPngAsync(image,png);
         png.Position=0;var good=new Microsoft.AspNetCore.Http.FormFile(png,0,png.Length,"image","safe.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
         using var badStream=new MemoryStream(new byte[]{1,2,3});var bad=new Microsoft.AspNetCore.Http.FormFile(badStream,0,3,"image","invalid.exe");
-        await Assert.ThrowsAsync<InvalidOperationException>(()=>service.SaveManyAsync([good,bad],"products"));
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveManyAsync([good,bad],"products"));
         Assert.Empty(Directory.GetFiles(folder,"*",SearchOption.AllDirectories));
         Directory.Delete(folder,true);
     }

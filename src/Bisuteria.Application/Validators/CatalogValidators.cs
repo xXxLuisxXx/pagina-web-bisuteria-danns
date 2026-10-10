@@ -19,8 +19,11 @@ public class ProductInputValidator : AbstractValidator<ProductInputDto>
             .LessThanOrEqualTo(9999999).WithMessage("El precio es demasiado alto.");
 
         RuleFor(x => x.ComparePrice)
-            .GreaterThan(0).When(x => x.ComparePrice.HasValue)
-            .WithMessage("El precio de referencia debe ser mayor que cero.");
+            .Must((product, price) => !price.HasValue || price > product.Price)
+            .WithMessage("El precio anterior debe ser mayor que el precio de venta.");
+        RuleFor(x => x.Price).Must(p => decimal.Round(p, 2) == p).WithMessage("El precio admite hasta 2 decimales.");
+        RuleFor(x => x.ComparePrice).Must(p => !p.HasValue || (p <= 9999999 && decimal.Round(p.Value, 2) == p))
+            .WithMessage("El precio anterior admite hasta 2 decimales y debe estar dentro del rango permitido.");
 
         RuleFor(x => x.Stock)
             .GreaterThanOrEqualTo(0).WithMessage("El stock no puede ser negativo.");

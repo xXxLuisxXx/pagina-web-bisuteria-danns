@@ -72,7 +72,7 @@ public class ProductsController : AdminBaseController
                 : "Producto guardado correctamente.";
             return RedirectToAction(nameof(Index));
         }
-        catch (InvalidOperationException ex)
+        catch (Bisuteria.Application.Services.BusinessRuleException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             dto.Images = dto.Id > 0 ? (await _products.GetForEditAsync(dto.Id, ct))?.Images ?? new() : new();

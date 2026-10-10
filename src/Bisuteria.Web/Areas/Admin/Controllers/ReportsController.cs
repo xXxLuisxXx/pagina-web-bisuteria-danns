@@ -24,12 +24,11 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> Sales(DateTime? from = null, DateTime? to = null, OrderStatus? status = null, CancellationToken ct = default)
+    public async Task<IActionResult> Sales(DateTime? from = null, DateTime? to = null, OrderStatus? status = null, CancellationToken ct = default, PaymentStatus? payment = null)
     {
         ViewData["Title"] = "Reporte de ventas";
-        var rows = status.HasValue
-            ? await _admin.GetReportByPeriodAsync(status, ct)
-            : await _admin.GetSalesReportAsync(from, to, ct);
+        var rows = await _admin.GetSalesReportAsync(from, to, ct, payment);
+        if (status.HasValue) rows = rows.Where(r => r.Status == status.Value.GetLabel()).ToList();
 
         if (from.HasValue)
             rows = rows.Where(r => r.Date.Date >= from.Value.Date).ToList();
@@ -39,6 +38,7 @@ public class ReportsController : AdminBaseController
         ViewBag.From = from;
         ViewBag.To = to;
         ViewBag.Status = status;
+        ViewBag.Payment = payment;
         ViewBag.Statuses = Enum.GetValues<OrderStatus>();
         ViewBag.Total = rows.Sum(r => r.Total);
         ViewBag.Count = rows.Count;
@@ -57,9 +57,10 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportSales(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    public async Task<IActionResult> ExportSales(DateTime? from = null, DateTime? to = null, CancellationToken ct = default, PaymentStatus? payment = null, OrderStatus? status = null)
     {
-        var rows = await _admin.GetSalesReportAsync(from, to, ct);
+        var rows = await _admin.GetSalesReportAsync(from, to, ct, payment);
+        if (status.HasValue) rows = rows.Where(r => r.Status == status.Value.GetLabel()).ToList();
         if (from.HasValue)
             rows = rows.Where(r => r.Date.Date >= from.Value.Date).ToList();
         if (to.HasValue)
@@ -157,12 +158,13 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportCsv(string report, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    public async Task<IActionResult> ExportCsv(string report, DateTime? from = null, DateTime? to = null, CancellationToken ct = default, PaymentStatus? payment = null, OrderStatus? status = null)
     {
         var sb = new StringBuilder();
         if (report == "sales")
         {
-            var rows = await _admin.GetSalesReportAsync(from, to, ct);
+            var rows = await _admin.GetSalesReportAsync(from, to, ct, payment);
+        if (status.HasValue) rows = rows.Where(r => r.Status == status.Value.GetLabel()).ToList();
             sb.AppendLine("Pedido;Fecha;Cliente;Provincia;Estado;Pago;Artículos;Subtotal;Descuento;Envío;Total");
             foreach (var r in rows)
                 sb.AppendLine($"{r.OrderNumber};{r.Date:dd/MM/yyyy};{Csv(r.Customer)};{Csv(r.Province)};{r.Status};{r.PaymentMethod};{r.Items};{r.Subtotal.ToString("F2", CultureInfo.InvariantCulture)};{r.Discount.ToString("F2", CultureInfo.InvariantCulture)};{r.Shipping.ToString("F2", CultureInfo.InvariantCulture)};{r.Total.ToString("F2", CultureInfo.InvariantCulture)}");

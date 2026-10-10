@@ -34,11 +34,6 @@ public class SettingService : ISettingService
         _cache = settings.ToDictionary(s => s.Key, s => s.Value ?? string.Empty);
         foreach (var key in _cache.Keys.Where(k => k.EndsWith("Url", StringComparison.Ordinal)).ToArray())
             if (!Uri.TryCreate(_cache[key], UriKind.Absolute, out var uri) || uri.Scheme != "https") _cache[key] = "";
-        _cache["WhatsApp"] = "+593 98 259 9801";
-        _cache["InstagramUrl"] = "https://www.instagram.com/bisuterias_danns/";
-        _cache["InstagramHandle"] = "bisuterias_danns";
-        _cache["TikTokUrl"] = "https://www.tiktok.com/@bisuteria_danns?is_from_webapp=1&sender_device=pc";
-        _cache["TikTokHandle"] = "bisuteria_danns";
         return new Dictionary<string, string>(_cache);
     }
 

@@ -44,7 +44,7 @@ public class BlogController : AdminBaseController
             return View(dto);
 
         try { await _blog.SaveAsync(dto, ct); }
-        catch (InvalidOperationException ex)
+        catch (Bisuteria.Application.Services.BusinessRuleException ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
             return View(dto);

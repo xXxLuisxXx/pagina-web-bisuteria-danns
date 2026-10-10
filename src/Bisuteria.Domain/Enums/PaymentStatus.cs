@@ -10,3 +10,15 @@ public enum PaymentStatus
     Failed = 3,
     Refunded = 4
 }
+
+public static class PaymentStatusExtensions
+{
+    public static string GetLabel(this PaymentStatus status) => status switch
+    {
+        PaymentStatus.Pending => "Pendiente",
+        PaymentStatus.Paid => "Pagado",
+        PaymentStatus.Failed => "Fallido",
+        PaymentStatus.Refunded => "Reembolsado",
+        _ => "Desconocido"
+    };
+}

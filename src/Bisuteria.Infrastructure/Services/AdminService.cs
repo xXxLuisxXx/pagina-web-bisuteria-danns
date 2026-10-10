@@ -1,3 +1,4 @@
+using Bisuteria.Application.Services;
 using Bisuteria.Application.Mappings;
 using Bisuteria.Application.DTOs.Admin;
 using Bisuteria.Application.DTOs.Orders;
@@ -36,22 +37,22 @@ public class AdminService : IAdminService
 
     public async Task<DashboardStats> GetDashboardAsync(CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow;
-        var todayStart = now.Date;
-        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var now = SalesCriteria.Local(DateTime.UtcNow);
+        var todayStart = SalesCriteria.Utc(now.Date);
+        var monthStart = SalesCriteria.Utc(new DateTime(now.Year, now.Month, 1));
         var twelveMonthsAgo = monthStart.AddMonths(-11);
 
         var orders = _context.Orders;
         var items = _context.OrderItems;
 
-        var salesToday = await orders
+        var salesToday = await SalesCriteria.Apply(orders)
             .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= todayStart)
             .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
 
         var ordersToday = await orders
             .CountAsync(o => o.CreatedAt >= todayStart, ct);
 
-        var salesMonth = await orders
+        var salesMonth = await SalesCriteria.Apply(orders)
             .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= monthStart)
             .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
 
@@ -73,7 +74,7 @@ public class AdminService : IAdminService
 
         var totalOrders = await orders.CountAsync(ct);
 
-        var totalSales = await orders
+        var totalSales = await SalesCriteria.Apply(orders)
             .Where(o => o.Status != OrderStatus.Cancelled)
             .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
 
@@ -84,9 +85,9 @@ public class AdminService : IAdminService
         var unreadMessages = await _context.ContactMessages.CountAsync(m => !m.IsRead, ct);
 
         // Ventas de los últimos 12 meses.
-        var salesByMonth = await orders
+        var salesByMonth = await SalesCriteria.Apply(orders)
             .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= twelveMonthsAgo)
-            .GroupBy(o => new { o.CreatedAt.Year, o.CreatedAt.Month })
+            .GroupBy(o => new { o.CreatedAt.AddHours(-5).Year, o.CreatedAt.AddHours(-5).Month })
             .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(o => o.Total) })
             .ToListAsync(ct);
 
@@ -336,20 +337,20 @@ public class AdminService : IAdminService
         return result.Succeeded;
     }
 
-    public async Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken ct = default)
+    public async Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken ct = default, PaymentStatus? payment = null)
     {
-        IQueryable<Order> q = _context.Orders.AsNoTracking().Include(o => o.Items);
+        IQueryable<Order> q = SalesCriteria.Apply(_context.Orders.AsNoTracking(), payment: payment).Include(o => o.Items);
         if (from.HasValue)
-            q = q.Where(o => o.CreatedAt >= from.Value);
+            q = SalesCriteria.Apply(q, from: from);
         if (to.HasValue)
-            q = q.Where(o => o.CreatedAt <= to.Value.AddDays(1));
+            q = SalesCriteria.Apply(q, to: to);
 
         var orders = await q.OrderBy(o => o.CreatedAt).ToListAsync(ct);
 
         return orders.Select(o => new SalesReportRow
         {
             OrderNumber = o.OrderNumber,
-            Date = o.CreatedAt,
+            Date = SalesCriteria.Local(o.CreatedAt),
             Customer = o.CustomerName,
             Province = o.Province,
             Status = o.Status.GetLabel(),
@@ -366,9 +367,9 @@ public class AdminService : IAdminService
     {
         var q = _context.OrderItems.AsNoTracking().Where(i => i.ProductId != null && i.Order != null && i.Order.Status != OrderStatus.Cancelled);
         if (from.HasValue)
-            q = q.Where(i => i.Order != null && i.Order.CreatedAt >= from.Value);
+            { var start = SalesCriteria.Utc(from.Value.Date); q = q.Where(i => i.Order != null && i.Order.CreatedAt >= start); }
         if (to.HasValue)
-            q = q.Where(i => i.Order != null && i.Order.CreatedAt <= to.Value.AddDays(1));
+            { var end = SalesCriteria.Utc(to.Value.Date.AddDays(1)); q = q.Where(i => i.Order != null && i.Order.CreatedAt < end); }
 
         var rows = await q
             .GroupBy(i => i.ProductId!)
@@ -405,7 +406,7 @@ public class AdminService : IAdminService
 
     public async Task<List<SalesReportRow>> GetReportByPeriodAsync(OrderStatus? status = null, CancellationToken ct = default)
     {
-        IQueryable<Order> q = _context.Orders.AsNoTracking().Include(o => o.Items);
+        IQueryable<Order> q = SalesCriteria.Apply(_context.Orders.AsNoTracking()).Include(o => o.Items);
         if (status.HasValue)
             q = q.Where(o => o.Status == status.Value);
 
@@ -414,7 +415,7 @@ public class AdminService : IAdminService
         return orders.Select(o => new SalesReportRow
         {
             OrderNumber = o.OrderNumber,
-            Date = o.CreatedAt,
+            Date = SalesCriteria.Local(o.CreatedAt),
             Customer = o.CustomerName,
             Province = o.Province,
             Status = o.Status.GetLabel(),

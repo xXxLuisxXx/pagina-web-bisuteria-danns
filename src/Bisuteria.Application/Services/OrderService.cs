@@ -37,11 +37,16 @@ public class OrderService : IOrderService
     {
         InputValidation.Check(new CheckoutValidator(), checkout);
         if (cart.Items.Any(i => i.Quantity < 1 || i.Quantity > 50 || i.UnitPrice < 0))
-            throw new InvalidOperationException("El carrito contiene cantidades o precios inválidos.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("El carrito contiene cantidades o precios inválidos.");
         if (cart.IsEmpty)
-            throw new InvalidOperationException("El carrito está vacío.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("El carrito está vacío.");
 
         var orderRepo = _unitOfWork.Repository<Order>();
+        if (checkout.CheckoutToken.HasValue)
+        {
+            var existing = await LoadOrderQuery().SingleOrDefaultAsync(o => o.CheckoutToken == checkout.CheckoutToken, ct);
+            if (existing is not null) return EntityMappings.ToOrder(existing);
+        }
         var productRepo = _unitOfWork.Repository<Product>();
         var customizationRepo = _unitOfWork.Repository<Customization>();
         var stockRepo = _unitOfWork.Repository<StockMovement>();
@@ -53,9 +58,9 @@ public class OrderService : IOrderService
         foreach (var group in cart.Items.GroupBy(i => i.ProductId))
         {
             if (!products.TryGetValue(group.Key, out var product) || !product.IsActive || product.Category?.IsActive != true)
-                throw new InvalidOperationException("Un producto del carrito ya no está a la venta.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("Un producto del carrito ya no está a la venta.");
             if (product.Stock < group.Sum(i => i.Quantity))
-                throw new InvalidOperationException($"Stock insuficiente para '{product.Name}'. Disponibles: {product.Stock}.");
+                throw new Bisuteria.Application.Services.BusinessRuleException($"Stock insuficiente para '{product.Name}'. Disponibles: {product.Stock}.");
         }
 
         var lines = new List<OrderItem>();
@@ -67,7 +72,7 @@ public class OrderService : IOrderService
             {
                 customization = await customizationRepo.GetByIdAsync(item.CustomizationId.Value, ct);
                 if (customization is null || customization.ProductId != product.Id || !product.IsCustomizable)
-                    throw new InvalidOperationException("La personalización no corresponde a un producto disponible.");
+                    throw new Bisuteria.Application.Services.BusinessRuleException("La personalización no corresponde a un producto disponible.");
             }
             lines.Add(new OrderItem
             {
@@ -85,8 +90,15 @@ public class OrderService : IOrderService
         var discount = 0m;
         if (!string.IsNullOrWhiteSpace(cart.CouponCode))
         {
+            if (bool.TryParse(await _settings.GetAsync("CouponSingleUsePerCustomer", "false", ct), out var singleUse) && singleUse)
+            {
+                if (string.IsNullOrWhiteSpace(userId)) throw new Bisuteria.Application.Services.BusinessRuleException("Inicia sesión para usar un cupón.");
+                var normalized = cart.CouponCode.Trim().ToUpperInvariant();
+                if (await orderRepo.AnyAsync(o => o.UserId == userId && o.CouponCode == normalized && o.Status != OrderStatus.Cancelled, ct))
+                    throw new Bisuteria.Application.Services.BusinessRuleException("Ya utilizaste este cupón en otro pedido vigente.");
+            }
             var coupon = await _couponService.ValidateAsync(cart.CouponCode, subtotal, ct);
-            if (!coupon.IsValid) throw new InvalidOperationException(coupon.Message);
+            if (!coupon.IsValid) throw new Bisuteria.Application.Services.BusinessRuleException(coupon.Message);
             discount = coupon.Discount;
         }
         var threshold = await _settings.GetFreeShippingThresholdAsync(ct);
@@ -95,6 +107,8 @@ public class OrderService : IOrderService
 
         var order = new Order
         {
+            CheckoutToken = checkout.CheckoutToken,
+            CouponCode = string.IsNullOrWhiteSpace(cart.CouponCode) ? null : cart.CouponCode.Trim().ToUpperInvariant(),
             OrderNumber = await GenerateOrderNumberAsync(ct),
             UserId = userId,
             CustomerName = checkout.CustomerName,
@@ -223,7 +237,7 @@ public class OrderService : IOrderService
 
         if (!Enum.IsDefined(status)) return false;
         if (adminNotes?.Length > 2000) return false;
-        if (order.Status == OrderStatus.Cancelled && status != OrderStatus.Cancelled) return false;
+        if (!OrderTransitions.Allows(order.Status, status, order.PaymentStatus)) return false;
         var statusChanged = order.Status != status;
         order.Status = status;
         order.UpdatedAt = DateTime.UtcNow;
@@ -232,7 +246,18 @@ public class OrderService : IOrderService
 
         // Si el pedido se cancela, reponer el inventario.
         if (statusChanged && status == OrderStatus.Cancelled)
+        {
             await RestoreStockAsync(order, ct);
+            if (order.CouponCode is not null)
+            {
+                var coupon = await _unitOfWork.Repository<Coupon>().FirstOrDefaultAsync(c => c.Code == order.CouponCode, ct);
+                if (coupon is not null)
+                {
+                    coupon.UsedCount = Math.Max(0, coupon.UsedCount - 1);
+                    _unitOfWork.Repository<Coupon>().Update(coupon);
+                }
+            }
+        }
 
         repo.Update(order);
         await _unitOfWork.SaveChangesAsync(ct);
@@ -249,9 +274,14 @@ public class OrderService : IOrderService
         if (order is null)
             return false;
 
-        if (!Enum.IsDefined(status)) return false;
+        if (!OrderTransitions.AllowsPayment(order.Status, order.PaymentStatus, status)) return false;
         order.PaymentStatus = status;
-        foreach (var payment in order.Payments) payment.Status = status;
+        foreach (var payment in order.Payments)
+        {
+            payment.Status = status;
+            if (status == PaymentStatus.Paid && payment.PaidAt is null)
+                payment.PaidAt = DateTime.UtcNow;
+        }
         order.UpdatedAt = DateTime.UtcNow;
         repo.Update(order);
         await _unitOfWork.SaveChangesAsync(ct);

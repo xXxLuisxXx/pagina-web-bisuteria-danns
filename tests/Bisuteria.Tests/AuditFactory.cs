@@ -78,6 +78,12 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         var product = new Product { Name="Pieza de ensayo aislada", Slug="audit-product", Price=20, Stock=100, Category=category, IsActive=true, IsCustomizable=true, IsFeatured=true };
         var hidden = new Product { Name="Oculto", Slug="audit-hidden", Price=30, Stock=5, Category=category, IsActive=false };
         db.AddRange(category, product, hidden);
+        db.SiteSettings.AddRange(
+            new SiteSetting { Key = "WhatsApp", Value = "+1 202 555 0100" },
+            new SiteSetting { Key = "InstagramUrl", Value = "https://www.instagram.com/example/" },
+            new SiteSetting { Key = "TikTokUrl", Value = "https://www.tiktok.com/@example" },
+            new SiteSetting { Key = "FreeShippingThreshold", Value = "" },
+            new SiteSetting { Key = "ShippingCost", Value = "0" });
         await db.SaveChangesAsync();
         ProductId=product.Id; HiddenProductId=hidden.Id; CategoryId=category.Id;
     }
@@ -101,6 +107,11 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
     }
     public static async Task<HttpResponseMessage> Post(HttpClient client,string path, Dictionary<string,string> fields,string tokenPath="/Account/Login")
     {
+        if (path == "/Checkout" && !fields.ContainsKey("CheckoutToken"))
+        {
+            var html = await client.GetStringAsync("/Checkout");
+            fields["CheckoutToken"] = Regex.Match(html, "name=\"CheckoutToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        }
         fields["__RequestVerificationToken"]=await Token(client,tokenPath);
         return await client.PostAsync(path,new FormUrlEncodedContent(fields));
     }

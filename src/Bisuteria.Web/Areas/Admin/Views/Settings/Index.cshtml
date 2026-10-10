@@ -30,7 +30,7 @@
                         }
                         else
                         {
-                            <input id="values_@item.Key" readonly="@(item.Key is "WhatsApp" or "InstagramUrl" or "InstagramHandle" or "TikTokUrl" or "TikTokHandle")" name="values[@item.Key]" class="form-control" value="@item.Value" />
+                            <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" />
                         }
                     </div>
                 }

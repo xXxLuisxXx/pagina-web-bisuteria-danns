@@ -43,15 +43,15 @@ public class CatalogService : ICatalogService
         }
 
         if (query.MinPrice.HasValue)
-            q = q.Where(p => (p.ComparePrice.HasValue && p.ComparePrice.Value > 0 && p.ComparePrice.Value < p.Price ? p.ComparePrice.Value : p.Price) >= query.MinPrice.Value);
+            q = q.Where(p => p.Price >= query.MinPrice.Value);
 
         if (query.MaxPrice.HasValue)
-            q = q.Where(p => (p.ComparePrice.HasValue && p.ComparePrice.Value > 0 && p.ComparePrice.Value < p.Price ? p.ComparePrice.Value : p.Price) <= query.MaxPrice.Value);
+            q = q.Where(p => p.Price <= query.MaxPrice.Value);
 
         q = query.Sort switch
         {
-            "price_asc" => q.OrderBy(p => (p.ComparePrice.HasValue && p.ComparePrice.Value > 0 && p.ComparePrice.Value < p.Price ? p.ComparePrice.Value : p.Price)),
-            "price_desc" => q.OrderByDescending(p => (p.ComparePrice.HasValue && p.ComparePrice.Value > 0 && p.ComparePrice.Value < p.Price ? p.ComparePrice.Value : p.Price)),
+            "price_asc" => q.OrderBy(p => p.Price),
+            "price_desc" => q.OrderByDescending(p => p.Price),
             "name_asc" => q.OrderBy(p => p.Name),
             "newest" => q.OrderByDescending(p => p.CreatedAt),
             "bestsellers" => q.OrderByDescending(p => p.SoldCount),
@@ -249,7 +249,7 @@ public class CatalogService : ICatalogService
     {
         var products = await _unitOfWork.Repository<Product>().Query()
             .Where(p => p.IsActive && p.Category != null && p.Category.IsActive)
-            .Select(p => (p.ComparePrice.HasValue && p.ComparePrice.Value > 0 && p.ComparePrice.Value < p.Price ? p.ComparePrice.Value : p.Price))
+            .Select(p => p.Price)
             .ToListAsync(ct);
 
         return products.Count == 0

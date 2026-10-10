@@ -48,7 +48,7 @@ public partial class AuditTests
         Assert.Equal(27m,order.Items.Single().UnitPrice);
         await orders.UpdateStatusAsync(order.Id,OrderStatus.Cancelled);
         var wrong=await custom.SaveAsync(new CustomizationInputDto {ProductId=f.HiddenProductId,Text="Ajena"});
-        var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>orders.CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=f.ProductId,Quantity=1,CustomizationId=wrong}]},null));
+        var error=await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>orders.CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=f.ProductId,Quantity=1,CustomizationId=wrong}]},null));
         Assert.Contains("personalización",error.Message);
     }
 
@@ -59,7 +59,7 @@ public partial class AuditTests
         var product=new Product{Name="Categoría privada",Slug=Guid.NewGuid().ToString("N"),Price=10,Stock=5,IsActive=true,Category=new Category{Name="Inactiva",Slug=Guid.NewGuid().ToString("N"),IsActive=false}};
         db.Add(product);await db.SaveChangesAsync();
         Assert.Null(await sp.GetRequiredService<ICatalogService>().GetProductAsync(product.Id));
-        var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>sp.GetRequiredService<IOrderService>().CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=product.Id,Quantity=1,UnitPrice=10}]},null));
+        var error=await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>sp.GetRequiredService<IOrderService>().CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=product.Id,Quantity=1,UnitPrice=10}]},null));
         Assert.Contains("no está a la venta",error.Message);
     }
 
@@ -72,7 +72,7 @@ public partial class AuditTests
         var stale=(await products.GetForEditAsync(id))!;
         var order=await sp.GetRequiredService<IOrderService>().CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=id,Quantity=1}]},null);
         stale.Name="Edición desactualizada";
-        var error=await Assert.ThrowsAsync<InvalidOperationException>(()=>products.SaveAsync(stale,[]));
+        var error=await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>products.SaveAsync(stale,[]));
         Assert.Contains("inventario cambió",error.Message);
         var current=(await products.GetForEditAsync(id))!;Assert.Equal(4,current.Stock);
         current.Stock=7;await products.SaveAsync(current,[]);
@@ -92,7 +92,8 @@ public partial class AuditTests
         var db=sp.GetRequiredService<AppDbContext>();
         Assert.All(await db.Payments.Where(p=>p.OrderId==order.Id).ToListAsync(),p=>Assert.Equal(PaymentStatus.Paid,p.Status));
         Assert.False(await service.UpdateStatusAsync(order.Id,OrderStatus.Pending,new string('x',2001)));
-        await service.UpdateStatusAsync(order.Id,OrderStatus.Cancelled);
+        Assert.True(await service.UpdatePaymentStatusAsync(order.Id,PaymentStatus.Refunded));
+        Assert.True(await service.UpdateStatusAsync(order.Id,OrderStatus.Cancelled));
     }
 
     [Fact]

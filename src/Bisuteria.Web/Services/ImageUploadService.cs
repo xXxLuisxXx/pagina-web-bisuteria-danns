@@ -72,17 +72,17 @@ public class ImageUploadService : IImageUploadService
     public async Task<string> SaveOptimizedAsync(IFormFile file, string subfolder, CancellationToken ct = default)
     {
         if (subfolder is not ("products" or "gallery"))
-            throw new InvalidOperationException("La carpeta de imágenes no es válida.");
-        if (file.Length <= 0) throw new InvalidOperationException("La imagen está vacía.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("La carpeta de imágenes no es válida.");
+        if (file.Length <= 0) throw new Bisuteria.Application.Services.BusinessRuleException("La imagen está vacía.");
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(extension))
-            throw new InvalidOperationException($"Formato no permitido ({extension}). Usa JPG, PNG o WebP.");
+            throw new Bisuteria.Application.Services.BusinessRuleException($"Formato no permitido ({extension}). Usa JPG, PNG o WebP.");
 
         if (!AllowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrEmpty(file.ContentType))
-            throw new InvalidOperationException("El archivo no es una imagen válida.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("El archivo no es una imagen válida.");
 
         if (file.Length > MaxFileSize)
-            throw new InvalidOperationException("La imagen supera el tamaño máximo de 8 MB.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("La imagen supera el tamaño máximo de 8 MB.");
 
         var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
         var folderRelative = Path.Combine("img", "uploads", subfolder);
@@ -97,10 +97,10 @@ public class ImageUploadService : IImageUploadService
             await using var stream = file.OpenReadStream();
             var info = await Image.IdentifyAsync(stream, ct);
             if ((long)info.Width * info.Height > 24_000_000)
-                throw new InvalidOperationException("La imagen supera el límite de 24 millones de píxeles.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("La imagen supera el límite de 24 millones de píxeles.");
             var format = info.Metadata.DecodedImageFormat?.Name;
             if (format is not ("JPEG" or "PNG" or "WEBP"))
-                throw new InvalidOperationException("El contenido debe ser una imagen JPG, PNG o WebP.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("El contenido debe ser una imagen JPG, PNG o WebP.");
             stream.Position = 0;
             using var image = await Image.LoadAsync(new SixLabors.ImageSharp.Formats.DecoderOptions { MaxFrames = 1, SkipMetadata = true }, stream, ct);
 
@@ -112,10 +112,11 @@ public class ImageUploadService : IImageUploadService
                 image.Mutate(x => x.Resize(newWidth, newHeight));
             }
 
+            image.Mutate(x => x.BackgroundColor(SixLabors.ImageSharp.Color.White));
             await using var output = new FileStream(absolutePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             await image.SaveAsJpegAsync(output, new JpegEncoder { Quality = JpegQuality }, ct);
         }
-        catch (InvalidOperationException)
+        catch (Bisuteria.Application.Services.BusinessRuleException)
         {
             if (File.Exists(absolutePath)) File.Delete(absolutePath);
             throw;
@@ -124,7 +125,7 @@ public class ImageUploadService : IImageUploadService
         {
             if (File.Exists(absolutePath)) File.Delete(absolutePath);
             _logger.LogError(ex, "Error al procesar la imagen {FileName}", file.FileName);
-            throw new InvalidOperationException("No se pudo procesar la imagen. Verifica que sea un archivo válido.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("No se pudo procesar la imagen. Verifica que sea un archivo válido.");
         }
 
         var url = "/" + Path.Combine(folderRelative, fileName).Replace('\\', '/');

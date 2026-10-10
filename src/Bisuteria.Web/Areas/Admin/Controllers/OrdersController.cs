@@ -40,9 +40,9 @@ public class OrdersController : AdminBaseController
         if (order is null)
             return NotFound();
 
-        ViewBag.Statuses = Enum.GetValues<OrderStatus>();
+        ViewBag.Statuses = Enum.GetValues<OrderStatus>().Where(s => OrderTransitions.Allows(order.Status, s, order.PaymentStatus)).ToArray();
         ViewBag.AdminNotes = await _orders.GetAdminNotesAsync(order.Id, ct);
-        ViewBag.PaymentStatuses = Enum.GetValues<PaymentStatus>();
+        ViewBag.PaymentStatuses = Enum.GetValues<PaymentStatus>().Where(s => OrderTransitions.AllowsPayment(order.Status, order.PaymentStatus, s)).ToArray();
         return View(order);
     }
 
@@ -53,7 +53,7 @@ public class OrdersController : AdminBaseController
         var order = await _orders.GetByNumberAsync(orderNumber, ct);
         if (!ModelState.IsValid || order is null || !await _orders.UpdateStatusAsync(order.Id, status, adminNotes, ct))
         {
-            TempData["Error"] = "El estado solicitado no es válido o el pedido está cancelado.";
+            TempData["Error"] = "Transición no permitida. No se puede cancelar un pedido enviado o entregado; si está pagado, confirma primero su reembolso real.";
             return RedirectToAction(nameof(Index));
         }
 

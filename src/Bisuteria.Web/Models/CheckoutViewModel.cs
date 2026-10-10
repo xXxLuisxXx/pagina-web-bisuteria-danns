@@ -7,6 +7,7 @@ namespace Bisuteria.Web.Models;
 
 public class CheckoutViewModel
 {
+    public Guid? CheckoutToken { get; set; }
     public CartDto Cart { get; set; } = new();
 
     [Required(ErrorMessage = "El nombre es obligatorio.")]
@@ -23,19 +24,19 @@ public class CheckoutViewModel
     [Display(Name = "Teléfono")]
     public string CustomerPhone { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "La dirección es obligatoria.")]
     [Display(Name = "Dirección")]
+    [DisplayFormat(ConvertEmptyStringToNull = false)]
     public string AddressLine1 { get; set; } = string.Empty;
 
     [Display(Name = "Referencia (opcional)")]
     public string? AddressLine2 { get; set; }
 
-    [Required(ErrorMessage = "La ciudad es obligatoria.")]
     [Display(Name = "Ciudad")]
+    [DisplayFormat(ConvertEmptyStringToNull = false)]
     public string City { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "La provincia es obligatoria.")]
     [Display(Name = "Provincia")]
+    [DisplayFormat(ConvertEmptyStringToNull = false)]
     public string Province { get; set; } = string.Empty;
 
     [Display(Name = "Código postal (opcional)")]
@@ -63,6 +64,7 @@ public class CheckoutViewModel
 
     public CheckoutDto ToDto() => new()
     {
+        CheckoutToken = CheckoutToken,
         CustomerName = CustomerName,
         CustomerEmail = CustomerEmail,
         CustomerPhone = CustomerPhone,

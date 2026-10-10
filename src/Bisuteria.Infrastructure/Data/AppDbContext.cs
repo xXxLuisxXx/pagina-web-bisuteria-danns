@@ -54,6 +54,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.Sku).HasMaxLength(60);
             e.HasIndex(x => x.Slug).IsUnique();
             e.HasIndex(x => x.Sku);
+            e.HasIndex(x => x.Sku, "UX_Products_Sku").IsUnique().HasFilter("[Sku] IS NOT NULL");
             e.HasOne(x => x.Category)
              .WithMany(c => c.Products)
              .HasForeignKey(x => x.CategoryId)
@@ -71,6 +72,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Order>(e =>
         {
+            e.HasIndex(x => x.CheckoutToken).IsUnique().HasFilter("[CheckoutToken] IS NOT NULL");
+            e.Property(x => x.CouponCode).HasMaxLength(60);
             e.Property(x => x.OrderNumber).HasMaxLength(30).IsRequired();
             e.Property(x => x.CustomerName).HasMaxLength(160).IsRequired();
             e.Property(x => x.CustomerEmail).HasMaxLength(200).IsRequired();

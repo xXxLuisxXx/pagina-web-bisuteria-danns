@@ -8,6 +8,8 @@ namespace Bisuteria.Domain.Entities;
 /// </summary>
 public class Order : BaseEntity
 {
+    public Guid? CheckoutToken { get; set; }
+    public string? CouponCode { get; set; }
     /// <summary>Número legible del pedido, p. ej. "BISU-000123".</summary>
     public string OrderNumber { get; set; } = string.Empty;
 

@@ -52,26 +52,17 @@ public class AccountController : Controller
             return View(model);
         }
 
-        if (!user.IsActive)
+        var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
+        if (result.Succeeded && user.IsActive)
         {
-            ModelState.AddModelError(string.Empty, "Tu cuenta se encuentra desactivada. Contáctanos para más información.");
-            return View(model);
-        }
-
-        var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
-        if (result.Succeeded)
-        {
+            await _signInManager.SignInAsync(user, model.RememberMe);
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction(nameof(HomeController.Index), "Home");
         }
 
-        if (result.IsLockedOut)
-        {
-            ModelState.AddModelError(string.Empty, "Demasiados intentos fallidos. Intenta nuevamente en unos minutos.");
-            return View(model);
-        }
-
+        HttpContext.RequestServices.GetRequiredService<ILogger<AccountController>>()
+            .LogWarning("Intento de acceso rechazado a las {Timestamp}", DateTimeOffset.UtcNow);
         ModelState.AddModelError(string.Empty, "Correo o contraseña incorrectos.");
         return View(model);
     }
@@ -136,37 +127,13 @@ public class AccountController : Controller
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public-forms")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+    public IActionResult ForgotPassword(ForgotPasswordViewModel model)
     {
         ViewData["Title"] = "Recuperar contraseña";
         if (!ModelState.IsValid)
             return View(model);
 
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user is { IsActive: true })
-        {
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-            var publicUrl = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["PublicBaseUrl"];
-            var resetPath = Url.Action(nameof(ResetPassword), "Account", new { email = user.Email, token = encodedToken });
-            var resetUrl = Uri.TryCreate(publicUrl, UriKind.Absolute, out var origin) && origin.Scheme == "https"
-                ? new Uri(origin, resetPath).AbsoluteUri : null;
-            if (resetUrl is null)
-                HttpContext.RequestServices.GetRequiredService<ILogger<AccountController>>().LogError("Falta configurar PublicBaseUrl con el origen HTTPS de la tienda.");
-            if (!string.IsNullOrWhiteSpace(resetUrl))
-            {
-                try
-                {
-                    await _emailSender.SendPasswordResetAsync(user.Email!, resetUrl);
-                }
-                catch (Exception ex)
-                {
-                    // La respuesta no revela si la cuenta existe ni detalles de infraestructura.
-                    HttpContext.RequestServices.GetRequiredService<ILogger<AccountController>>()
-                        .LogError(ex, "No se pudo enviar el correo de recuperación.");
-                }
-            }
-        }
+        HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().Enqueue(model.Email);
 
         TempData["Success"] = "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.";
         return RedirectToAction(nameof(Login));

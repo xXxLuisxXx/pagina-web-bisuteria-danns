@@ -7,7 +7,7 @@
     var storeName = settings.GetValueOrDefault("StoreName") ?? "Bisuterias Dann's";
     var storeSlogan = settings.GetValueOrDefault("StoreSlogan") ?? "Bisutería hecha a mano para realzar tu estilo ✨.";
     var storeDescription = settings.GetValueOrDefault("StoreDescription") ?? "Descubre Bisuterias Dann's, accesorios hechos a mano y personalizados para realzar tu estilo.";
-    var whatsapp = "+593 98 259 9801";
+    var whatsapp = settings.GetValueOrDefault("WhatsApp") ?? "";
     var instagram = settings.GetValueOrDefault("InstagramUrl");
     var facebook = settings.GetValueOrDefault("FacebookUrl");
     var tiktok = settings.GetValueOrDefault("TikTokUrl");
@@ -59,7 +59,7 @@
             <div class="topbar-right small">
                 @if (!string.IsNullOrWhiteSpace(instagram))
                 {
-                    <a href="@instagram" target="_blank" rel="noopener noreferrer" class="topbar-link" aria-label="Visitar Instagram de Bisuterias Dann's"><i class="bi bi-instagram me-1"></i>@(settings.GetValueOrDefault("InstagramHandle") ?? "bisuterias_danns")</a>
+                    <a href="@instagram" target="_blank" rel="noopener noreferrer" class="topbar-link" aria-label="Visitar Instagram de Bisuterias Dann's"><i class="bi bi-instagram me-1"></i>@(settings.GetValueOrDefault("InstagramHandle") ?? "")</a>
                 }
                 @if (!string.IsNullOrWhiteSpace(facebook))
                 {

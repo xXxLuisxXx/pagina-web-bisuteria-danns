@@ -11,6 +11,7 @@
     @await Html.PartialAsync("_Alerts")
 
     <form asp-action="Index" method="post" class="row g-4">
+        <input asp-for="CheckoutToken" type="hidden" />
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" role="alert" class="text-danger"></div>
 
@@ -186,6 +187,12 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
+            var form = document.querySelector('input[name="CheckoutToken"]').form;
+            form.addEventListener('submit', function () {
+                if (window.jQuery && !window.jQuery(form).valid()) return;
+                if (!form.checkValidity()) return;
+                form.querySelector('button[type="submit"]').disabled = true;
+            });
             var radios = document.querySelectorAll('#deliveryOptions input[type="radio"]');
             var shipRow = document.getElementById('shippingDisplay');
             var subtotal = @((Model.Cart.Subtotal - Model.Cart.Discount).ToString(System.Globalization.CultureInfo.InvariantCulture));

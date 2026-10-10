@@ -31,15 +31,18 @@ public class SettingsController : AdminBaseController
             {
                 var value = kv.Value ?? "";
                 var invalid = !existing.ContainsKey(kv.Key) || value.Length > 1000;
-                if (kv.Key is "WhatsApp" or "InstagramUrl" or "InstagramHandle" or "TikTokUrl" or "TikTokHandle")
-                    invalid |= value != existing.GetValueOrDefault(kv.Key);
+                if (kv.Key == "CouponSingleUsePerCustomer") invalid |= !bool.TryParse(value, out _);
+                if (kv.Key is "WhatsApp" or "ContactPhone" && value.Length > 0)
+                    invalid |= !System.Text.RegularExpressions.Regex.IsMatch(value, @"^\+?[0-9 ()-]{7,25}$");
+                if (kv.Key == "ContactEmail" && value.Length > 0)
+                    invalid |= !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(value);
                 if (kv.Key.EndsWith("Url", StringComparison.Ordinal) && value.Length > 0)
                     invalid |= !Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !string.IsNullOrEmpty(uri.UserInfo);
-                if (kv.Key is "ShippingCost" or "FreeShippingThreshold")
+                if (kv.Key == "ShippingCost" || (kv.Key == "FreeShippingThreshold" && value.Length > 0))
                     invalid |= !decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var amount) || amount < 0 || amount > 1000000;
                 if (invalid)
                 {
-                    TempData["Error"] = "Configuración inválida. Revisa las direcciones HTTPS, los importes y la longitud de los campos.";
+                    TempData["Error"] = $"El campo {kv.Key} no es válido. Revisa su formato, importe o longitud.";
                     return RedirectToAction(nameof(Index));
                 }
             }

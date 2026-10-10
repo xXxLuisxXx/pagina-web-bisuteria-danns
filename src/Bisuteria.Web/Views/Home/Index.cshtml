@@ -6,7 +6,7 @@
     var heroTitle = heroSettings.GetValueOrDefault("HeroTitle") ?? "Bisutería que cuenta tu historia";
     var heroSubtitle = heroSettings.GetValueOrDefault("HeroSubtitle") ?? "Piezas únicas y personalizadas, hechas a mano con elegancia y pasión.";
     var instagramUrl = heroSettings.GetValueOrDefault("InstagramUrl");
-    var instagramHandle = heroSettings.GetValueOrDefault("InstagramHandle") ?? "bisuterias_danns";
+    var instagramHandle = heroSettings.GetValueOrDefault("InstagramHandle") ?? "";
     var hasProducts = Model.Featured.Count > 0 || Model.NewArrivals.Count > 0 || Model.BestSellers.Count > 0;
     var heroWords = heroTitle.Split(' ', StringSplitOptions.RemoveEmptyEntries);
     var heroAccent = heroWords.Length >= 3 ? string.Join(" ", heroWords.TakeLast(2)) : "";

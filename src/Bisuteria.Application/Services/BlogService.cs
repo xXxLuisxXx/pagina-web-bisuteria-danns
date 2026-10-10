@@ -75,7 +75,7 @@ public class BlogService : IBlogService
         var isNew = dto.Id == 0;
         var slug = SlugHelper.GenerateSlug(dto.Title);
         if (isNew && await repo.AnyAsync(p => p.Slug == slug, ct))
-            throw new InvalidOperationException("Ya existe una publicación con ese título.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("Ya existe una publicación con ese título.");
 
         if (isNew)
         {
@@ -86,7 +86,7 @@ public class BlogService : IBlogService
         {
             entity = (await repo.GetByIdAsync(dto.Id, ct))!;
             if (entity is null)
-                throw new InvalidOperationException("La publicación no existe.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("La publicación no existe.");
         }
 
         entity.Title = dto.Title.Trim();

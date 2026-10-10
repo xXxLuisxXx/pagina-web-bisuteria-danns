@@ -25,17 +25,17 @@ public class CheckoutValidator : AbstractValidator<CheckoutDto>
             .MaximumLength(40).WithMessage("El teléfono no puede superar 40 caracteres.");
 
         RuleFor(x => x.AddressLine1)
-            .NotEmpty().WithMessage("La dirección es obligatoria.")
+            .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La dirección es obligatoria.")
             .MaximumLength(200).WithMessage("La dirección no puede superar 200 caracteres.");
 
         RuleFor(x => x.AddressLine2).MaximumLength(200).WithMessage("La dirección complementaria no puede superar 200 caracteres.");
 
         RuleFor(x => x.City)
-            .NotEmpty().WithMessage("La ciudad es obligatoria.")
+            .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La ciudad es obligatoria.")
             .MaximumLength(120).WithMessage("La ciudad no puede superar 120 caracteres.");
 
         RuleFor(x => x.Province)
-            .NotEmpty().WithMessage("La provincia es obligatoria.")
+            .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La provincia es obligatoria.")
             .MaximumLength(120).WithMessage("La provincia no puede superar 120 caracteres.");
 
         RuleFor(x => x.PostalCode)

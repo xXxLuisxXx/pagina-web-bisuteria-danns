@@ -23,7 +23,7 @@ public interface IAdminService
 
     Task<bool> SetUserActiveAsync(string userId, bool isActive, CancellationToken cancellationToken = default);
 
-    Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
+    Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default, PaymentStatus? payment = null);
 
     Task<List<ProductReportRow>> GetProductReportAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
 

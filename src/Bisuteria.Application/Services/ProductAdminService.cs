@@ -34,11 +34,14 @@ public class ProductAdminService : IProductAdminService
     {
         InputValidation.Check(new ProductInputValidator(), dto);
         if (!await _unitOfWork.Repository<Category>().AnyAsync(c => c.Id == dto.CategoryId, ct))
-            throw new InvalidOperationException("La categoría no existe.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("La categoría no existe.");
         var repo = _unitOfWork.Repository<Product>();
+        dto.Sku = string.IsNullOrWhiteSpace(dto.Sku) ? null : dto.Sku.Trim();
+        if (dto.Sku is not null && await repo.AnyAsync(p => p.Sku == dto.Sku && p.Id != dto.Id, ct))
+            throw new Bisuteria.Application.Services.BusinessRuleException("El SKU ya pertenece a otro producto.");
         var slug = SlugHelper.GenerateSlug(dto.Name);
         if (dto.Id == 0 && await repo.AnyAsync(p => p.Slug == slug, ct))
-            throw new InvalidOperationException("Ya existe un producto con ese nombre.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("Ya existe un producto con ese nombre.");
         var imageRepo = _unitOfWork.Repository<ProductImage>();
         Product product;
         var isNew = dto.Id == 0;
@@ -54,11 +57,11 @@ public class ProductAdminService : IProductAdminService
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == dto.Id, ct))!;
             if (product is null)
-                throw new InvalidOperationException("El producto no existe.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("El producto no existe.");
         }
 
         if (!isNew && (!dto.OriginalStock.HasValue || dto.OriginalStock.Value != product.Stock))
-            throw new InvalidOperationException("El inventario cambió o falta su versión. Recarga el producto antes de guardar.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("El inventario cambió o falta su versión. Recarga el producto antes de guardar.");
         var stockDelta = dto.Stock - product.Stock;
 
         product.Name = dto.Name.Trim();
@@ -94,7 +97,7 @@ public class ProductAdminService : IProductAdminService
             if (string.IsNullOrWhiteSpace(url))
                 continue;
             if (!InputValidation.IsImageUrl(url))
-                throw new InvalidOperationException("La URL de imagen debe ser HTTPS o una imagen local válida.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("La URL de imagen debe ser HTTPS o una imagen local válida.");
             var image = new ProductImage
             {
                 ImageUrl = url,
@@ -175,7 +178,7 @@ public class ProductAdminService : IProductAdminService
         var repo = _unitOfWork.Repository<Category>();
         var slug = SlugHelper.GenerateSlug(dto.Name);
         if (dto.Id == 0 && await repo.AnyAsync(c => c.Slug == slug, ct))
-            throw new InvalidOperationException("Ya existe una categoría con ese nombre.");
+            throw new Bisuteria.Application.Services.BusinessRuleException("Ya existe una categoría con ese nombre.");
         Category category;
         var isNew = dto.Id == 0;
 
@@ -188,7 +191,7 @@ public class ProductAdminService : IProductAdminService
         {
             category = (await repo.GetByIdAsync(dto.Id, ct))!;
             if (category is null)
-                throw new InvalidOperationException("La categoría no existe.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("La categoría no existe.");
         }
 
         category.Name = dto.Name.Trim();

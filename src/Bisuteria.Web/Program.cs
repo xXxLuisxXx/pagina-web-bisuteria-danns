@@ -31,6 +31,7 @@ builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
     options.Filters.Add<Bisuteria.Web.Filters.InputValidationFilter>();
+    options.Filters.Add<Bisuteria.Web.Filters.PersistenceExceptionFilter>();
     options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(_ => "Este campo es obligatorio.");
     options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor((_, field) => $"El valor de {field} no es válido.");
     options.ModelBindingMessageProvider.SetValueMustBeANumberAccessor(_ => "Introduce un número válido.");
@@ -52,6 +53,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Bisuteria.Web.Cart.CartManager>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IImageUploadService, Bisuteria.Web.Services.ImageUploadService>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IEmailSender, Bisuteria.Web.Services.SmtpEmailSender>();
+builder.Services.AddSingleton<Bisuteria.Web.Services.PasswordRecoveryQueue>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Bisuteria.Web.Services.PasswordRecoveryQueue>());
 builder.Services.AddScoped<Bisuteria.Application.Interfaces.IGalleryAdminService, Bisuteria.Infrastructure.Services.GalleryAdminService>();
 
 builder.Services.AddRateLimiter(options =>

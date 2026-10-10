@@ -24,15 +24,25 @@
             }
         </select>
     </div>
+    <div>
+        <label for="payment" class="form-label small mb-0">Estado de pago</label>
+        <select id="payment" name="payment" class="form-select form-select-sm">
+            <option value="">Todos los pagos</option>
+            @foreach (var payment in Enum.GetValues<PaymentStatus>())
+            {
+                <option value="@payment" selected="@((PaymentStatus?)ViewBag.Payment == payment)">@payment.GetLabel()</option>
+            }
+        </select>
+    </div>
     <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-funnel me-1"></i>Filtrar</button>
-    <a class="btn btn-sm btn-outline-success" asp-action="ExportSales" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
-    <a class="btn btn-sm btn-outline-info" asp-action="ExportCsv" asp-route-report="sales" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-filetype-csv me-1"></i>CSV</a>
+    <a class="btn btn-sm btn-outline-success" asp-action="ExportSales" asp-route-status="@ViewBag.Status" asp-route-payment="@ViewBag.Payment" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+    <a class="btn btn-sm btn-outline-info" asp-action="ExportCsv" asp-route-report="sales" asp-route-status="@ViewBag.Status" asp-route-payment="@ViewBag.Payment" asp-route-from="@ViewBag.From?.ToString("yyyy-MM-dd")" asp-route-to="@ViewBag.To?.ToString("yyyy-MM-dd")"><i class="bi bi-filetype-csv me-1"></i>CSV</a>
 </form>
 
 <div class="d-flex gap-4 mb-3">
     <div class="stat-card" style="flex:1;">
         <div class="stat-value text-gold">@ViewBag.Total.ToString("C")</div>
-        <div class="stat-label">Ingresos totales</div>
+        <div class="stat-label">Importe de pedidos no cancelados (no equivale a cobros)</div>
     </div>
     <div class="stat-card" style="flex:1;">
         <div class="stat-value">@ViewBag.Count</div>
