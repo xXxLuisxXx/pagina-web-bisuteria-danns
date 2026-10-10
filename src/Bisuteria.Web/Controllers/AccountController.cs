@@ -12,6 +12,49 @@ namespace Bisuteria.Web.Controllers;
 
 public class AccountController : Controller
 {
+    [HttpGet]
+    public IActionResult ConfirmEmail(string email, string token)
+        => View(new EmailConfirmationViewModel { Email = email, Token = token });
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmEmail(EmailConfirmationViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        try
+        {
+            var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
+            if (user is { IsActive: true } && (await _userManager.ConfirmEmailAsync(user, token)).Succeeded)
+            {
+                TempData["Success"] = "Correo confirmado. Ya puedes iniciar sesión.";
+                return RedirectToAction(nameof(Login));
+            }
+        }
+        catch (FormatException) { }
+        ModelState.AddModelError("", "El enlace de confirmación no es válido.");
+        return View(model);
+    }
+
+    [Authorize, HttpGet]
+    public IActionResult ChangePassword() => View(new ChangePasswordViewModel());
+
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null) return Challenge();
+        var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.Password);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError("", "No se pudo cambiar la contraseña. Revisa la contraseña actual y usa una nueva de 12 caracteres con mayúscula, minúscula, número y símbolo.");
+            return View(model);
+        }
+        await _signInManager.RefreshSignInAsync(user);
+        TempData["Success"] = "Contraseña actualizada. Las otras sesiones quedaron invalidadas.";
+        return RedirectToAction(nameof(Profile));
+    }
+
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ICatalogService _catalog;
@@ -52,7 +95,17 @@ public class AccountController : Controller
             return View(model);
         }
 
+        var alreadyLocked = await _userManager.IsLockedOutAsync(user);
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
+        if (result.IsLockedOut && !alreadyLocked)
+        {
+            var strikes = (await _userManager.GetClaimsAsync(user)).FirstOrDefault(c => c.Type == "security:lockout-level");
+            var level = strikes is not null && int.TryParse(strikes.Value, out var savedLevel) ? Math.Min(savedLevel + 1, 5) : 0;
+            var replacement = new System.Security.Claims.Claim("security:lockout-level", level.ToString());
+            if (strikes is null) await _userManager.AddClaimAsync(user, replacement);
+            else await _userManager.ReplaceClaimAsync(user, strikes, replacement);
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(Math.Min(60, 5 * Math.Pow(2, level))));
+        }
         if (result.Succeeded && user.IsActive)
         {
             await _signInManager.SignInAsync(user, model.RememberMe);
@@ -103,6 +156,12 @@ public class AccountController : Controller
             {
                 ModelState.AddModelError(string.Empty, "No se pudo completar el registro. Contacta con administración.");
                 return View(model);
+            }
+            if (_userManager.Options.SignIn.RequireConfirmedEmail)
+            {
+                HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().Enqueue(user.Email!, confirm: true);
+                TempData["Success"] = "Revisa tu correo para confirmar la cuenta antes de iniciar sesión.";
+                return RedirectToAction(nameof(Login));
             }
             await _signInManager.SignInAsync(user, isPersistent: false);
 

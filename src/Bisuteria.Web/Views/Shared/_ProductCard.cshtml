@@ -24,7 +24,7 @@
                 title="Favoritos">
             <i class="bi @(isFav ? "bi-heart-fill" : "bi-heart")"></i>
         </button>
-        <img loading="lazy" src="@(Model.MainImageUrl ?? "/img/placeholder.svg")" alt="@Model.Name" onerror="this.onerror=null;this.src='/img/placeholder.svg';">
+        <img loading="lazy" src="@(Model.MainImageUrl ?? "/img/placeholder.svg")" alt="@Model.Name" data-image-fallback="true">
     </div>
     <div class="body">
         @if (!string.IsNullOrWhiteSpace(Model.CategoryName))

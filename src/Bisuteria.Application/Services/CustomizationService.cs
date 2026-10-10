@@ -18,11 +18,18 @@ public class CustomizationService : ICustomizationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<int> SaveAsync(CustomizationInputDto dto, CancellationToken ct = default)
+    public Task<int> SaveAsync(CustomizationInputDto dto, CancellationToken ct = default, string? quotaKey = null)
+        => _unitOfWork.InTransactionAsync(() => SaveCoreAsync(dto, quotaKey, ct), ct);
+
+    private async Task<int> SaveCoreAsync(CustomizationInputDto dto, string? quotaKey, CancellationToken ct)
     {
         InputValidation.Check(new CustomizationInputValidator(), dto);
+        var hash = quotaKey is null ? null : Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(quotaKey)));
+        if (hash is not null && await _unitOfWork.Repository<Customization>().CountAsync(c => c.QuotaKey == hash, ct) >= 100)
+            throw new BusinessRuleException("Alcanzaste el límite de personalizaciones de esta sesión.");
         var entity = new Customization
         {
+            QuotaKey = hash,
             ProductId = dto.ProductId,
             Text = dto.Text,
             Initials = dto.Initials,

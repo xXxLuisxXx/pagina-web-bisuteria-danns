@@ -13,6 +13,7 @@
 
             <form asp-action="Register" method="post">
                 @Html.AntiForgeryToken()
+<div class="visually-hidden" aria-hidden="true"><label>Sitio web<input name="Website" tabindex="-1" autocomplete="off" /></label></div>
                 <input type="hidden" asp-for="ReturnUrl" />
                 <div asp-validation-summary="All" role="alert" class="text-danger mb-3"></div>
                 <div class="row g-3">

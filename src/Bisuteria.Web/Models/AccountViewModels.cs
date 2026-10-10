@@ -43,7 +43,7 @@ public class RegisterViewModel
     public string? Phone { get; set; }
 
     [Required(ErrorMessage = "La contraseña es obligatoria.")]
-    [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+    [StringLength(100, MinimumLength = 12, ErrorMessage = "La contraseña debe tener al menos 12 caracteres.")]
     [DataType(DataType.Password)]
     [Display(Name = "Contraseña")]
     public string Password { get; set; } = string.Empty;
@@ -109,7 +109,7 @@ public class ResetPasswordViewModel
     public string Token { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria.")]
-    [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener al menos 8 caracteres.")]
+    [StringLength(100, MinimumLength = 12, ErrorMessage = "La contraseña debe tener al menos 12 caracteres.")]
     [DataType(DataType.Password)]
     [Display(Name = "Nueva contraseña")]
     public string Password { get; set; } = string.Empty;

@@ -54,7 +54,7 @@
                         </td>
                         <td class="text-end">
                             <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0"
-                                  onsubmit="return confirm('¿Cambiar el estado de este usuario?');">
+                                  data-confirm="¿Cambiar el estado de este usuario?">
                                 @Html.AntiForgeryToken()
                                 <button class="btn btn-sm btn-outline-secondary" type="submit" title="Cambiar estado">
                                     <i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i>

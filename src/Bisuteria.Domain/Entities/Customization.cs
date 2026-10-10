@@ -7,6 +7,7 @@ namespace Bisuteria.Domain.Entities;
 /// </summary>
 public class Customization : BaseEntity
 {
+    public string? QuotaKey { get; set; }
     /// <summary>Producto base opcional sobre el que se personaliza.</summary>
     public int? ProductId { get; set; }
 

@@ -6,6 +6,7 @@ namespace Bisuteria.Web.Services;
 public interface IEmailSender
 {
     Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default);
+    Task SendConfirmationAsync(string email, string url, CancellationToken ct = default);
 }
 
 public sealed class SmtpEmailSender : IEmailSender
@@ -21,7 +22,13 @@ public sealed class SmtpEmailSender : IEmailSender
         _environment = environment;
     }
 
-    public async Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default)
+    public Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default)
+        => SendAsync(email, resetUrl, "Restablece tu contraseña", ct);
+
+    public Task SendConfirmationAsync(string email, string url, CancellationToken ct = default)
+        => SendAsync(email, url, "Confirma tu correo", ct);
+
+    private async Task SendAsync(string email, string resetUrl, string purpose, CancellationToken ct)
     {
         var host = _configuration["Smtp:Host"];
         var sender = _configuration["Smtp:From"];
@@ -49,8 +56,8 @@ public sealed class SmtpEmailSender : IEmailSender
 
         using var message = new MailMessage(sender, email)
         {
-            Subject = "Restablece tu contraseña | Bisuterias Dann's",
-            Body = $"<p>Solicitaste restablecer tu contraseña.</p><p><a href=\"{WebUtility.HtmlEncode(resetUrl)}\">Restablecer contraseña</a></p><p>Si no hiciste esta solicitud, ignora este correo.</p>",
+            Subject = purpose + " | Bisuterias Dann's",
+            Body = $"<p><a href=\"{WebUtility.HtmlEncode(resetUrl)}\">{WebUtility.HtmlEncode(purpose)}</a></p><p>Si no hiciste esta solicitud, ignora este correo.</p>",
             IsBodyHtml = true
         };
 

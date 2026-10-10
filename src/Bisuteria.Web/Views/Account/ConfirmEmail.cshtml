@@ -1,0 +1,10 @@
+@model EmailConfirmationViewModel
+<div class="container py-5">
+    <h1>Confirmar correo</h1>
+    <form method="post" asp-action="ConfirmEmail">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input asp-for="Email" type="hidden" />
+        <input asp-for="Token" type="hidden" />
+        <button class="btn btn-brand" type="submit">Confirmar mi correo</button>
+    </form>
+</div>

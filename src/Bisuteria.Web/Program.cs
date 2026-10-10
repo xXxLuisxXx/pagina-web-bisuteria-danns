@@ -1,4 +1,5 @@
 using System.Globalization;
+using Bisuteria.Web.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Bisuteria.Application;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddStoreSecurity();
 
 // Cultura invariante: los decimales siempre usan punto (evita errores de binding según el locale del servidor).
 var invariantCulture = new CultureInfo("es-EC");
@@ -32,6 +34,9 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
     options.Filters.Add<Bisuteria.Web.Filters.InputValidationFilter>();
     options.Filters.Add<Bisuteria.Web.Filters.PersistenceExceptionFilter>();
+    options.Filters.Add<AntispamFilter>();
+    options.Filters.Add<AdminReauthenticationFilter>();
+    options.Filters.Add<AdminAuditFilter>();
     options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(_ => "Este campo es obligatorio.");
     options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor((_, field) => $"El valor de {field} no es válido.");
     options.ModelBindingMessageProvider.SetValueMustBeANumberAccessor(_ => "Introduce un número válido.");
@@ -66,6 +71,8 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+app.UseForwardedHeaders();
+app.Use(SecurityConfiguration.Headers);
 
 // Inicialización de la base de datos (migraciones + seed).
 if (builder.Configuration.GetValue("Database:Initialize", true))

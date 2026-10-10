@@ -41,7 +41,7 @@
                         </form>
                     }
                     <a class="btn btn-sm btn-outline-primary" href="mailto:@message.Email"><i class="bi bi-reply me-1"></i>Responder</a>
-                    <form asp-action="Delete" asp-route-id="@message.Id" method="post" class="m-0" onsubmit="return confirm('¿Eliminar este mensaje?');">
+                    <form asp-action="Delete" asp-route-id="@message.Id" method="post" class="m-0" data-confirm="¿Eliminar este mensaje?">
                         @Html.AntiForgeryToken()
                         <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash me-1"></i>Eliminar</button>
                     </form>

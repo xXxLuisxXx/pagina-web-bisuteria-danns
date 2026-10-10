@@ -89,12 +89,12 @@ public class ReportsController : AdminBaseController
         var row = 2;
         foreach (var r in rows)
         {
-            sheet.Cell(row, 1).Value = r.OrderNumber;
+            sheet.Cell(row, 1).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.OrderNumber);
             sheet.Cell(row, 2).Value = r.Date;
-            sheet.Cell(row, 3).Value = r.Customer;
-            sheet.Cell(row, 4).Value = r.Province;
-            sheet.Cell(row, 5).Value = r.Status;
-            sheet.Cell(row, 6).Value = r.PaymentMethod;
+            sheet.Cell(row, 3).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Customer);
+            sheet.Cell(row, 4).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Province);
+            sheet.Cell(row, 5).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Status);
+            sheet.Cell(row, 6).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.PaymentMethod);
             sheet.Cell(row, 7).Value = r.Items;
             sheet.Cell(row, 8).Value = (double)r.Subtotal;
             sheet.Cell(row, 9).Value = (double)r.Discount;
@@ -137,9 +137,9 @@ public class ReportsController : AdminBaseController
         var row = 2;
         foreach (var r in rows)
         {
-            sheet.Cell(row, 1).Value = r.Name;
-            sheet.Cell(row, 2).Value = r.Category;
-            sheet.Cell(row, 3).Value = r.Sku;
+            sheet.Cell(row, 1).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Name);
+            sheet.Cell(row, 2).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Category);
+            sheet.Cell(row, 3).Value = Bisuteria.Application.Services.SpreadsheetText.Safe(r.Sku);
             sheet.Cell(row, 4).Value = (double)r.Price;
             sheet.Cell(row, 5).Value = r.Stock;
             sheet.Cell(row, 6).Value = r.Sold;

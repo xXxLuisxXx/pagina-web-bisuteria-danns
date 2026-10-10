@@ -84,7 +84,8 @@ public class CartController : Controller
             customization.ProductId = model.ProductId;
             customization.Quantity = model.Quantity;
             customization.PriceOverride = Pricing.ComputeCustomizationPrice(customization, product.EffectivePrice);
-            customizationId = await _customizations.SaveAsync(customization, ct);
+            try { customizationId = await _customizations.SaveAsync(customization, ct, HttpContext.Session.Id); }
+            catch (BusinessRuleException ex) { TempData["Error"] = ex.Message; return RedirectToAction(nameof(Index)); }
         }
 
         await _cart.AddAsync(model.ProductId, model.Quantity, customizationId, ct);

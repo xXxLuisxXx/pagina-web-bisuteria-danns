@@ -24,6 +24,8 @@ using Xunit;
 
 public sealed class MailCapture : IEmailSender
 {
+    public Task SendConfirmationAsync(string email, string url, CancellationToken ct = default)
+        => SendPasswordResetAsync(email, url, ct);
     public string? Url { get; private set; }
     public Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default)
     { Url = resetUrl; return Task.CompletedTask; }

@@ -21,7 +21,10 @@ public class SeoController : Controller
     [Route("sitemap.xml")]
     public async Task<IActionResult> Sitemap(CancellationToken ct)
     {
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var configured = HttpContext.RequestServices.GetRequiredService<IConfiguration>()["PublicBaseUrl"];
+        if (!Uri.TryCreate(configured, UriKind.Absolute, out var origin) || origin.Scheme != "https")
+            return StatusCode(503);
+        var baseUrl = origin.GetLeftPart(UriPartial.Authority);
         var urls = new List<string>
         {
             baseUrl,

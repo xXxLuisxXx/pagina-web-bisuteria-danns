@@ -33,7 +33,7 @@ else
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <form asp-action="Delete" method="post" class="flex-fill"
-                                  onsubmit="return confirm('¿Eliminar esta imagen de la galería?');">
+                                  data-confirm="¿Eliminar esta imagen de la galería?">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@image.Id" />
                                 <button class="btn btn-sm btn-outline-danger w-100" type="submit"><i class="bi bi-trash"></i></button>

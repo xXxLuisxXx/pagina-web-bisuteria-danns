@@ -79,7 +79,7 @@
                         <td class="text-end">
                             <div class="d-inline-flex gap-1">
                                 <a class="btn btn-sm btn-outline-secondary" asp-action="Edit" asp-route-id="@product.Id" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <form asp-action="Delete" asp-route-id="@product.Id" method="post" class="m-0" onsubmit="return confirm('¿Eliminar este producto?');">
+                                <form asp-action="Delete" asp-route-id="@product.Id" method="post" class="m-0" data-confirm="¿Eliminar este producto?">
                                     @Html.AntiForgeryToken()
                                     <button class="btn btn-sm btn-outline-danger" type="submit" title="Eliminar"><i class="bi bi-trash"></i></button>
                                 </form>

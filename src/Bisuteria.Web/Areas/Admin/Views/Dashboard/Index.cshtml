@@ -197,30 +197,8 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
     <script>
-        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth.Select(p => p.Label)));
-        const values = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth.Select(p => p.Value)));
-        new Chart(document.getElementById('salesChart'), {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Ventas (USD)',
-                    data: values,
-                    borderColor: '#b8860b',
-                    backgroundColor: 'rgba(184,134,11,.12)',
-                    fill: true,
-                    tension: .35,
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { callback: v => '$' + v } } }
-            }
-        });
+        drawSalesChart('salesChart', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth)));
     </script>
 }

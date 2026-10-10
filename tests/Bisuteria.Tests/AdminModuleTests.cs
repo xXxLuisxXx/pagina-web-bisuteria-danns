@@ -96,7 +96,7 @@ public partial class AuditTests
     {
         var folder=Path.Combine(Path.GetTempPath(),"BisuteriaAuditImages_"+Guid.NewGuid().ToString("N"));
         var service=new ImageUploadService(new TestEnvironment{WebRootPath=folder,ContentRootPath=folder},Microsoft.Extensions.Logging.Abstractions.NullLogger<ImageUploadService>.Instance);
-        using var png=new MemoryStream();using(var image=new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgb24>(4,4))await SixLabors.ImageSharp.ImageExtensions.SaveAsPngAsync(image,png);
+        using var png=new MemoryStream();using(var image=new ImageMagick.MagickImage(ImageMagick.MagickColors.Black, 4, 4))await image.WriteAsync(png, ImageMagick.MagickFormat.Png);
         png.Position=0;var good=new Microsoft.AspNetCore.Http.FormFile(png,0,png.Length,"image","safe.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
         using var badStream=new MemoryStream(new byte[]{1,2,3});var bad=new Microsoft.AspNetCore.Http.FormFile(badStream,0,3,"image","invalid.exe");
         await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveManyAsync([good,bad],"products"));

@@ -30,10 +30,11 @@ public static class DependencyInjection
             {
                 // Política de contraseñas robusta.
                 options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 8;
+                options.Password.RequiredLength = 12;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireLowercase = true;
-                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireNonAlphanumeric = true;
+                options.SignIn.RequireConfirmedEmail = configuration.GetValue("Identity:RequireConfirmedEmail", false);
 
                 options.User.RequireUniqueEmail = true;
 
@@ -41,6 +42,7 @@ public static class DependencyInjection
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             })
             .AddEntityFrameworkStores<AppDbContext>()
+            .AddPasswordValidator<CommonPasswordValidator>()
             .AddDefaultTokenProviders();
 
         services.ConfigureApplicationCookie(options =>
@@ -55,6 +57,15 @@ public static class DependencyInjection
             options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
             options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
             options.Cookie.Name = "Bisuteria.Auth";
+            options.Events.OnSigningIn = context =>
+            {
+                if (context.Principal?.IsInRole("Admin") == true)
+                {
+                    context.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30);
+                    context.Properties.AllowRefresh = false;
+                }
+                return Task.CompletedTask;
+            };
             options.Events.OnValidatePrincipal = async context =>
             {
                 var manager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();

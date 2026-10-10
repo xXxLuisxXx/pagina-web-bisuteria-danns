@@ -28,7 +28,6 @@ public class BlogController : Controller
         if (post is null)
             return NotFound();
 
-        await _blog.IncrementViewsAsync(post.Id, ct);
         ViewData["Title"] = post.Title;
         ViewBag.Related = await _blog.GetPublishedAsync(3, ct);
         return View(post);

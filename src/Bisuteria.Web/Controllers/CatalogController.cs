@@ -60,7 +60,6 @@ public class CatalogController : Controller
         if (product is null || !product.IsActive)
             return NotFound();
 
-        await _catalog.IncrementProductViewsAsync(product.Id, ct);
         ViewData["Title"] = product.Name;
 
         var related = await _catalog.GetRelatedAsync(product.Id, 4, ct);

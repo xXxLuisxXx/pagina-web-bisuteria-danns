@@ -220,7 +220,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         var env=new TestEnvironment { WebRootPath=folder,ContentRootPath=folder };
         var service=new ImageUploadService(env,Microsoft.Extensions.Logging.Abstractions.NullLogger<ImageUploadService>.Instance);
         using var png=new MemoryStream();
-        using(var image=new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgb24>(4,4)) await SixLabors.ImageSharp.ImageExtensions.SaveAsPngAsync(image,png);
+        using(var image=new ImageMagick.MagickImage(ImageMagick.MagickColors.Black, 4, 4)) await image.WriteAsync(png, ImageMagick.MagickFormat.Png);
         png.Position=0;
         var file=new Microsoft.AspNetCore.Http.FormFile(png,0,png.Length,"image","safe.png"){Headers=new Microsoft.AspNetCore.Http.HeaderDictionary(),ContentType="image/png"};
         await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(()=>service.SaveOptimizedAsync(file,"../escape"));

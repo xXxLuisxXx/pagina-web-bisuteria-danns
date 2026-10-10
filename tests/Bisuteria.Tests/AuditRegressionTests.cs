@@ -35,8 +35,8 @@ public partial class AuditTests
         var folder = Path.Combine(Path.GetTempPath(), "BisuteriaAuditImages_" + Guid.NewGuid().ToString("N"));
         var service = new Bisuteria.Web.Services.ImageUploadService(new TestEnvironment { WebRootPath = folder, ContentRootPath = folder }, Microsoft.Extensions.Logging.Abstractions.NullLogger<Bisuteria.Web.Services.ImageUploadService>.Instance);
         using var png = new MemoryStream();
-        using (var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(4, 4))
-            await SixLabors.ImageSharp.ImageExtensions.SaveAsPngAsync(image, png);
+        using (var image = new ImageMagick.MagickImage(ImageMagick.MagickColors.Transparent, 4, 4))
+            await image.WriteAsync(png, ImageMagick.MagickFormat.Png);
         png.Position = 0;
         var file = new Microsoft.AspNetCore.Http.FormFile(png, 0, png.Length, "image", "transparent.png")
         {
@@ -46,8 +46,9 @@ public partial class AuditTests
         var url = await service.SaveOptimizedAsync(file, "products");
         try
         {
-            using var result = await SixLabors.ImageSharp.Image.LoadAsync<SixLabors.ImageSharp.PixelFormats.Rgb24>(Path.Combine(folder, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
-            Assert.True(result[0, 0].R > 245 && result[0, 0].G > 245 && result[0, 0].B > 245);
+            using var result = new ImageMagick.MagickImage(Path.Combine(folder, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+            var pixel = result.GetPixels().GetPixel(0, 0).ToColor()!;
+            Assert.True(pixel.R > 245 && pixel.G > 245 && pixel.B > 245);
         }
         finally { service.DiscardNewUploads([url]); }
     }

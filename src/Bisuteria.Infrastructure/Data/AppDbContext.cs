@@ -34,6 +34,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<AuditLog>(e =>
+        {
+            e.Property(x => x.ActorId).HasMaxLength(450);
+            e.Property(x => x.Action).HasMaxLength(160);
+            e.Property(x => x.Outcome).HasMaxLength(40);
+            e.HasIndex(x => x.CreatedAt);
+        });
 
         builder.Entity<Category>(e =>
         {
@@ -108,6 +115,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Customization>(e =>
         {
+            e.Property(x => x.QuotaKey).HasMaxLength(64);
+            e.HasIndex(x => x.QuotaKey);
             e.Property(x => x.Color).HasMaxLength(60);
             e.Property(x => x.Font).HasMaxLength(60);
             e.Property(x => x.Charm).HasMaxLength(120);

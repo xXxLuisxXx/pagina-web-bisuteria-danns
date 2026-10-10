@@ -1,6 +1,4 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
+using ImageMagick;
 
 namespace Bisuteria.Web.Services;
 
@@ -95,26 +93,36 @@ public class ImageUploadService : IImageUploadService
         try
         {
             await using var stream = file.OpenReadStream();
-            var info = await Image.IdentifyAsync(stream, ct);
+            // Reconocer exclusivamente formatos raster antes de invocar el decodificador.
+            var header = new byte[12];
+            var count = await stream.ReadAsync(header, ct);
+            var format = count >= 8 && header.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) ? MagickFormat.Png
+                : count >= 3 && header[0] == 255 && header[1] == 216 && header[2] == 255 ? MagickFormat.Jpeg
+                : count == 12 && System.Text.Encoding.ASCII.GetString(header, 0, 4) == "RIFF" && System.Text.Encoding.ASCII.GetString(header, 8, 4) == "WEBP" ? MagickFormat.WebP
+                : throw new Bisuteria.Application.Services.BusinessRuleException("El contenido debe ser una imagen JPG, PNG o WebP.");
+            stream.Position = 0;
+            var settings = new MagickReadSettings { Format = format, FrameCount = 1 };
+            using var info = new MagickImage();
+            info.Ping(stream, settings);
             if ((long)info.Width * info.Height > 24_000_000)
                 throw new Bisuteria.Application.Services.BusinessRuleException("La imagen supera el límite de 24 millones de píxeles.");
-            var format = info.Metadata.DecodedImageFormat?.Name;
-            if (format is not ("JPEG" or "PNG" or "WEBP"))
-                throw new Bisuteria.Application.Services.BusinessRuleException("El contenido debe ser una imagen JPG, PNG o WebP.");
             stream.Position = 0;
-            using var image = await Image.LoadAsync(new SixLabors.ImageSharp.Formats.DecoderOptions { MaxFrames = 1, SkipMetadata = true }, stream, ct);
+            using var image = new MagickImage();
+            await image.ReadAsync(stream, settings, ct);
 
             if (image.Width > MaxDimension || image.Height > MaxDimension)
             {
                 var scale = Math.Min((double)MaxDimension / image.Width, (double)MaxDimension / image.Height);
                 var newWidth = Math.Max(1, (int)Math.Round(image.Width * scale));
                 var newHeight = Math.Max(1, (int)Math.Round(image.Height * scale));
-                image.Mutate(x => x.Resize(newWidth, newHeight));
+                image.Resize((uint)newWidth, (uint)newHeight);
             }
 
-            image.Mutate(x => x.BackgroundColor(SixLabors.ImageSharp.Color.White));
+            image.ColorAlpha(MagickColors.White);
+            image.Strip();
+            image.Quality = JpegQuality;
             await using var output = new FileStream(absolutePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            await image.SaveAsJpegAsync(output, new JpegEncoder { Quality = JpegQuality }, ct);
+            await image.WriteAsync(output, MagickFormat.Jpeg, ct);
         }
         catch (Bisuteria.Application.Services.BusinessRuleException)
         {

@@ -76,6 +76,42 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.ToTable("Addresses");
                 });
 
+            modelBuilder.Entity("Bisuteria.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("AuditLog");
+                });
+
             modelBuilder.Entity("Bisuteria.Domain.Entities.BlogPost", b =>
                 {
                     b.Property<int>("Id")
@@ -330,6 +366,10 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
+                    b.Property<string>("QuotaKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("Size")
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
@@ -343,6 +383,8 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("QuotaKey");
 
                     b.ToTable("Customizations");
                 });
@@ -436,14 +478,14 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<Guid?>("CheckoutToken")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("CouponCode")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("CouponCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -527,12 +569,12 @@ namespace Bisuteria.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderNumber")
-                        .IsUnique();
-
                     b.HasIndex("CheckoutToken")
                         .IsUnique()
                         .HasFilter("[CheckoutToken] IS NOT NULL");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
 
                     b.HasIndex("Status");
 
@@ -719,12 +761,13 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("Sku");
-                    b.HasIndex(new[] { "Sku" }, "UX_Products_Sku")
-                        .IsUnique()
-                        .HasFilter("[Sku] IS NOT NULL");
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex(new[] { "Sku" }, "UX_Products_Sku")
+                        .IsUnique()
+                        .HasFilter("[Sku] IS NOT NULL");
 
                     b.ToTable("Products");
                 });

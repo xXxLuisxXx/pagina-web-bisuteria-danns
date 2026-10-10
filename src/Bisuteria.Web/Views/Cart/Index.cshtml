@@ -66,7 +66,7 @@
 
                 <div class="d-flex justify-content-between mt-4">
                     <a class="btn btn-outline-brand" asp-controller="Catalog" asp-action="Index"><i class="bi bi-arrow-left me-2"></i>Seguir comprando</a>
-                    <form asp-controller="Cart" asp-action="Clear" method="post" onsubmit="return confirm('¿Vaciar el carrito?');">
+                    <form asp-controller="Cart" asp-action="Clear" method="post" data-confirm="¿Vaciar el carrito?">
                         @Html.AntiForgeryToken()
                         <button class="btn btn-link text-danger" type="submit"><i class="bi bi-trash me-1"></i>Vaciar carrito</button>
                     </form>

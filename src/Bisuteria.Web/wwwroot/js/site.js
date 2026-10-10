@@ -231,3 +231,14 @@
         return fetch(url, options);
     };
 })();
+// Eventos fuera del marcado para mantener una CSP sin unsafe-inline.
+document.addEventListener('submit', function (event) {
+    const message = event.target.dataset.confirm;
+    if (message && !window.confirm(message)) event.preventDefault();
+});
+document.addEventListener('error', function (event) {
+    if (event.target instanceof HTMLImageElement && event.target.dataset.imageFallback) {
+        delete event.target.dataset.imageFallback;
+        event.target.src = '/img/placeholder.svg';
+    }
+}, true);
