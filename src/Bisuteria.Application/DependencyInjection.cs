@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(typeof(ProductInputValidator).Assembly);
 
         services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<CartPreparationService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<IBlogService, BlogService>();

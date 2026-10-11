@@ -5,7 +5,7 @@ Tienda ASP.NET Core MVC en .NET 10: catálogo público, personalización, carrit
 ## Requisitos
 
 - .NET SDK 10; comprobado con SDK 10.0.401.
-- SQL Server local accesible con autenticación de Windows para las pruebas actuales.
+- SQL Server accesible; las pruebas aceptan `BISUTERIA_TEST_CONNECTION` y crean su propia base temporal.
 - HTTPS para cookies de autenticación y carrito.
 - Node.js y Edge/Playwright solo para las comprobaciones visuales.
 
@@ -77,7 +77,7 @@ El pedido vuelve a leer productos, categorías, precios, personalizaciones y env
 
 La edición administrativa conserva `OriginalStock`: si hubo un cambio desde que se abrió el formulario, exige recargar. Cada ajuste registra un movimiento. Las imágenes se verifican por contenido, formato, tamaño y resolución, y se vuelven a codificar a JPEG. Una operación fallida descarta únicamente archivos nuevos de esa solicitud; las imágenes históricas se conservan para no romper referencias.
 
-Se mantuvo la regla de precio existente: `EffectivePrice` usa `ComparePrice` solo cuando es positivo y menor que `Price`; en otro caso usa `Price`. En el uso normal del campo “precio tachado”, `ComparePrice` es superior y `Price` es el importe cobrado. Catálogo, carrito y pedido usan el mismo precio efectivo. No se cambiaron importes históricos.
+`Price` es el importe cobrado. `ComparePrice` es una referencia anterior opcional y debe superar `Price`; ambos admiten hasta dos decimales. No se cambian importes históricos.
 
 ## Compilar y probar
 
@@ -112,3 +112,11 @@ SMTP real, cobros bancarios y despliegue requieren configuración y comprobació
 Versiona código, migraciones, documentación y pruebas. `.gitignore` excluye `bin`, `obj`, dependencias, logs, secretos, resultados y uploads. Respalda **por separado** SQL Server y `wwwroot/img/uploads`; no borres archivos históricos suponiendo que no se usan. `audit/source-before.zip` y `audit/source-before-final-2026-10-04.zip` son respaldos de código, no copias de seguridad de SQL. El proyecto utiliza Git para versionar el código; los respaldos y los datos comerciales se conservan por separado.
 
 Sesión y limitación de solicitudes son locales a un proceso. Un despliegue con varias instancias necesita caché distribuida, claves de Data Protection compartidas y configuración de proxy confiable. No se configuró ni certificó un despliegue productivo.
+
+## Pruebas portables y producción
+
+En PowerShell, establece `$env:BISUTERIA_TEST_CONNECTION` con la conexión de un servidor de pruebas; Linux usa `export BISUTERIA_TEST_CONNECTION=...`. No copies credenciales al repositorio. La fixture sustituye siempre el catálogo por `BisuteriaAudit_<GUID>` y verifica su nombre antes de migrar/eliminar. Ejecuta `dotnet test Bisuteria.slnx -c Release`. El workflow `.github/workflows/verify.yml` prepara SQL Server temporal con contraseña aleatoria y bloquea dependencias vulnerables.
+
+Producción requiere `AllowedHosts`, `PublicBaseUrl` HTTPS y `DataProtection:KeysPath` persistente con permisos restringidos. Configura `ReverseProxy:KnownProxies:0` solo para un proxy confiable. Confirmación de correo: `Identity:RequireConfirmedEmail=true`, tras comprobar SMTP. `/health` devuelve disponibilidad de SQL sin detalles internos. JSON logging se configura con `Logging:LogLevel`. Conserva `Database:Initialize=false` en producción y aplica migraciones revisadas durante el despliegue.
+
+El carrito y la cola SMTP están en memoria: un despliegue con varias instancias requiere almacenamiento compartido/durable. Consulta los informes `docs/fase-*.md` para resultados concretos; no constituyen una certificación de producción.

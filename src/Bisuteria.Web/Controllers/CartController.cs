@@ -12,13 +12,13 @@ public class CartController : Controller
 {
     private readonly CartManager _cart;
     private readonly ICatalogService _catalog;
-    private readonly ICustomizationService _customizations;
+    private readonly CartPreparationService _preparation;
 
-    public CartController(CartManager cart, ICatalogService catalog, ICustomizationService customizations)
+    public CartController(CartManager cart, ICatalogService catalog, CartPreparationService preparation)
     {
         _cart = cart;
         _catalog = catalog;
-        _customizations = customizations;
+        _preparation = preparation;
     }
 
     [HttpGet]
@@ -43,50 +43,14 @@ public class CartController : Controller
         if (product is null || !product.IsActive)
             return NotFound();
 
-        if (model.Quantity < 1)
-            model.Quantity = 1;
-
-        // Validación de stock disponible.
-        if (product.Stock <= 0)
+        int? customizationId;
+        try
         {
-            TempData["Error"] = "Este producto no tiene stock disponible.";
-            return RedirectToAction(nameof(CatalogController.Details), "Catalog", new { slug = product.Slug });
+            customizationId = await _preparation.PrepareAsync(model.ProductId, model.Quantity,
+                _cart.Items.Where(i => i.ProductId == model.ProductId).Sum(i => i.Quantity),
+                model.Customization, HttpContext.Session.Id, ct);
         }
-
-        int? customizationId = null;
-
-        var customization = model.Customization ?? new CustomizationInputDto();
-        var hasCustomization =
-            !string.IsNullOrWhiteSpace(customization.Text) ||
-            !string.IsNullOrWhiteSpace(customization.Initials) ||
-            !string.IsNullOrWhiteSpace(customization.Date) ||
-            !string.IsNullOrWhiteSpace(customization.Phrase) ||
-            !string.IsNullOrWhiteSpace(customization.Color) ||
-            !string.IsNullOrWhiteSpace(customization.Font) ||
-            !string.IsNullOrWhiteSpace(customization.Charm) ||
-            !string.IsNullOrWhiteSpace(customization.Material) ||
-            !string.IsNullOrWhiteSpace(customization.Size) ||
-            customization.GiftWrap;
-
-        if (model.Quantity + _cart.Items.Where(i => i.ProductId == model.ProductId).Sum(i => i.Quantity) > Math.Min(50, product.Stock))
-        {
-            TempData["Error"] = "La cantidad supera las existencias disponibles o el límite de 50 unidades.";
-            return RedirectToAction(nameof(Index));
-        }
-        var validation = new Bisuteria.Application.Validators.CustomizationInputValidator().Validate(customization);
-        if (!validation.IsValid || (hasCustomization && !product.IsCustomizable))
-        {
-            TempData["Error"] = "La personalización no es válida para este producto.";
-            return RedirectToAction(nameof(Index));
-        }
-        if (hasCustomization)
-        {
-            customization.ProductId = model.ProductId;
-            customization.Quantity = model.Quantity;
-            customization.PriceOverride = Pricing.ComputeCustomizationPrice(customization, product.EffectivePrice);
-            try { customizationId = await _customizations.SaveAsync(customization, ct, HttpContext.Session.Id); }
-            catch (BusinessRuleException ex) { TempData["Error"] = ex.Message; return RedirectToAction(nameof(Index)); }
-        }
+        catch (BusinessRuleException ex) { TempData["Error"] = ex.Message; return RedirectToAction(nameof(Index)); }
 
         await _cart.AddAsync(model.ProductId, model.Quantity, customizationId, ct);
 

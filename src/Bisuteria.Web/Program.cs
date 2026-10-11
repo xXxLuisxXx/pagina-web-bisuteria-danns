@@ -12,6 +12,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddStoreSecurity();
+builder.Logging.AddJsonConsole();
+builder.Services.AddHealthChecks().AddCheck<Bisuteria.Web.Services.DatabaseHealthCheck>("database");
 
 // Cultura invariante: los decimales siempre usan punto (evita errores de binding según el locale del servidor).
 var invariantCulture = new CultureInfo("es-EC");
@@ -140,6 +142,7 @@ app.MapControllerRoute(
 
 
 
+app.MapHealthChecks("/health");
 app.Run();
 
 public partial class Program { }

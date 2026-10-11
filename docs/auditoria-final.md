@@ -1,18 +1,22 @@
+# Informe histórico del 5 de octubre (base anterior)
+
+Este documento describe la revisión anterior a las fases nuevas. Sus cifras no representan el código actual; consulta los informes fase-*.md.
+
 # Auditoría final — BISUTERIAS DANN’S
 
 Fechas de trabajo: 4 y 5 de octubre de 2026 (America/Guayaquil). Alcance: proyecto existente, sin reconstrucción y conservando las cuatro capas.
 
-**Resultado general: correcciones implementadas, compilación certificada y suite final aprobada en Debug y Release: 60/60 en cada configuración.** La certificación se limita a los escenarios comprobados; no implica servicios externos operativos ni seguridad absoluta.
+**Resultado general: correcciones implementadas, compilación comprobada y suite final aprobada en Debug y Release: 60/60 en cada configuración.** La certificación se limita a los escenarios comprobados; no implica servicios externos operativos ni seguridad absoluta.
 
 | Clasificación | Alcance concreto |
 |---|---|
-| **CERTIFICADO** | Restauración y compilación limpia Debug/Release; 60 pruebas aprobadas tanto en Debug como en Release sobre SQL Server; 42 comprobaciones de páginas renderizadas y 5 interacciones; consulta de vulnerabilidades NuGet sin avisos. |
+| **VERIFICADO EN LA REVISIÓN HISTÓRICA** | Restauración y compilación limpia Debug/Release; 60 pruebas aprobadas tanto en Debug como en Release sobre SQL Server; 42 comprobaciones de páginas renderizadas y 5 interacciones; consulta de vulnerabilidades NuGet sin avisos. |
 | **IMPLEMENTADO NO VERIFICABLE EXTERNAMENTE** | Envío real de recuperación SMTP y operación real de métodos de pago configurables. |
 | **PENDIENTE** | Configuración y validación del despliegue y los servicios externos reales. |
 
 Las funciones parcialmente implementadas y las ampliaciones opcionales se detallan por separado en [Funciones pendientes](funciones-pendientes.md); una prueba general no convierte esas ampliaciones en funciones completas.
 
-La certificación final corresponde a la ejecución del 5 de octubre sobre el código actual. Los registros de las ejecuciones anteriores, incluidas las bloqueadas, se conservaron. Windows permitió la ejecución final sin modificar sus protecciones.
+La comprobación histórica corresponde a la ejecución del 5 de octubre sobre la versión de aquel día. Los registros de las ejecuciones anteriores, incluidas las bloqueadas, se conservaron. Windows permitió la ejecución final sin modificar sus protecciones.
 
 ## 1. Estado inicial
 
@@ -113,39 +117,39 @@ Se conserva exactamente `20260821011850_InitialCreate`, su Designer y `AppDbCont
 
 ## 11. Autenticación
 
-**CERTIFICADO (bloque 2 y revalidación final):** registro, login/logout, protección de perfil, retorno local, recuperación/token reutilizado rechazado, desactivación que revoca sesión y rechazo de rol Admin falsificado. Identity mantiene hashing, tokens y lockout. Las credenciales de la fixture son ficticias.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** registro, login/logout, protección de perfil, retorno local, recuperación/token reutilizado rechazado, desactivación que revoca sesión y rechazo de rol Admin falsificado. Identity mantiene hashing, tokens y lockout. Las credenciales de la fixture son ficticias.
 
 **IMPLEMENTADO NO VERIFICABLE EXTERNAMENTE:** entrega real SMTP. No se asegura que un correo llegue a una bandeja de entrada.
 
 ## 12. Autorización Admin
 
-**CERTIFICADO (bloque 2 y revalidación final):** rutas representativas GET/POST y CSRF; `AdminBaseController` aplica el rol al área. La prueba final amplía acceso directo a todos los módulos y exportaciones y **pasó en la suite de 60 casos**. Ocultar enlaces nunca se usa como control de autorización.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** rutas representativas GET/POST y CSRF; `AdminBaseController` aplica el rol al área. La prueba final amplía acceso directo a todos los módulos y exportaciones y **pasó en la suite de 60 casos**. Ocultar enlaces nunca se usa como control de autorización.
 
 ## 13. Catálogo
 
-**CERTIFICADO (bloque 2 y revalidación final):** navegación pública, filtros/precio, productos y categorías inactivos excluidos, detalle, sitemap y enlaces oficiales. No se cambiaron los datos reales ni la regla histórica de precio efectivo. Se conservó la búsqueda y la personalización existentes. Las URLs de imágenes se validan y las tarjetas tienen fallback.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** navegación pública, filtros/precio, productos y categorías inactivos excluidos, detalle, sitemap y enlaces oficiales. No se cambiaron los datos reales ni la regla histórica de precio efectivo. Se conservó la búsqueda y la personalización existentes. Las URLs de imágenes se validan y las tarjetas tienen fallback.
 
 ## 14. Carrito
 
-**CERTIFICADO (bloque 2 y revalidación final):** añadir, cantidades inválidas rechazadas, vaciar, variantes personalizadas independientes, recálculo del precio y checkout HTTP que vacía sesión tras guardar. Se mantiene sesión del lado servidor; no se confía en un precio enviado por navegador. No se certifica persistencia distribuida entre varias instancias.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** añadir, cantidades inválidas rechazadas, vaciar, variantes personalizadas independientes, recálculo del precio y checkout HTTP que vacía sesión tras guardar. Se mantiene sesión del lado servidor; no se confía en un precio enviado por navegador. No se certifica persistencia distribuida entre varias instancias.
 
 ## 15. Pedidos
 
-**CERTIFICADO (bloque 2 y revalidación final):** creación HTTP, importes recalculados, categoría/personalización válidas, reserva atómica, control de propiedad, cancelación idempotente y bloqueo de reapertura, notas sin cambio de estado y sincronización del estado de pagos.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** creación HTTP, importes recalculados, categoría/personalización válidas, reserva atómica, control de propiedad, cancelación idempotente y bloqueo de reapertura, notas sin cambio de estado y sincronización del estado de pagos.
 
 La validación final más estricta de cupón y su prueba de competencia por el último uso **pasaron sobre la versión final**. Pago “pendiente/pagado” es un registro administrativo, no una transacción bancaria.
 
 ## 16. Inventario
 
-**CERTIFICADO (bloque 2 y revalidación final):** dos pedidos por la última unidad solo permiten uno; cantidades de variantes se agregan; cancelación repone una vez; formulario antiguo no puede restaurar stock vendido; movimientos iniciales, venta y ajuste tienen StockAfter esperado. SQL Server usa aislamiento serializable y estrategia de reintentos para conflictos transitorios.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** dos pedidos por la última unidad solo permiten uno; cantidades de variantes se agregan; cancelación repone una vez; formulario antiguo no puede restaurar stock vendido; movimientos iniciales, venta y ajuste tienen StockAfter esperado. SQL Server usa aislamiento serializable y estrategia de reintentos para conflictos transitorios.
 
 No se cambió el inventario comercial para demostrar compras. El producto real sin stock permanece agotado.
 
 ## 17. Seguridad de imágenes
 
-**CERTIFICADO (bloque 2 y revalidación final):** contenido falso rechazado, extensión/tamaño validados, carpeta fuera de allowlist rechazada y PNG válido recodificado como JPEG. Límites: 8 MB por archivo, 24 millones de píxeles, un fotograma; nombres generados por GUID y escritura CreateNew; sin rutas suministradas por el usuario.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA (bloque 2 y revalidación final):** contenido falso rechazado, extensión/tamaño validados, carpeta fuera de allowlist rechazada y PNG válido recodificado como JPEG. Límites: 8 MB por archivo, 24 millones de píxeles, un fotograma; nombres generados por GUID y escritura CreateNew; sin rutas suministradas por el usuario.
 
-**CERTIFICADO en la suite final:** limpieza del primer archivo de un lote cuando falla el siguiente. La misma limpieza se invoca si falla el guardado de producto/galería (revisión de código; no se simuló cada posible caída de disco o SQL). Solo se pueden descartar rutas registradas por la misma instancia; no se borran imágenes antiguas o compartidas. El caso correspondiente pasó.
+**VERIFICADO EN LA REVISIÓN HISTÓRICA en la suite final:** limpieza del primer archivo de un lote cuando falla el siguiente. La misma limpieza se invoca si falla el guardado de producto/galería (revisión de código; no se simuló cada posible caída de disco o SQL). Solo se pueden descartar rutas registradas por la misma instancia; no se borran imágenes antiguas o compartidas. El caso correspondiente pasó.
 
 ## 18. Responsive
 

@@ -67,3 +67,9 @@
         </table>
     </div>
 </div>
+
+<nav aria-label="Paginación de usuarios" class="d-flex gap-3 my-3">
+    @if ((int)(ViewBag.Page ?? 1) > 1) { <a asp-action="Index" asp-route-page="@((int)ViewBag.Page - 1)">Anterior</a> }
+    <span>Página @(ViewBag.Page ?? 1)</span>
+    @if (Model.Count == 25) { <a asp-action="Index" asp-route-page="@((int)(ViewBag.Page ?? 1) + 1)">Siguiente</a> }
+</nav>

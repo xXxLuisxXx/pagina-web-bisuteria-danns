@@ -140,13 +140,12 @@ public class AdminService : IAdminService
             .ToListAsync(ct);
 
         var topProductDtos = new List<TopProductDto>();
+        var topIds = topProducts.Select(p => p.ProductId).ToList();
+        var topDetails = await _context.Products.AsNoTracking().Include(p => p.Images)
+            .Where(p => topIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
         foreach (var tp in topProducts)
         {
-            var product = await _context.Products.AsNoTracking()
-                .Include(p => p.Images)
-                .FirstOrDefaultAsync(p => p.Id == tp.ProductId, ct);
-            if (product is null)
-                continue;
+            if (!tp.ProductId.HasValue || !topDetails.TryGetValue(tp.ProductId.Value, out var product)) continue;
             topProductDtos.Add(new TopProductDto
             {
                 ProductId = product.Id,
@@ -283,20 +282,28 @@ public class AdminService : IAdminService
         return movements;
     }
 
-    public async Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default)
+    public async Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default, int page = 1, int pageSize = 25, string? userId = null)
     {
-        var users = await _userManager.Users
-            .OrderByDescending(u => u.CreatedAt)
-            .ToListAsync(ct);
+        var users = await _userManager.Users.AsNoTracking()
+            .Where(u => userId == null || u.Id == userId)
+            .OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id)
+            .Skip((Math.Clamp(page, 1, 10000) - 1) * Math.Clamp(pageSize, 1, 100))
+            .Take(Math.Clamp(pageSize, 1, 100)).ToListAsync(ct);
+        var ids = users.Select(u => u.Id).ToList();
+        var roleRows = await (from link in _context.UserRoles
+                              join role in _context.Roles on link.RoleId equals role.Id
+                              where ids.Contains(link.UserId)
+                              select new { link.UserId, role.Name }).ToListAsync(ct);
+        var rolesByUser = roleRows.ToLookup(r => r.UserId, r => r.Name!);
 
         var orderCounts = await _context.Orders
-            .Where(o => o.UserId != null)
+            .Where(o => o.UserId != null && ids.Contains(o.UserId))
             .GroupBy(o => o.UserId!)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count, ct);
 
         var totals = await _context.Orders
-            .Where(o => o.UserId != null && o.Status != OrderStatus.Cancelled)
+            .Where(o => o.UserId != null && ids.Contains(o.UserId) && o.Status != OrderStatus.Cancelled)
             .GroupBy(o => o.UserId!)
             .Select(g => new { UserId = g.Key, Total = g.Sum(o => o.Total) })
             .ToDictionaryAsync(x => x.UserId, x => x.Total, ct);
@@ -304,7 +311,7 @@ public class AdminService : IAdminService
         var result = new List<UserDto>();
         foreach (var user in users)
         {
-            var roles = await _userManager.GetRolesAsync(user);
+            var roles = rolesByUser[user.Id];
             result.Add(new UserDto
             {
                 Id = user.Id,
@@ -345,7 +352,10 @@ public class AdminService : IAdminService
         if (to.HasValue)
             q = SalesCriteria.Apply(q, to: to);
 
-        var orders = await q.OrderBy(o => o.CreatedAt).ToListAsync(ct);
+        var orders = await q.OrderBy(o => o.CreatedAt).Select(o => new {
+            o.OrderNumber, o.CreatedAt, o.CustomerName, o.Province, o.Status, o.PaymentMethod,
+            Items = o.Items.Sum(i => i.Quantity), o.Subtotal, o.Discount, o.ShippingCost, o.Total
+        }).ToListAsync(ct);
 
         return orders.Select(o => new SalesReportRow
         {
@@ -355,7 +365,7 @@ public class AdminService : IAdminService
             Province = o.Province,
             Status = o.Status.GetLabel(),
             PaymentMethod = o.PaymentMethod == PaymentMethod.BankTransfer ? "Transferencia bancaria" : o.PaymentMethod == PaymentMethod.Card ? "Tarjeta" : "Contra entrega",
-            Items = o.Items.Sum(i => i.Quantity),
+            Items = o.Items,
             Subtotal = o.Subtotal,
             Discount = o.Discount,
             Shipping = o.ShippingCost,
@@ -410,7 +420,10 @@ public class AdminService : IAdminService
         if (status.HasValue)
             q = q.Where(o => o.Status == status.Value);
 
-        var orders = await q.OrderByDescending(o => o.CreatedAt).ToListAsync(ct);
+        var orders = await q.OrderByDescending(o => o.CreatedAt).Select(o => new {
+            o.OrderNumber, o.CreatedAt, o.CustomerName, o.Province, o.Status, o.PaymentMethod,
+            Items = o.Items.Sum(i => i.Quantity), o.Subtotal, o.Discount, o.ShippingCost, o.Total
+        }).ToListAsync(ct);
 
         return orders.Select(o => new SalesReportRow
         {
@@ -420,7 +433,7 @@ public class AdminService : IAdminService
             Province = o.Province,
             Status = o.Status.GetLabel(),
             PaymentMethod = o.PaymentMethod == PaymentMethod.BankTransfer ? "Transferencia bancaria" : o.PaymentMethod == PaymentMethod.Card ? "Tarjeta" : "Contra entrega",
-            Items = o.Items.Sum(i => i.Quantity),
+            Items = o.Items,
             Subtotal = o.Subtotal,
             Discount = o.Discount,
             Shipping = o.ShippingCost,

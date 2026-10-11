@@ -13,10 +13,11 @@ public class UsersController : AdminBaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken ct)
+    public async Task<IActionResult> Index(CancellationToken ct, int page = 1)
     {
         ViewData["Title"] = "Usuarios";
-        var users = await _admin.GetUsersAsync(ct);
+        ViewBag.Page = page;
+        var users = await _admin.GetUsersAsync(ct, page);
         return View(users);
     }
 
@@ -24,7 +25,7 @@ public class UsersController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleActive(string id, CancellationToken ct)
     {
-        var users = await _admin.GetUsersAsync(ct);
+        var users = await _admin.GetUsersAsync(ct, userId: id);
         var user = users.FirstOrDefault(u => u.Id == id);
         if (user is null)
             return NotFound();

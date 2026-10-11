@@ -1,0 +1,48 @@
+name: Verificar proyecto
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Iniciar SQL temporal
+        shell: bash
+        run: |
+          password="Aa1!$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "BISUTERIA_TEST_CONNECTION=Server=localhost,1433;User Id=sa;Password=$password;TrustServerCertificate=True" >> "$GITHUB_ENV"
+          docker run -d --name audit-sql -e ACCEPT_EULA=Y -e MSSQL_PID=Developer -e MSSQL_SA_PASSWORD="$password" -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for attempt in {1..60}; do
+            if docker exec -e SQLCMDPASSWORD="$password" audit-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q 'SELECT 1' >/dev/null 2>&1; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - run: dotnet restore Bisuteria.slnx
+      - run: dotnet build Bisuteria.slnx -c Release --no-restore
+      - run: dotnet test Bisuteria.slnx -c Release --no-build --logger "trx;LogFileName=ci.trx" --results-directory audit/test-results
+      - name: Revisar dependencias vulnerables
+        shell: bash
+        run: |
+          dotnet list Bisuteria.slnx package --vulnerable --include-transitive --format json > audit/packages.json
+          python3 - <<'PY'
+          import json
+          data = json.load(open('audit/packages.json'))
+          findings = [p for project in data.get('projects', []) for framework in project.get('frameworks', []) for group in ('topLevelPackages', 'transitivePackages') for p in framework.get(group, []) if p.get('vulnerabilities')]
+          assert not findings, 'Se encontraron dependencias vulnerables.'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidencia-pruebas
+          path: |
+            audit/test-results
+            audit/packages.json
+      - name: Retirar contenedor temporal
+        if: always()
+        run: docker rm -f audit-sql || true

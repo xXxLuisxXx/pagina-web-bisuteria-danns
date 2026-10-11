@@ -79,6 +79,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<Order>(e =>
         {
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => new { x.Status, x.CreatedAt });
             e.HasIndex(x => x.CheckoutToken).IsUnique().HasFilter("[CheckoutToken] IS NOT NULL");
             e.Property(x => x.CouponCode).HasMaxLength(60);
             e.Property(x => x.OrderNumber).HasMaxLength(30).IsRequired();

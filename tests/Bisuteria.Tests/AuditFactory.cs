@@ -34,6 +34,9 @@ public sealed class MailCapture : IEmailSender
 public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public string DatabaseName { get; } = "BisuteriaAudit_" + Guid.NewGuid().ToString("N");
+    public string TestConnection => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
+        Environment.GetEnvironmentVariable("BISUTERIA_TEST_CONNECTION") ?? "Server=localhost;Trusted_Connection=True;TrustServerCertificate=True")
+        { InitialCatalog = DatabaseName, AttachDBFilename = "" }.ConnectionString;
     public const string Password = "Audit-Only!12345";
     public int ProductId { get; private set; }
     public int CategoryId { get; private set; }
@@ -46,7 +49,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string,string?>
         {
             ["Database:Initialize"] = "false",
-            ["ConnectionStrings:DefaultConnection"] = $"Server=localhost;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True",
+            ["ConnectionStrings:DefaultConnection"] = TestConnection,
             ["PublicBaseUrl"] = "https://localhost",
             ["Payments:EnabledMethods:0"] = "CashOnDelivery"
         }));
@@ -55,7 +58,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             services.RemoveAll<AppDbContext>();
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<Microsoft.EntityFrameworkCore.Infrastructure.IDbContextOptionsConfiguration<AppDbContext>>();
-            services.AddDbContext<AppDbContext>(options => options.UseSqlServer($"Server=localhost;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True", sql => sql.EnableRetryOnFailure(3)));
+            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(TestConnection, sql => sql.EnableRetryOnFailure(3)));
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Mail);
         });
@@ -65,7 +68,8 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         // Todas las escrituras se realizan en esta base temporal, nunca en BisuteriaDb.
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Contains(DatabaseName, db.Database.GetConnectionString());
+        Assert.Equal(DatabaseName, db.Database.GetDbConnection().Database);
+        Assert.Matches("^BisuteriaAudit_[0-9a-f]{32}$", DatabaseName);
         await db.Database.MigrateAsync();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach(var role in new[]{"Admin","Customer"}) Assert.True((await roles.CreateAsync(new IdentityRole(role))).Succeeded);
