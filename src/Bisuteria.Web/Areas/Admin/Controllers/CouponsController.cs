@@ -62,7 +62,7 @@ public class CouponsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleActive(int id, CancellationToken ct)
     {
-        await _coupons.ToggleActiveAsync(id, ct);
+        if (!await _coupons.ToggleActiveAsync(id, ct)) return NotFound();
         TempData["Success"] = "Cupón actualizado.";
         return RedirectToAction(nameof(Index));
     }
@@ -71,7 +71,7 @@ public class CouponsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await _coupons.DeleteAsync(id, ct);
+        if (!await _coupons.DeleteAsync(id, ct)) return NotFound();
         TempData["Success"] = "Cupón eliminado.";
         return RedirectToAction(nameof(Index));
     }

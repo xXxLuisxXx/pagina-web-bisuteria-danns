@@ -33,6 +33,7 @@ builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
     options.Filters.Add<Bisuteria.Web.Filters.InputValidationFilter>();
+    options.Filters.Add<Bisuteria.Web.Filters.EndpointValidationFilter>();
     options.Filters.Add<Bisuteria.Web.Filters.PersistenceExceptionFilter>();
     options.Filters.Add<AntispamFilter>();
     options.Filters.Add<AdminReauthenticationFilter>();
@@ -65,9 +66,11 @@ builder.Services.AddScoped<Bisuteria.Application.Interfaces.IGalleryAdminService
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
-    options.AddPolicy("public-forms", context => RateLimitPartition.GetFixedWindowLimiter(
-        context.Connection.RemoteIpAddress?.ToString() ?? "local",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("public-forms", context =>
+        builder.Environment.IsEnvironment("Testing") && !builder.Configuration.GetValue("Security:TestRateLimits", false)
+            ? RateLimitPartition.GetNoLimiter("testing")
+            : RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "local",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 var app = builder.Build();

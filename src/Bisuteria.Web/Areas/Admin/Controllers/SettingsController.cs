@@ -39,7 +39,7 @@ public class SettingsController : AdminBaseController
                 if (kv.Key.EndsWith("Url", StringComparison.Ordinal) && value.Length > 0)
                     invalid |= !Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !string.IsNullOrEmpty(uri.UserInfo);
                 if (kv.Key == "ShippingCost" || (kv.Key == "FreeShippingThreshold" && value.Length > 0))
-                    invalid |= !decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var amount) || amount < 0 || amount > 1000000;
+                    invalid |= !decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var amount) || amount < 0 || amount > 1000000 || decimal.Round(amount, 2) != amount;
                 if (invalid)
                 {
                     TempData["Error"] = $"El campo {kv.Key} no es válido. Revisa su formato, importe o longitud.";

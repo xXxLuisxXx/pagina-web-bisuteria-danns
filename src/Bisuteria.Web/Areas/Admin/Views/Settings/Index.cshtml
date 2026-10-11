@@ -26,11 +26,22 @@
                         <label class="form-label" for="values_@item.Key">@Humanize(item.Key)</label>
                         @if (item.Key.Contains("Description") || item.Key.Contains("HeroSubtitle"))
                         {
-                            <textarea id="values_@item.Key" name="values[@item.Key]" class="form-control" rows="2">@item.Value</textarea>
+                            <textarea id="values_@item.Key" name="values[@item.Key]" class="form-control" rows="2" maxlength="1000">@item.Value</textarea>
+                        }
+                        else if (item.Key is "ShippingCost" or "FreeShippingThreshold")
+                        {
+                            <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" type="number" min="0" max="1000000" step="0.01" required="@(item.Key == "ShippingCost")" />
+                        }
+                        else if (item.Key == "CouponSingleUsePerCustomer")
+                        {
+                            <select id="values_@item.Key" name="values[@item.Key]" class="form-select">
+                                <option value="false" selected="@(!string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">No</option>
+                                <option value="true" selected="@(string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">Sí</option>
+                            </select>
                         }
                         else
                         {
-                            <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" />
+                            <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" maxlength="1000" type="@(item.Key == "ContactEmail" ? "email" : item.Key.EndsWith("Url") ? "url" : "text")" />
                         }
                     </div>
                 }
@@ -67,6 +78,7 @@
             "Tik Tok Url" => "TikTok",
             "Shipping Cost" => "Costo de envío ($)",
             "Free Shipping Threshold" => "Envío gratis desde ($)",
+            "Coupon Single Use Per Customer" => "Limitar cupón a un uso por cliente",
             "Instagram Handle" => "Usuario de Instagram",
             "Tik Tok Handle" => "Usuario de TikTok",
             "Hero Title" => "Título de portada",

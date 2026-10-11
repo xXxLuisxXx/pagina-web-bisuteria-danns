@@ -89,7 +89,7 @@ public class ProductsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await _products.DeleteAsync(id, ct);
+        if (!await _products.DeleteAsync(id, ct)) return NotFound();
         TempData["Success"] = "Producto retirado del catálogo. Se conserva el historial cuando corresponde.";
         return RedirectToAction(nameof(Index));
     }

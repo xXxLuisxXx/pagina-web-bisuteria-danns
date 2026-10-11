@@ -26,7 +26,7 @@ public class ReviewsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id, CancellationToken ct)
     {
-        await _reviews.ApproveAsync(id, ct);
+        if (!await _reviews.ApproveAsync(id, ct)) return NotFound();
         TempData["Success"] = "Reseña aprobada y publicada.";
         return RedirectToAction(nameof(Index), new { pendingOnly = true });
     }
@@ -35,7 +35,7 @@ public class ReviewsController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await _reviews.DeleteAsync(id, ct);
+        if (!await _reviews.DeleteAsync(id, ct)) return NotFound();
         TempData["Success"] = "Reseña eliminada.";
         return RedirectToAction(nameof(Index));
     }

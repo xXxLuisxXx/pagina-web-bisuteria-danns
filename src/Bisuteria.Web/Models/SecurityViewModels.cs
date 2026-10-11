@@ -4,8 +4,8 @@ namespace Bisuteria.Web.Models;
 
 public sealed class EmailConfirmationViewModel
 {
-    [Required, EmailAddress, StringLength(200)] public string Email { get; set; } = "";
-    [Required, StringLength(4096)] public string Token { get; set; } = "";
+    [Required(ErrorMessage = "El correo es obligatorio."), EmailAddress(ErrorMessage = "Introduce un correo válido."), StringLength(200, ErrorMessage = "El correo admite hasta 200 caracteres.")] public string Email { get; set; } = "";
+    [Required(ErrorMessage = "El enlace de confirmación está incompleto."), StringLength(4096, ErrorMessage = "El enlace de confirmación no es válido.")] public string Token { get; set; } = "";
 }
 
 public sealed class ChangePasswordViewModel

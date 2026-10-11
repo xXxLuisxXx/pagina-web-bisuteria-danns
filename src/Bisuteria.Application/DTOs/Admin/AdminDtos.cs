@@ -233,17 +233,22 @@ public class CouponInputDto
     public int Id { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Código")]
+    [System.ComponentModel.DataAnnotations.StringLength(40, ErrorMessage = "{0} admite hasta 40 caracteres.")]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "{0} es obligatorio.")]
     public string Code { get; set; } = string.Empty;
 
     public DiscountType Type { get; set; } = DiscountType.Percentage;
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Valor")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal Value { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Importe mínimo")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0", "9999999", ErrorMessage = "{0} debe estar entre 0 y 9999999.")]
     public decimal MinAmount { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Límite de usos")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(int), "1", "2147483647", ErrorMessage = "{0} debe estar entre 1 y 2147483647.")]
     public int? MaxUses { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Fecha de inicio")]
@@ -255,6 +260,7 @@ public class CouponInputDto
     public bool IsActive { get; set; } = true;
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Descripción")]
+    [System.ComponentModel.DataAnnotations.StringLength(1000, ErrorMessage = "{0} admite hasta 1000 caracteres.")]
     public string? Description { get; set; }
 }
 

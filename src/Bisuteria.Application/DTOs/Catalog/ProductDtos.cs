@@ -86,27 +86,38 @@ public class ProductInputDto
     public int Id { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Nombre")]
+    [System.ComponentModel.DataAnnotations.StringLength(200, ErrorMessage = "{0} admite hasta 200 caracteres.")]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "{0} es obligatorio.")]
     public string Name { get; set; } = string.Empty;
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Descripción")]
+    [System.ComponentModel.DataAnnotations.StringLength(10000, ErrorMessage = "{0} admite hasta 10000 caracteres.")]
     public string? Description { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal Price { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal? ComparePrice { get; set; }
 
+    [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "{0} admite hasta 120 caracteres.")]
     public string? Material { get; set; }
 
+    [System.ComponentModel.DataAnnotations.StringLength(300, ErrorMessage = "{0} admite hasta 300 caracteres.")]
     public string? Colors { get; set; }
 
+    [System.ComponentModel.DataAnnotations.StringLength(60, ErrorMessage = "{0} admite hasta 60 caracteres.")]
     public string? Size { get; set; }
 
+    [System.ComponentModel.DataAnnotations.StringLength(60, ErrorMessage = "{0} admite hasta 60 caracteres.")]
     public string? Sku { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Range(typeof(int), "0", "1000000", ErrorMessage = "{0} debe estar entre 0 y 1000000.")]
     public int Stock { get; set; }
 
     public int? OriginalStock { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Range(typeof(int), "0", "1000000", ErrorMessage = "{0} debe estar entre 0 y 1000000.")]
     public int MinStock { get; set; } = 5;
 
     public bool IsActive { get; set; } = true;
@@ -117,5 +128,6 @@ public class ProductInputDto
 
     public bool IsCustomizable { get; set; } = true;
 
+    [System.ComponentModel.DataAnnotations.Range(typeof(int), "1", "2147483647", ErrorMessage = "{0} debe estar entre 1 y 2147483647.")]
     public int CategoryId { get; set; }
 }

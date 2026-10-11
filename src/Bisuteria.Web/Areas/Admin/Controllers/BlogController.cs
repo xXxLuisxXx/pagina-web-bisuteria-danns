@@ -57,7 +57,7 @@ public class BlogController : AdminBaseController
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
-        await _blog.DeleteAsync(id, ct);
+        if (!await _blog.DeleteAsync(id, ct)) return NotFound();
         TempData["Success"] = "Publicación eliminada.";
         return RedirectToAction(nameof(Index));
     }

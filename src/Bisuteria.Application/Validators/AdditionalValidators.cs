@@ -9,6 +9,8 @@ public class CouponInputValidator : AbstractValidator<CouponInputDto>
 {
     public CouponInputValidator()
     {
+        RuleFor(x => x.Value).Must(x => decimal.Round(x, 2) == x).WithMessage("El descuento admite hasta 2 decimales.");
+        RuleFor(x => x.MinAmount).Must(x => decimal.Round(x, 2) == x).WithMessage("El importe mínimo admite hasta 2 decimales.");
         RuleFor(x => x.Id).GreaterThanOrEqualTo(0).WithMessage("Identificador inválido.");
         RuleFor(x => x.Code).NotEmpty().MaximumLength(40).Matches("^[a-zA-Z0-9_-]+$").WithMessage("Usa un código de hasta 40 letras, números, guiones o guiones bajos.");
         RuleFor(x => x.Type).IsInEnum().WithMessage("Tipo de descuento inválido.");
@@ -42,7 +44,7 @@ public class GalleryImageValidator : AbstractValidator<GalleryImageDto>
     public GalleryImageValidator()
     {
         RuleFor(x => x.Id).GreaterThanOrEqualTo(0).WithMessage("Identificador inválido.");
-        RuleFor(x => x.ImageUrl).Must(InputValidation.IsImageUrl).When(x => !string.IsNullOrWhiteSpace(x.ImageUrl)).WithMessage("Usa una URL HTTPS válida para la imagen.");
+        RuleFor(x => x.ImageUrl).Must(InputValidation.IsImageUrl).When(x => !string.IsNullOrWhiteSpace(x.ImageUrl)).WithMessage("Sube una imagen o usa una ruta local que empiece por /img/.");
         RuleFor(x => x.Title).MaximumLength(200).WithMessage("Título demasiado largo.");
         RuleFor(x => x.Description).MaximumLength(2000).WithMessage("Descripción demasiado larga.");
         RuleFor(x => x.Category).MaximumLength(80).WithMessage("La categoría no puede superar 80 caracteres.");

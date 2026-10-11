@@ -97,7 +97,7 @@ public class ProductAdminService : IProductAdminService
             if (string.IsNullOrWhiteSpace(url))
                 continue;
             if (!InputValidation.IsImageUrl(url))
-                throw new Bisuteria.Application.Services.BusinessRuleException("La URL de imagen debe ser HTTPS o una imagen local válida.");
+                throw new Bisuteria.Application.Services.BusinessRuleException("Sube una imagen o usa una ruta local que empiece por /img/.");
             var image = new ProductImage
             {
                 ImageUrl = url,
