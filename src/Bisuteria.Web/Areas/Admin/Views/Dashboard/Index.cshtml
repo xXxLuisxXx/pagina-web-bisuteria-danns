@@ -1,204 +1,73 @@
 @model DashboardStats
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h1 class="admin-title mb-1">Panel de administración</h1>
-        <p class="text-muted mb-0">Resumen general del negocio.</p>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-cash-stack"></i></div>
-            <div class="stat-value">@Model.SalesToday.ToString("C")</div>
-            <div class="stat-label">Ventas hoy</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-bag-check"></i></div>
-            <div class="stat-value">@Model.OrdersToday</div>
-            <div class="stat-label">Pedidos hoy</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-graph-up-arrow"></i></div>
-            <div class="stat-value">@Model.SalesMonth.ToString("C")</div>
-            <div class="stat-label">Ventas del mes</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-hourglass-split"></i></div>
-            <div class="stat-value">@Model.PendingOrders</div>
-            <div class="stat-label">Pedidos pendientes</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-box2-heart"></i></div>
-            <div class="stat-value">@Model.ProductsSold</div>
-            <div class="stat-label">Productos vendidos</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-people"></i></div>
-            <div class="stat-value">@Model.RegisteredClients</div>
-            <div class="stat-label">Clientes registrados</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-box-seam"></i></div>
-            <div class="stat-value">@Model.TotalProducts</div>
-            <div class="stat-label">Productos activos</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-check-circle"></i></div>
-            <div class="stat-value text-success">@Model.AvailableProducts</div>
-            <div class="stat-label">Disponibles</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-slash-circle"></i></div>
-            <div class="stat-value @(Model.SoldOutProducts > 0 ? "text-danger" : "")">@Model.SoldOutProducts</div>
-            <div class="stat-label">Agotados</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-tags"></i></div>
-            <div class="stat-value">@Model.CategoriesCount</div>
-            <div class="stat-label">Categorías</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-receipt"></i></div>
-            <div class="stat-value">@Model.TotalOrders</div>
-            <div class="stat-label">Pedidos totales</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-piggy-bank"></i></div>
-            <div class="stat-value">@Model.TotalSales.ToString("C")</div>
-            <div class="stat-label">Ventas totales</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="stat-card">
-            <div class="stat-icon mb-2"><i class="bi bi-exclamation-triangle"></i></div>
-            <div class="stat-value @(Model.LowStockCount > 0 ? "text-danger" : "")">@Model.LowStockCount</div>
-            <div class="stat-label">Stock bajo</div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-lg-4">
-        <div class="card-admin p-3 h-100">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-ticket-perforated me-2 text-gold"></i>Pedidos por estado</h6>
-            @foreach (var point in Model.OrdersByStatus)
-            {
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>@point.Label</span>
-                    <strong>@point.Value</strong>
-                </div>
-                <div class="progress mb-3" style="height:8px;">
-                    <div class="progress-bar" style="width: @Math.Min(100, (double)point.Value / (double)Math.Max(1m, Model.OrdersByStatus.Sum(o => o.Value)) * 100)%;background:var(--brand-gold);"></div>
-                </div>
-            }
-            @if (Model.PendingReviews > 0)
-            {
-                <a class="btn btn-sm btn-outline-warning w-100 mt-2" asp-area="Admin" asp-controller="Reviews" asp-action="Index" asp-route-pendingOnly="true">
-                    <i class="bi bi-star me-1"></i>@Model.PendingReviews reseñas por aprobar
-                </a>
-            }
-            @if (Model.UnreadMessages > 0)
-            {
-                <a class="btn btn-sm btn-outline-primary w-100 mt-2" asp-area="Admin" asp-controller="Messages" asp-action="Index" asp-route-unreadOnly="true">
-                    <i class="bi bi-envelope me-1"></i>@Model.UnreadMessages mensajes sin leer
-                </a>
-            }
-        </div>
-    </div>
-    <div class="col-lg-8">
-        <div class="card-admin p-3 h-100">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-star-fill me-2 text-gold"></i>Top productos</h6>
-            <div class="table-responsive">
-            <table class="table table-admin mb-0">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th class="text-center">Vendidos</th>
-                        <th class="text-end">Ingresos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var product in Model.TopProducts.Take(5))
-                    {
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <img class="product-mini-img" src="@(product.ImageUrl ?? "/img/placeholder.svg")" alt="@product.Name" />
-                                    <span>@product.Name</span>
-                                </div>
-                            </td>
-                            <td class="text-center">@product.QuantitySold</td>
-                            <td class="text-end fw-semibold">@product.Revenue.ToString("C")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-7">
-        <div class="card-admin p-3 h-100">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-graph-up me-2 text-gold"></i>Ventas de los últimos 12 meses</h6>
-            <div class="sales-chart"><canvas id="salesChart" height="240"></canvas></div>
-        </div>
-    </div>
-    <div class="col-lg-5">
-        <div class="card-admin p-3 h-100">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-clock-history me-2 text-gold"></i>Pedidos recientes</h6>
-            @if (Model.RecentOrders.Count == 0)
-            {
-                <p class="text-muted small mb-0">Aún no hay pedidos.</p>
-            }
-            else
-            {
-                <div class="d-flex flex-column gap-2">
-                    @foreach (var order in Model.RecentOrders.Take(6))
-                    {
-                        <a class="d-flex justify-content-between align-items-center text-decoration-none text-body border-bottom pb-2"
-                           asp-area="Admin" asp-controller="Orders" asp-action="Details" asp-route-orderNumber="@order.OrderNumber">
-                            <span><strong>@order.OrderNumber</strong><br><small class="text-muted">@order.CustomerName · @order.CreatedAt.ToString("dd MMM")</small></span>
-                            <span class="text-end">
-                                <strong class="text-gold">@order.Total.ToString("C")</strong><br>
-                                <span class="badge badge-status bg-secondary">@order.StatusLabel</span>
-                            </span>
-                        </a>
-                    }
-                </div>
-            }
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
-    <script>
-        drawSalesChart('salesChart', @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SalesByMonth)));
-    </script>
+@using Bisuteria.Application.Services
+@{
+    string Change(decimal current, decimal previous) => previous == 0 ? (current == 0 ? "Sin variación" : "Sin base anterior") : $"{(current - previous) / previous:+0.0%;-0.0%;0.0%} frente al anterior";
+    var cards = new[] {
+        ("Importe del periodo", Model.PeriodSales.ToString("C"), Change(Model.PeriodSales, Model.PreviousSales)),
+        ("Pedidos del periodo", Model.PeriodOrders.ToString(), Change(Model.PeriodOrders, Model.PreviousOrders)),
+        ("Ticket promedio", Model.AverageTicket.ToString("C"), Change(Model.AverageTicket, Model.PreviousTicket)),
+        ("Clientes nuevos", Model.NewClients.ToString(), Change(Model.NewClients, Model.PreviousClients)),
+        ("Importe de hoy", Model.SalesToday.ToString("C"), Change(Model.SalesToday, Model.PreviousDaySales) + " (ayer)"),
+        ("Importe del mes", Model.SalesMonth.ToString("C"), Change(Model.SalesMonth, Model.PreviousMonthSales) + " (mes completo)")
+    };
 }
+<div class="mb-4">
+    <h1 class="admin-title">Panel de administración</h1>
+    <p class="text-muted">Pedidos no cancelados · America/Guayaquil · importes de pedidos, no cobros confirmados.</p>
+    <p class="small">Actualizado: @SalesCriteria.Local(Model.GeneratedAt).ToString("dd/MM/yyyy HH:mm:ss"). Caché de hasta 30 segundos.</p>
+</div>
+<form method="get" class="card-admin p-3 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-sm-6 col-lg-3"><label for="from" class="form-label">Desde</label><input class="form-control" type="date" id="from" name="from" value="@Model.From.ToString("yyyy-MM-dd")" required /></div>
+        <div class="col-sm-6 col-lg-3"><label for="to" class="form-label">Hasta</label><input class="form-control" type="date" id="to" name="to" value="@Model.To.ToString("yyyy-MM-dd")" required /></div>
+        <div class="col-sm-6 col-lg-3"><label for="interval" class="form-label">Agrupar ventas</label><select class="form-select" id="interval" name="interval"><option value="day" selected="@(Model.Interval == "day")">Día</option><option value="week" selected="@(Model.Interval == "week")">Semana (lunes)</option><option value="month" selected="@(Model.Interval == "month")">Mes</option></select></div>
+        <div class="col-sm-6 col-lg-3"><button class="btn btn-gold w-100" type="submit">Aplicar rango</button></div>
+    </div>
+    <p class="small text-muted mt-2 mb-0">Comparación con los @( (Model.To - Model.From).Days + 1 ) días anteriores. Máximo 367 días.</p>
+</form>
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="btn btn-outline-dark btn-sm" asp-action="Export" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-interval="@Model.Interval" asp-route-format="xlsx">Exportar Excel</a>
+    <a class="btn btn-outline-dark btn-sm" asp-action="Export" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" asp-route-interval="@Model.Interval" asp-route-format="csv">Exportar CSV</a>
+</div>
+<div class="row g-3 mb-4">
+@foreach (var card in cards) {
+    <div class="col-sm-6 col-xl-4"><div class="stat-card h-100"><div class="stat-label">@card.Item1</div><div class="stat-value">@card.Item2</div><div class="small mt-2">@card.Item3</div></div></div>
+}
+</div>
+<section class="card-admin p-3 mb-4" aria-labelledby="alerts-title">
+    <h2 id="alerts-title" class="h5">Requieren atención</h2>
+    <div class="d-flex flex-wrap gap-2">
+    @foreach (var alert in Model.Alerts) { <a class="btn btn-outline-dark" href="@alert.Url">@alert.Label <strong class="ms-1">@alert.Count</strong></a> }
+    </div>
+    @if (Model.Alerts.All(a => a.Count == 0)) { <p class="mt-3 mb-0">No hay alertas pendientes.</p> }
+</section>
+<div class="row g-3 mb-4">
+    <section class="col-lg-6"><div class="card-admin p-3 h-100"><h2 class="h5">Importe de pedidos por periodo</h2><partial name="_Chart" model="Model.SalesByMonth" /></div></section>
+    <section class="col-lg-6"><div class="card-admin p-3 h-100"><h2 class="h5">Pedidos por estado</h2><p class="small text-muted">Incluye cancelados para mostrar la distribución operativa.</p><partial name="_Chart" model="Model.OrdersByStatus" /></div></section>
+    <section class="col-lg-6"><div class="card-admin p-3 h-100"><h2 class="h5">Venta bruta por categoría</h2><p class="small text-muted">Precio por cantidad; antes de descuentos y envío. Categoría actual del producto.</p><partial name="_Chart" model="Model.SalesByCategory" /></div></section>
+    <section class="col-lg-6"><div class="card-admin p-3 h-100"><h2 class="h5">Importe por método de pago</h2><partial name="_Chart" model="Model.SalesByPayment" /></div></section>
+</div>
+<section class="card-admin p-3 mb-4"><h2 class="h5">Productos más vendidos del periodo</h2>
+    <partial name="_Chart" model="@(Model.TopProducts.Select(p => new ChartPoint { Label = p.Name, Value = p.QuantitySold }).ToList())" />
+    <p class="small text-muted mb-0">Unidades de pedidos no cancelados.</p>
+</section>
+<section class="card-admin p-3"><h2 class="h5">Pedidos recientes del rango</h2>
+    <form method="get" class="d-flex flex-wrap gap-2 my-3">
+        <input type="hidden" name="from" value="@Model.From.ToString("yyyy-MM-dd")" /><input type="hidden" name="to" value="@Model.To.ToString("yyyy-MM-dd")" /><input type="hidden" name="interval" value="@Model.Interval" />
+        <label for="recentStatus" class="form-label">Estado</label><select class="form-select w-auto" id="recentStatus" name="status"><option value="">Todos</option>@foreach(var status in Enum.GetValues<OrderStatus>()) { <option value="@status" selected="@(Model.RecentStatus == status)">@status.GetLabel()</option> }</select><button class="btn btn-outline-dark">Filtrar pedidos</button>
+    </form>
+    @if (Model.RecentOrders.Count == 0) { <p>No hay pedidos en este rango.</p> }
+    else { <div class="table-responsive"><table class="table table-admin"><thead><tr><th>Pedido</th><th>Fecha local</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    @foreach (var order in Model.RecentOrders) {
+        <tr><td>@order.OrderNumber</td><td>@SalesCriteria.Local(order.CreatedAt).ToString("dd/MM HH:mm")</td><td>@order.Total.ToString("C")</td><td>@order.StatusLabel</td><td>
+        <a asp-controller="Orders" asp-action="Details" asp-route-orderNumber="@order.OrderNumber">Ver pedido</a>
+        <form asp-controller="Orders" asp-action="UpdateStatus" method="post" class="d-flex gap-2 mt-2">
+            <input type="hidden" name="orderNumber" value="@order.OrderNumber" />
+            <label class="visually-hidden" for="status-@order.Id">Nuevo estado de @order.OrderNumber</label>
+            <select id="status-@order.Id" name="status" class="form-select form-select-sm">
+            @foreach (var next in Enum.GetValues<OrderStatus>().Where(s => OrderTransitions.Allows(order.Status, s, order.PaymentStatus))) { <option value="@next" selected="@(next == order.Status)">@next.GetLabel()</option> }
+            </select><button class="btn btn-sm btn-outline-dark">Guardar</button>
+        </form></td></tr>
+    }
+    </tbody></table></div> }
+</section>

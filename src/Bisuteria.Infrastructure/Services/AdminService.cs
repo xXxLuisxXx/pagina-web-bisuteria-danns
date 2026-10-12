@@ -16,7 +16,7 @@ namespace Bisuteria.Infrastructure.Services;
 /// Implementación del servicio administrativo (dashboard, inventario, usuarios y reportes).
 /// Requiere acceso a Identity, por lo que reside en la capa de Infraestructura.
 /// </summary>
-public class AdminService : IAdminService
+public partial class AdminService : IAdminService
 {
     private readonly AppDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -35,154 +35,8 @@ public class AdminService : IAdminService
         _orderService = orderService;
     }
 
-    public async Task<DashboardStats> GetDashboardAsync(CancellationToken ct = default)
-    {
-        var now = SalesCriteria.Local(DateTime.UtcNow);
-        var todayStart = SalesCriteria.Utc(now.Date);
-        var monthStart = SalesCriteria.Utc(new DateTime(now.Year, now.Month, 1));
-        var twelveMonthsAgo = monthStart.AddMonths(-11);
-
-        var orders = _context.Orders;
-        var items = _context.OrderItems;
-
-        var salesToday = await SalesCriteria.Apply(orders)
-            .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= todayStart)
-            .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
-
-        var ordersToday = await orders
-            .CountAsync(o => o.CreatedAt >= todayStart, ct);
-
-        var salesMonth = await SalesCriteria.Apply(orders)
-            .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= monthStart)
-            .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
-
-        var ordersMonth = await orders.CountAsync(o => o.CreatedAt >= monthStart, ct);
-
-        var pendingOrders = await orders.CountAsync(o => o.Status == OrderStatus.Pending, ct);
-
-        var productsSold = await items.Where(i => i.Order != null && i.Order.Status != OrderStatus.Cancelled).SumAsync(i => (int?)i.Quantity, ct) ?? 0;
-
-        var registeredClients = await _userManager.Users.CountAsync(u => u.IsActive, ct);
-
-        var totalProducts = await _context.Products.CountAsync(p => p.IsActive, ct);
-
-        var availableProducts = await _context.Products.CountAsync(p => p.IsActive && p.Stock > 0, ct);
-
-        var soldOutProducts = await _context.Products.CountAsync(p => p.IsActive && p.Stock == 0, ct);
-
-        var categoriesCount = await _context.Categories.CountAsync(c => c.IsActive, ct);
-
-        var totalOrders = await orders.CountAsync(ct);
-
-        var totalSales = await SalesCriteria.Apply(orders)
-            .Where(o => o.Status != OrderStatus.Cancelled)
-            .SumAsync(o => (decimal?)o.Total, ct) ?? 0;
-
-        var lowStock = await _context.Products.CountAsync(p => p.IsActive && p.Stock <= p.MinStock, ct);
-
-        var pendingReviews = await _context.Reviews.CountAsync(r => !r.IsApproved, ct);
-
-        var unreadMessages = await _context.ContactMessages.CountAsync(m => !m.IsRead, ct);
-
-        // Ventas de los últimos 12 meses.
-        var salesByMonth = await SalesCriteria.Apply(orders)
-            .Where(o => o.Status != OrderStatus.Cancelled && o.CreatedAt >= twelveMonthsAgo)
-            .GroupBy(o => new { o.CreatedAt.AddHours(-5).Year, o.CreatedAt.AddHours(-5).Month })
-            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(o => o.Total) })
-            .ToListAsync(ct);
-
-        var monthLabels = Enumerable.Range(0, 12)
-            .Select(i => twelveMonthsAgo.AddMonths(i))
-            .ToList();
-
-        var salesChart = monthLabels.Select(m => new ChartPoint
-        {
-            Label = m.ToString("MMM"),
-            Value = salesByMonth
-                .FirstOrDefault(x => x.Year == m.Year && x.Month == m.Month)?.Total ?? 0
-        }).ToList();
-
-        // Pedidos por estado.
-        var ordersByStatus = await orders
-            .GroupBy(o => o.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToListAsync(ct);
-
-        var statusLabels = new Dictionary<OrderStatus, string>
-        {
-            [OrderStatus.Pending] = "Pendientes",
-            [OrderStatus.Confirmed] = "Confirmados",
-            [OrderStatus.Preparing] = "En preparación",
-            [OrderStatus.Ready] = "Listos",
-            [OrderStatus.Shipped] = "Enviados",
-            [OrderStatus.Delivered] = "Entregados",
-            [OrderStatus.Cancelled] = "Cancelados"
-        };
-
-        var statusChart = Enum.GetValues<OrderStatus>().Select(s => new ChartPoint
-        {
-            Label = statusLabels[s],
-            Value = ordersByStatus.FirstOrDefault(x => x.Status == s)?.Count ?? 0
-        }).ToList();
-
-        // Top productos vendidos.
-        var topProducts = await items
-            .Where(i => i.ProductId != null && i.Order != null && i.Order.Status != OrderStatus.Cancelled)
-            .GroupBy(i => i.ProductId!)
-            .Select(g => new
-            {
-                ProductId = g.Key,
-                Quantity = g.Sum(i => i.Quantity),
-                Revenue = g.Sum(i => i.UnitPrice * i.Quantity)
-            })
-            .OrderByDescending(x => x.Quantity)
-            .Take(5)
-            .ToListAsync(ct);
-
-        var topProductDtos = new List<TopProductDto>();
-        var topIds = topProducts.Select(p => p.ProductId).ToList();
-        var topDetails = await _context.Products.AsNoTracking().Include(p => p.Images)
-            .Where(p => topIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
-        foreach (var tp in topProducts)
-        {
-            if (!tp.ProductId.HasValue || !topDetails.TryGetValue(tp.ProductId.Value, out var product)) continue;
-            topProductDtos.Add(new TopProductDto
-            {
-                ProductId = product.Id,
-                Name = product.Name,
-                ImageUrl = product.Images.OrderBy(i => i.IsPrimary ? 0 : 1).FirstOrDefault()?.ImageUrl,
-                QuantitySold = tp.Quantity,
-                Revenue = tp.Revenue
-            });
-        }
-
-        // Pedidos recientes.
-        var recentOrders = await _orderService.GetPagedAsync(1, 5, null, null, ct);
-
-        return new DashboardStats
-        {
-            SalesToday = salesToday,
-            OrdersToday = ordersToday,
-            SalesMonth = salesMonth,
-            OrdersMonth = ordersMonth,
-            PendingOrders = pendingOrders,
-            ProductsSold = productsSold,
-            RegisteredClients = registeredClients,
-            TotalProducts = totalProducts,
-            AvailableProducts = availableProducts,
-            SoldOutProducts = soldOutProducts,
-            CategoriesCount = categoriesCount,
-            TotalOrders = totalOrders,
-            TotalSales = totalSales,
-            LowStockCount = lowStock,
-            PendingReviews = pendingReviews,
-            UnreadMessages = unreadMessages,
-            SalesByMonth = salesChart,
-            OrdersByStatus = statusChart,
-            TopProducts = topProductDtos,
-            RecentOrders = recentOrders.Items
-        };
-    }
+    public Task<DashboardStats> GetDashboardAsync(CancellationToken ct = default, DateTime? from = null, DateTime? to = null, string interval = "day", OrderStatus? status = null)
+        => BuildDashboardAsync(from, to, interval, status, ct);
 
     public Task<int> AddStockAsync(int productId, int quantity, string reason, string? createdBy, CancellationToken ct = default)
         => _unitOfWork.InTransactionAsync(() => AddStockCoreAsync(productId, quantity, reason, createdBy, ct), ct);

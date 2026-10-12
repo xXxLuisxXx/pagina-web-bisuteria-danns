@@ -4,6 +4,18 @@ using Microsoft.AspNetCore.Razor.TagHelpers;
 
 namespace Bisuteria.Web.Security;
 
+// El generador MVC agrega un li vacío con style="display:none" al resumen válido.
+[HtmlTargetElement("div", Attributes = "asp-validation-summary")]
+public sealed class CspValidationSummaryTagHelper : TagHelper
+{
+    public override int Order => int.MaxValue;
+    public override void Process(TagHelperContext context, TagHelperOutput output)
+    {
+        foreach (var content in new[] { output.Content, output.PreContent, output.PostContent })
+            content.SetHtmlContent(content.GetContent().Replace("<li style=\"display:none\"></li>", "<li hidden></li>", StringComparison.Ordinal));
+    }
+}
+
 [HtmlTargetElement("script")]
 [HtmlTargetElement("style")]
 public sealed class CspNonceTagHelper : TagHelper

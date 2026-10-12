@@ -6,6 +6,25 @@ namespace Bisuteria.Application.DTOs.Admin;
 /// <summary>Resumen del dashboard principal.</summary>
 public class DashboardStats
 {
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public DateTime GeneratedAt { get; set; }
+    public string Interval { get; set; } = "day";
+    public OrderStatus? RecentStatus { get; set; }
+    public decimal PeriodSales { get; set; }
+    public decimal PreviousSales { get; set; }
+    public int PeriodOrders { get; set; }
+    public int PreviousOrders { get; set; }
+    public int NewClients { get; set; }
+    public int PreviousClients { get; set; }
+    public decimal AverageTicket => PeriodOrders == 0 ? 0 : PeriodSales / PeriodOrders;
+    public decimal PreviousTicket => PreviousOrders == 0 ? 0 : PreviousSales / PreviousOrders;
+    public decimal PreviousDaySales { get; set; }
+    public decimal PreviousMonthSales { get; set; }
+    public IReadOnlyList<ChartPoint> SalesByCategory { get; set; } = [];
+    public IReadOnlyList<ChartPoint> SalesByPayment { get; set; } = [];
+    public IReadOnlyList<DashboardAlert> Alerts { get; set; } = [];
+
     public decimal SalesToday { get; set; }
 
     public int OrdersToday { get; set; }
@@ -287,3 +306,5 @@ public class StockMovementRow
 
     public DateTime CreatedAt { get; set; }
 }
+
+public sealed record DashboardAlert(string Label, int Count, string Url);

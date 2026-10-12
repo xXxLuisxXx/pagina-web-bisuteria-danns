@@ -1,0 +1,16 @@
+docs/fase-5-dashboard.md
+docs/resultado-auditoria.md
+src/Bisuteria.Application/DTOs/Admin/AdminDtos.cs
+src/Bisuteria.Application/Interfaces/IAdminService.cs
+src/Bisuteria.Application/Services/OrderService.cs
+src/Bisuteria.Infrastructure/Services/AdminDashboard.cs
+src/Bisuteria.Infrastructure/Services/AdminService.cs
+src/Bisuteria.Web/Areas/Admin/Controllers/DashboardController.cs
+src/Bisuteria.Web/Areas/Admin/Views/Dashboard/Index.cshtml
+src/Bisuteria.Web/Areas/Admin/Views/Dashboard/_Chart.cshtml
+src/Bisuteria.Web/Program.cs
+src/Bisuteria.Web/Security/CspTagHelpers.cs
+src/Bisuteria.Web/wwwroot/css/site.css
+tests/Bisuteria.Tests/DashboardTests.cs
+tests/Bisuteria.Tests/SecurityHardeningTests.cs
+tests/visual/check.cjs

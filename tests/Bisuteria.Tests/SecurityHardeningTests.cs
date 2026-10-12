@@ -15,6 +15,15 @@ using Xunit;
 public partial class AuditTests
 {
     [Fact]
+    public async Task ValidationSummaryDoesNotGenerateInlineStyles()
+    {
+        using var client = f.Client();
+        var html = await client.GetStringAsync("/Account/Login");
+        Assert.DoesNotContain("style=\"display:none\"", html);
+        Assert.Contains("<li hidden></li>", html);
+    }
+
+    [Fact]
     public async Task CspUsesUniqueNoncesAndNoInlineEventHandlers()
     {
         using var client = f.Client();

@@ -109,7 +109,7 @@ public class OrderService : IOrderService
         {
             CheckoutToken = checkout.CheckoutToken,
             CouponCode = string.IsNullOrWhiteSpace(cart.CouponCode) ? null : cart.CouponCode.Trim().ToUpperInvariant(),
-            OrderNumber = await GenerateOrderNumberAsync(ct),
+            OrderNumber = $"{OrderPrefix}{Guid.NewGuid():N}"[..29],
             UserId = userId,
             CustomerName = checkout.CustomerName,
             CustomerEmail = checkout.CustomerEmail,
@@ -326,18 +326,4 @@ public class OrderService : IOrderService
         }
     }
 
-    private async Task<string> GenerateOrderNumberAsync(CancellationToken ct)
-    {
-        var last = await _unitOfWork.Repository<Order>().Query()
-            .OrderByDescending(o => o.Id)
-            .Select(o => o.OrderNumber)
-            .FirstOrDefaultAsync(ct);
-
-        int seq = 1;
-        if (!string.IsNullOrEmpty(last) && last.StartsWith(OrderPrefix) &&
-            int.TryParse(last[OrderPrefix.Length..], out var lastNumber))
-            seq = lastNumber + 1;
-
-        return $"{OrderPrefix}{seq:D6}";
-    }
 }

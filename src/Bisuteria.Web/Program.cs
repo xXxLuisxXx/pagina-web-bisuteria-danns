@@ -47,6 +47,7 @@ builder.Services.AddControllersWithViews(options =>
 });
 
 // Sesión para el carrito de compras.
+builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

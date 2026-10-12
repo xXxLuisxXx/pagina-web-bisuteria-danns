@@ -11,13 +11,23 @@ const root = path.resolve(__dirname, '../..');
   const rel = decodeURIComponent(url.pathname);
   const file = rel.endsWith('.html') ? path.join(root,process.env.RENDERED_DIR || 'audit/rendered',path.basename(rel)) : path.join(root,'src/Bisuteria.Web/wwwroot',rel);
   if (!file.startsWith(root + path.sep)) return route.abort();
-  try { await route.fulfill({path:file}); } catch { await route.fulfill({status:404,body:'No encontrado'}); }
+  try {
+   const headers = {};
+   if (rel.endsWith('.html')) {
+    const html = await fs.readFile(file, 'utf8');
+    const nonce = html.match(/nonce="([^"]+)"/)?.[1].replace(/&#x2B;/g, '+').replace(/&#x2F;/g, '/');
+    if (nonce) headers['Content-Security-Policy'] = `default-src 'self'; script-src 'self' 'nonce-${nonce}'; script-src-attr 'none'; style-src 'self' https://fonts.googleapis.com 'nonce-${nonce}'; style-src-attr 'none'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
+   }
+   const contentType = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' }[path.extname(file)];
+   await route.fulfill({path:file,headers,contentType});
+  } catch { await route.fulfill({status:404,body:'No encontrado'}); }
  });
  const page = await context.newPage();
  const results=[];
  await fs.mkdir(path.join(root,'audit/screenshots'),{recursive:true});
  let errors=[];
  page.on('pageerror', e=>errors.push(e.message));
+ page.on('console', m => { if(m.type() === 'error' && m.text().includes('Content Security Policy')) errors.push(m.text()); });
  for(const name of ['home','catalog','product','contact','login','register','forgot','profile','cart','checkout','admin','admin-products','admin-form','customizer']) {
   for(const width of [390,768,1440]) {
    await page.setViewportSize({width,height:900});errors=[];
