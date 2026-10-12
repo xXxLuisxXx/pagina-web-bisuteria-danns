@@ -101,11 +101,11 @@ npm run check
 
 Usa Edge instalado o define `BROWSER_PATH` con el ejecutable de Chromium compatible. El script comprueba 14 páginas en 390, 768 y 1440 px; guarda `audit/screenshots` y `audit/visual-results.json`. Falla ante desbordamiento de página, imágenes rotas o errores JavaScript. Las tablas pueden desplazarse dentro de su contenedor. Es una inspección del HTML generado, no un reemplazo de las pruebas HTTP ni una certificación en dispositivos físicos.
 
-## Estado de la auditoría (5 de octubre de 2026)
+## Estado de la auditoría (11 de octubre de 2026)
 
-Consulta [el informe técnico](docs/auditoria-final.md). La suite final de **60 pruebas pasó en Debug y Release: 60 aprobadas, 0 fallidas y 0 omitidas en cada configuración**. La compilación limpia Debug y Release terminó sin advertencias ni errores. La revisión del 4 de octubre sufrió bloqueos temporales de Smart App Control; se conservan esos registros históricos. El 5 de octubre la ejecución fue permitida sin desactivar protecciones. El navegador comprobó 42 combinaciones de página/resolución y 5 interacciones con el HTML generado por la aplicación. [Funciones parciales y ampliaciones opcionales](docs/funciones-pendientes.md) detalla qué no está implementado, sin confundirlo con verificaciones pendientes.
+Consulta [el resultado vigente](docs/resultado-auditoria.md). Las cinco fases terminaron con **134 pruebas aprobadas**, compilación Release sin errores ni advertencias y 42 comprobaciones visuales más 5 interacciones aprobadas. [GitHub Actions verificó compilación, pruebas y dependencias en Linux con SQL temporal](https://github.com/xXxLuisxXx/pagina-web-bisuteria-danns/actions/runs/38194505198). El informe `docs/auditoria-final.md` conserva la revisión histórica anterior.
 
-SMTP real, cobros bancarios y despliegue requieren configuración y comprobación externas; no se certifican con pruebas locales.
+SMTP real, cobros bancarios y despliegue requieren configuración y comprobación externas. Consulta [la preparación del despliegue](docs/despliegue.md) y [las funciones parciales](docs/funciones-pendientes.md).
 
 ## Mantenimiento y respaldo
 

@@ -37,7 +37,7 @@ Fase 1: 92 pruebas; fase 2: 102; fase 3: 126; fase 4: 129; fase 5: 134. Compilac
 - Ratificar política de cancelación y límite de cupón por cliente; este último es configurable.
 - Captcha no incorporado: permanecen honeypot y límites de peticiones.
 - Definir dominio, proxy, claves persistentes, respaldo SQL y esquema de despliegue. Para varias instancias se requiere sesión/cola compartida.
-- Resolver el índice UserId sin pérdida de datos antes de grandes volúmenes; faltan pruebas de carga y validación remota del workflow.
+- Resolver el índice UserId sin pérdida de datos antes de grandes volúmenes; faltan pruebas de carga. El workflow remoto aprobó compilación, pruebas y análisis de dependencias en Linux: https://github.com/xXxLuisxXx/pagina-web-bisuteria-danns/actions/runs/38194505198 .
 
 ## Para defenderlo oralmente
 
