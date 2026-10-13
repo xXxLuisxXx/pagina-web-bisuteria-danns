@@ -52,7 +52,7 @@ public static class SecurityConfiguration
                 var controller = context.GetRouteValue("controller")?.ToString()?.ToLowerInvariant() ?? "";
                 var action = context.GetRouteValue("action")?.ToString()?.ToLowerInvariant() ?? "";
                 var group = controller == "account" ? action : controller;
-                var limit = group switch { "login" => 10, "register" => 5, "forgotpassword" => 5, "contact" => 5, "checkout" => 10, "cart" => 40, "customizer" => 20, "catalog" => 90, _ => 120 };
+                var limit = group switch { "login" or "twofactor" or "authenticator" => 10, "register" => 5, "forgotpassword" => 5, "contact" => 5, "checkout" => 10, "cart" => 40, "customizer" => 20, "catalog" => 90, _ => 120 };
                 if (builder.Environment.IsEnvironment("Testing") && !config.GetValue("Security:TestRateLimits", false))
                     return RateLimitPartition.GetNoLimiter("testing");
                 var key = $"{group}:{context.Connection.RemoteIpAddress}";

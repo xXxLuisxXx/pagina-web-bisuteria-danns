@@ -30,7 +30,7 @@ La fixture fuerza un catálogo `BisuteriaAudit_<GUID>` y comprueba su nombre ant
 
 ## Trabajo restante, en el orden solicitado
 
-2. Seguridad: revisar diferencias del nuevo encargo, especialmente TOTP, ausente actualmente; verificar el resto de controles y escaneo de secretos/dependencias. No se considera terminada esta fase ampliada.
+2. Seguridad: TOTP opcional implementado en esta ampliación, con recomendación para Admin, recuperación de uso único y regresiones. Consultar `ampliacion-fase2-seguridad.md` para pruebas, escaneos y límites pendientes; no constituye certificación integral de seguridad.
 3. Validaciones: comprobar cobertura frente a la nueva solicitud y registrar límites.
 4. Estructura: revisar pendientes operativos e índices; conservar Address y migraciones aditivas.
 5. Administración y correo: implementar MustChangePassword, resultados de creación/asignación de rol, EmailOutbox persistente, reintentos, plantillas y notificaciones por evento con sustituto SMTP en pruebas. Actualmente estos nuevos requisitos no están implementados. Nunca usar ni versionar credenciales reales en tests.

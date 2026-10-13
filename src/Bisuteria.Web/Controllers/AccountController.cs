@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Bisuteria.Web.Controllers;
 
-public class AccountController : Controller
+public partial class AccountController : Controller
 {
     [HttpGet]
     public IActionResult ConfirmEmail(string email, string token)
@@ -108,7 +108,10 @@ public class AccountController : Controller
         }
         if (result.Succeeded && user.IsActive)
         {
-            await _signInManager.SignInAsync(user, model.RememberMe);
+            var login = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
+            if (login.RequiresTwoFactor)
+                return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
+            if (!login.Succeeded) return RedirectToAction(nameof(Login));
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction(nameof(HomeController.Index), "Home");
