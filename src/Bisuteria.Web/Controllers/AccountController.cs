@@ -58,18 +58,15 @@ public partial class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ICatalogService _catalog;
-    private readonly IEmailSender _emailSender;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ICatalogService catalog,
-        IEmailSender emailSender)
+        ICatalogService catalog)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _catalog = catalog;
-        _emailSender = emailSender;
     }
 
     [HttpGet]
