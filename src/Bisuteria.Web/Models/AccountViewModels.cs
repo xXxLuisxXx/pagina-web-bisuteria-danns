@@ -11,11 +11,13 @@ public class LoginViewModel
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "La contraseña es obligatoria.")]
+    [StringLength(256, ErrorMessage = "La contraseña admite hasta 256 caracteres.")]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
     public bool RememberMe { get; set; }
 
+    [StringLength(2048, ErrorMessage = "La dirección de retorno admite hasta 2048 caracteres.")]
     public string? ReturnUrl { get; set; }
 }
 
@@ -53,6 +55,7 @@ public class RegisterViewModel
     [Compare("Password", ErrorMessage = "Las contraseñas no coinciden.")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
+    [StringLength(2048, ErrorMessage = "La dirección de retorno admite hasta 2048 caracteres.")]
     public string? ReturnUrl { get; set; }
 }
 
@@ -102,6 +105,7 @@ public class ResetPasswordViewModel
 {
     [Required(ErrorMessage = "Este campo es obligatorio.")]
     [StringLength(200, ErrorMessage = "El campo no puede superar 200 caracteres.")]
+    [EmailAddress(ErrorMessage = "Introduce un correo válido.")]
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Este campo es obligatorio.")]

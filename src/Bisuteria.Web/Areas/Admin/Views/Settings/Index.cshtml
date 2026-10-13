@@ -11,6 +11,7 @@
 
 <form asp-action="Save" method="post">
     @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
 
     @foreach (var group in groups)
     {
@@ -43,6 +44,7 @@
                         {
                             <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" maxlength="1000" type="@(item.Key == "ContactEmail" ? "email" : item.Key.EndsWith("Url") ? "url" : "text")" />
                         }
+                        @Html.ValidationMessage($"values[{item.Key}]", null, new { @class = "text-danger small" })
                     </div>
                 }
             </div>

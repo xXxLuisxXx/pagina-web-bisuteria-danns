@@ -8,6 +8,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 public partial class AuditTests
 {
+    [Fact]
+    public async Task InvalidSettingsKeepInputAndShowFieldErrors()
+    {
+        using var client = await f.Login("Admin");
+        var response = await AuditFactory.Post(client, "/Admin/Settings/Save", new() { ["values[ShippingCost]"] = "1.001" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("data-valmsg-for=\"values[ShippingCost]\"", html);
+        Assert.Contains("value=\"1.001\"", html);
+        Assert.Contains("field-validation-error", html);
+    }
     [Theory]
     [InlineData("Blog/Delete")][InlineData("Products/Delete")][InlineData("Reviews/Approve")][InlineData("Coupons/ToggleActive")]
     public async Task MissingAdministrativeResourceReturnsNotFound(string action)
