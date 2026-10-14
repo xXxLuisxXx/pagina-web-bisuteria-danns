@@ -29,7 +29,7 @@
                         {
                             <textarea id="values_@item.Key" name="values[@item.Key]" class="form-control" rows="2" maxlength="1000">@item.Value</textarea>
                         }
-                        else if (item.Key is "ShippingCost" or "FreeShippingThreshold")
+                        else if (item.Key is "ShippingCost" or "FreeShippingThreshold" or "MonthlySalesGoal")
                         {
                             <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" type="number" min="0" max="1000000" step="0.01" required="@(item.Key == "ShippingCost")" />
                         }
@@ -78,6 +78,7 @@
             "Facebook Url" => "Facebook",
             "Instagram Url" => "Instagram",
             "Tik Tok Url" => "TikTok",
+            "Monthly Sales Goal" => "Meta mensual de ventas ($; 0 = sin meta)",
             "Shipping Cost" => "Costo de envío ($)",
             "Free Shipping Threshold" => "Envío gratis desde ($)",
             "Coupon Single Use Per Customer" => "Limitar cupón a un uso por cliente",

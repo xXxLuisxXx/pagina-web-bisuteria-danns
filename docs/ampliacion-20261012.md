@@ -31,10 +31,10 @@ La fixture fuerza un catálogo `BisuteriaAudit_<GUID>` y comprueba su nombre ant
 ## Trabajo restante, en el orden solicitado
 
 2. Seguridad: TOTP opcional implementado en esta ampliación, con recomendación para Admin, recuperación de uso único y regresiones. Consultar `ampliacion-fase2-seguridad.md` para pruebas, escaneos y límites pendientes; no constituye certificación integral de seguridad.
-3. Validaciones: comprobar cobertura frente a la nueva solicitud y registrar límites.
-4. Estructura: revisar pendientes operativos e índices; conservar Address y migraciones aditivas.
-5. Administración y correo: implementar MustChangePassword, resultados de creación/asignación de rol, EmailOutbox persistente, reintentos, plantillas y notificaciones por evento con sustituto SMTP en pruebas. Actualmente estos nuevos requisitos no están implementados. Nunca usar ni versionar credenciales reales en tests.
-6. Diseño: adaptar la referencia a todo el Admin. Reutilizar MVC/Razor, la paleta de marca y SVG locales; añadir búsqueda global, notificaciones, calendario y meta mensual, con pruebas y capturas. El dashboard previo no equivale a este rediseño.
+3. Validaciones: ampliadas y verificadas con 143 pruebas; ver ampliacion-fase3-validaciones.md.
+4. Estructura: revalidada con 143 pruebas; Address conservada y limitaciones de índices documentadas en ampliacion-fase4-estructura.md.
+5. Administración y correo: implementados MustChangePassword, prohibición de reutilizar contraseña inicial, EmailOutbox persistente, reintentos, plantillas y notificaciones por evento con sustituto SMTP. 147 pruebas aprobadas; ver ampliacion-fase5-correo.md. Cuenta real y SMTP externo pendientes.
+6. Diseño: layout compartido, búsqueda global, notificaciones, calendario, meta mensual, modo oscuro y gráficos locales implementados; ver ampliacion-fase6-panel.md para evidencia y límites. No se aplican migraciones sobre la base real.
 
 ## Decisiones externas
 

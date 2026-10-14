@@ -1,0 +1,4 @@
+@model DashboardStats
+@{ var total = Model.PendingOrders + Model.UnreadMessages + Model.LowStockCount + Model.PendingReviews; }
+<details class="admin-notifications"><summary aria-label="Notificaciones: @total pendientes"><i class="bi bi-bell" aria-hidden="true"></i><span class="notification-count">@total</span></summary>
+<div class="admin-popover"><strong>Requieren atención</strong><a href="/Admin/Orders?status=Pending">Pedidos pendientes: @Model.PendingOrders</a><a href="/Admin/Messages?unreadOnly=true">Mensajes sin leer: @Model.UnreadMessages</a><a href="/Admin/Inventory">Stock bajo: @Model.LowStockCount</a><a href="/Admin/Reviews?pendingOnly=true">Reseñas por aprobar: @Model.PendingReviews</a><small>Se actualiza al navegar, con caché de 30 segundos.</small></div></details>

@@ -41,6 +41,7 @@ public class CheckoutDto
 
 public class OrderDto
 {
+    public string MainProductName { get; set; } = "";
     public int Id { get; set; }
 
     public string OrderNumber { get; set; } = string.Empty;

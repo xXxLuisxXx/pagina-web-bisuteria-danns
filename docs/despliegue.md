@@ -23,13 +23,13 @@ Activar `Identity__RequireConfirmedEmail=true` únicamente después de verificar
 
 ## Secuencia de publicación
 
-1. Elegir hosting compatible con .NET 10 y SQL Server. Mantener una sola instancia mientras carrito y cola de correo sean locales al proceso.
+1. Elegir hosting compatible con .NET 10 y SQL Server. Mantener una sola instancia mientras el carrito sea local al proceso.
 2. Preparar volúmenes persistentes para claves y `wwwroot/img/uploads`. Respaldar SQL y archivos de imágenes por separado y comprobar restauración en un entorno aislado.
 3. Generar el artefacto desde la raíz: `dotnet publish src/Bisuteria.Web/Bisuteria.Web.csproj -c Release -o audit/publish`. El directorio de salida está ignorado por Git.
 4. Revisar migraciones pendientes y respaldo antes de aplicarlas a la base real en una ventana controlada. No usar el arranque de la web para migrar automáticamente.
 5. Configurar secretos, HTTPS y proxy del proveedor. Preparar roles, configuración inicial y primer administrador mediante un procedimiento controlado; retirar las credenciales iniciales después. La inicialización deshabilitada no crea estos datos.
 6. Publicar primero en un entorno de prueba equivalente al productivo. Verificar `/health`, catálogo, registro, acceso administrativo, recuperación y confirmación de correo, carga de imágenes y un pedido de prueba con cancelación y restitución de stock.
-7. Reiniciar la instancia y comprobar conservación de imágenes y claves. El carrito y los correos en cola pueden perderse al reiniciar; requieren almacenamiento durable si el negocio necesita esa garantía.
+7. Reiniciar la instancia y comprobar conservación de imágenes y claves. El carrito puede perderse al reiniciar y requiere almacenamiento compartido si el negocio necesita esa garantía. La cola de correo ya es durable en SQL y debe respaldarse junto a la base.
 8. Publicar al dominio definitivo y repetir las comprobaciones externas; registrar fecha, versión y evidencia sin credenciales ni datos personales.
 
 ## Recuperación ante un fallo

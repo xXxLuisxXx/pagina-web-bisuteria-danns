@@ -6,6 +6,9 @@ namespace Bisuteria.Application.DTOs.Admin;
 /// <summary>Resumen del dashboard principal.</summary>
 public class DashboardStats
 {
+    public decimal MonthlyGoal { get; set; }
+    public decimal CalendarSales { get; set; }
+    public IReadOnlyList<ChartPoint> CalendarDays { get; set; } = [];
     public DateTime From { get; set; }
     public DateTime To { get; set; }
     public DateTime GeneratedAt { get; set; }
@@ -73,6 +76,8 @@ public class DashboardStats
 
     public IReadOnlyList<OrderDto> RecentOrders { get; set; } = Array.Empty<OrderDto>();
 }
+
+public sealed record AdminSearchResult(string Kind, string Label, string Url);
 
 public class ChartPoint
 {

@@ -1,0 +1,7 @@
+@model IReadOnlyList<AdminSearchResult>
+<h1 class="admin-title">Resultados de búsqueda</h1>
+<p>Hasta 10 pedidos y 10 productos para «@ViewData["Query"]».</p>
+<div class="card-admin p-4">
+@if (Model.Count == 0) { <p>No hay coincidencias. Escribe al menos dos caracteres en el buscador.</p> }
+@foreach (var item in Model) { <div class="border-bottom py-3"><span class="badge bg-secondary">@item.Kind</span> <a href="@item.Url">@item.Label</a></div> }
+</div>

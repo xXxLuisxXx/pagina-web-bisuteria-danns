@@ -1,14 +1,16 @@
 @model DashboardStats
 @using Bisuteria.Application.Services
 @{
-    string Change(decimal current, decimal previous) => previous == 0 ? (current == 0 ? "Sin variación" : "Sin base anterior") : $"{(current - previous) / previous:+0.0%;-0.0%;0.0%} frente al anterior";
+    string Change(decimal current, decimal previous) => previous == 0 ? (current == 0 ? "Sin variación" : "Sin base anterior") : $"{(current > previous ? "↑" : current < previous ? "↓" : "↔")} {(current - previous) / previous:+0.0%;-0.0%;0.0%} frente al anterior";
+    var today = SalesCriteria.Local(DateTime.UtcNow).Date;
+    var monthStart = new DateTime(Model.To.Year, Model.To.Month, 1);
+    var presets = new[] { ("Día", today, "day"), ("Semana", today.AddDays(-((int)today.DayOfWeek + 6) % 7), "day"), ("Mes", new DateTime(today.Year, today.Month, 1), "day"), ("Año", new DateTime(today.Year, 1, 1), "month") };
     var cards = new[] {
         ("Importe del periodo", Model.PeriodSales.ToString("C"), Change(Model.PeriodSales, Model.PreviousSales)),
         ("Pedidos del periodo", Model.PeriodOrders.ToString(), Change(Model.PeriodOrders, Model.PreviousOrders)),
         ("Ticket promedio", Model.AverageTicket.ToString("C"), Change(Model.AverageTicket, Model.PreviousTicket)),
         ("Clientes nuevos", Model.NewClients.ToString(), Change(Model.NewClients, Model.PreviousClients)),
-        ("Importe de hoy", Model.SalesToday.ToString("C"), Change(Model.SalesToday, Model.PreviousDaySales) + " (ayer)"),
-        ("Importe del mes", Model.SalesMonth.ToString("C"), Change(Model.SalesMonth, Model.PreviousMonthSales) + " (mes completo)")
+        ("Productos activos", Model.TotalProducts.ToString(), "Estado actual · sin historial de activación")
     };
 }
 <div class="mb-4">
@@ -16,6 +18,7 @@
     <p class="text-muted">Pedidos no cancelados · America/Guayaquil · importes de pedidos, no cobros confirmados.</p>
     <p class="small">Actualizado: @SalesCriteria.Local(Model.GeneratedAt).ToString("dd/MM/yyyy HH:mm:ss"). Caché de hasta 30 segundos.</p>
 </div>
+<nav class="period-pills mb-3" aria-label="Periodo del panel">@foreach(var preset in presets) { <a asp-action="Index" asp-route-from="@preset.Item2.ToString("yyyy-MM-dd")" asp-route-to="@today.ToString("yyyy-MM-dd")" asp-route-interval="@preset.Item3" aria-current="@((Model.From == preset.Item2 && Model.To == today).ToString().ToLowerInvariant())">@preset.Item1</a> }</nav>
 <form method="get" class="card-admin p-3 mb-4">
     <div class="row g-3 align-items-end">
         <div class="col-sm-6 col-lg-3"><label for="from" class="form-label">Desde</label><input class="form-control" type="date" id="from" name="from" value="@Model.From.ToString("yyyy-MM-dd")" required /></div>
@@ -31,9 +34,18 @@
 </div>
 <div class="row g-3 mb-4">
 @foreach (var card in cards) {
-    <div class="col-sm-6 col-xl-4"><div class="stat-card h-100"><div class="stat-label">@card.Item1</div><div class="stat-value">@card.Item2</div><div class="small mt-2">@card.Item3</div></div></div>
+    <div class="col-sm-6 col-xl"><div class="stat-card h-100 @(card.Item1 == "Importe del periodo" ? "kpi-featured" : "")"><div class="stat-label">@card.Item1</div><div class="stat-value">@card.Item2</div><div class="small mt-2 @(card.Item3.StartsWith("↑") ? "trend-up" : card.Item3.StartsWith("↓") ? "trend-down" : "")">@card.Item3</div></div></div>
 }
 </div>
+<div class="dashboard-primary mb-4">
+<section class="card-admin p-4"><h2 class="h5">Ventas del periodo</h2><p class="small text-muted">Importes de pedidos no cancelados · USD</p><partial name="_Columns" model="Model.SalesByMonth" /></section>
+<section class="card-admin p-4"><div class="d-flex justify-content-between align-items-center mb-3"><a asp-action="Index" asp-route-from="@monthStart.AddMonths(-1).ToString("yyyy-MM-dd")" asp-route-to="@monthStart.AddDays(-1).ToString("yyyy-MM-dd")" aria-label="Mes anterior">←</a><h2 class="h6 mb-0">@monthStart.ToString("MMMM yyyy")</h2><a asp-action="Index" asp-route-from="@monthStart.AddMonths(1).ToString("yyyy-MM-dd")" asp-route-to="@monthStart.AddMonths(2).AddDays(-1).ToString("yyyy-MM-dd")" aria-label="Mes siguiente">→</a></div>
+<div class="calendar-grid">@foreach(var day in new[] { "Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do" }) { <span>@day</span> }
+@for(var i=0;i<((int)monthStart.DayOfWeek+6)%7;i++) { <span aria-hidden="true"></span> }
+@for(var day=1;day<=DateTime.DaysInMonth(monthStart.Year,monthStart.Month);day++) { var date=monthStart.AddDays(day-1); var key=date.ToString("yyyy-MM-dd"); var count=Model.CalendarDays.FirstOrDefault(p=>p.Label==key)?.Value ?? 0; <a class="@(count>0 ? "has-orders" : "")" asp-action="Index" asp-route-from="@key" asp-route-to="@key" aria-label="@date.ToString("dd MMMM"): @count pedidos no cancelados">@day</a> }
+</div><p class="small text-muted mt-3">Los días oscuros tienen pedidos no cancelados.</p>
+@{ var progress=Model.MonthlyGoal<=0 ? 0 : Math.Clamp(Model.CalendarSales/Model.MonthlyGoal*100,0,100); }
+<div class="goal-ring border-top pt-3"><svg viewBox="0 0 120 120" role="img" aria-label="Avance de meta: @progress.ToString("0") por ciento"><circle cx="60" cy="60" r="46" fill="none" stroke="#dadade" stroke-width="10"/><circle cx="60" cy="60" r="46" fill="none" stroke="#826818" stroke-width="10" pathLength="100" stroke-dasharray="@progress.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture) 100" transform="rotate(-90 60 60)"/><text x="60" y="65" text-anchor="middle" fill="currentColor" font-size="20">@progress.ToString("0")%</text></svg><div><strong>Meta mensual</strong><p class="small mb-1">@Model.CalendarSales.ToString("C") / @Model.MonthlyGoal.ToString("C")</p><a href="/Admin/Settings" class="small">@(Model.MonthlyGoal == 0 ? "Configurar meta" : "Cambiar meta")</a></div></div></section></div>
 <section class="card-admin p-3 mb-4" aria-labelledby="alerts-title">
     <h2 id="alerts-title" class="h5">Requieren atención</h2>
     <div class="d-flex flex-wrap gap-2">
@@ -57,9 +69,9 @@
         <label for="recentStatus" class="form-label">Estado</label><select class="form-select w-auto" id="recentStatus" name="status"><option value="">Todos</option>@foreach(var status in Enum.GetValues<OrderStatus>()) { <option value="@status" selected="@(Model.RecentStatus == status)">@status.GetLabel()</option> }</select><button class="btn btn-outline-dark">Filtrar pedidos</button>
     </form>
     @if (Model.RecentOrders.Count == 0) { <p>No hay pedidos en este rango.</p> }
-    else { <div class="table-responsive"><table class="table table-admin"><thead><tr><th>Pedido</th><th>Fecha local</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    else { <div class="table-responsive"><table class="table table-admin"><thead><tr><th>Pedido</th><th>Cliente</th><th>Producto principal</th><th>Fecha local</th><th>Importe</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
     @foreach (var order in Model.RecentOrders) {
-        <tr><td>@order.OrderNumber</td><td>@SalesCriteria.Local(order.CreatedAt).ToString("dd/MM HH:mm")</td><td>@order.Total.ToString("C")</td><td>@order.StatusLabel</td><td>
+        <tr><td>@order.OrderNumber</td><td>@order.CustomerName</td><td>@order.MainProductName</td><td>@SalesCriteria.Local(order.CreatedAt).ToString("dd/MM HH:mm")</td><td>@order.Total.ToString("C")</td><td><span class="badge badge-status bg-secondary">@order.StatusLabel</span></td><td>
         <a asp-controller="Orders" asp-action="Details" asp-route-orderNumber="@order.OrderNumber">Ver pedido</a>
         <form asp-controller="Orders" asp-action="UpdateStatus" method="post" class="d-flex gap-2 mt-2">
             <input type="hidden" name="orderNumber" value="@order.OrderNumber" />

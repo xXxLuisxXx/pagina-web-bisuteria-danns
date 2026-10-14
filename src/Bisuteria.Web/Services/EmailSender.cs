@@ -78,4 +78,3 @@ public sealed class SmtpEmailSender : IEmailSender
         await client.SendMailAsync(message, ct);
     }
 }
-
