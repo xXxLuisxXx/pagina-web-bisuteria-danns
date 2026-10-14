@@ -24,6 +24,8 @@ El script tests/visual/check.cjs verifica 14 páginas a 390/768/1440 px con CSP 
 
 ## Pendientes externos y límites
 
+Comprobación adicional del 14 de octubre: corregido el color heredado de las etiquetas de formularios en modo oscuro y el contraste del botón del tema al pasar el mouse. La regresión visual mide una relación mínima de 4,5:1 para etiquetas, navegación, botones delineados y selector del tema, tras finalizar las transiciones. Pasaron nuevamente las 42 comprobaciones adaptables y las diez interacciones; la comprobación específica de contraste también pasó. Evidencia local: audit/visual-contrast.json. Esto no sustituye una auditoría completa de accesibilidad. GitHub Actions del commit 70af1e4 terminó correctamente.
+
 - No se aplicaron migraciones ni se creó la cuenta oficial en la base real. Se necesita respaldo/revisión para ese paso y configuración privada de InitialAdmin.
 - SMTP real y entregabilidad Gmail no verificados. La cola conserva fallos para reintentos; ocho intentos agotados requieren intervención. Falta interfaz de reintento manual y política de retención.
 - No hay historial completo para variar el KPI de productos activos ni carga productiva certificada. El índice UserId sigue diferido por la restricción aditiva.

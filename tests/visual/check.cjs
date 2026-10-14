@@ -56,7 +56,24 @@ const root = path.resolve(__dirname, '../..');
  await page.locator('#adminTheme').click();
  assert.equal(await page.locator('html').getAttribute('data-admin-theme'),'dark');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
- await page.screenshot({path:path.join(root,'audit/screenshots/admin-dark-390.png'),fullPage:true});
+ // Finalizar transiciones antes de medir colores y capturar el tema.
+ await page.screenshot({path:path.join(root,'audit/screenshots/admin-dark-390.png'),fullPage:true,animations:'disabled'});
+ const contrast = await page.evaluate(() => {
+  const rgb = color => color.match(/[\d.]+/g).map(Number);
+  const luminance = color => rgb(color).slice(0,3).map(v => {
+   v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
+  }).reduce((sum,v,i) => sum + v * [.2126,.7152,.0722][i],0);
+  return [...document.querySelectorAll('.form-label,.admin-sidebar .nav-link,.btn-outline-dark,#adminTheme')].map(el => {
+   let ancestor = el;
+   while (ancestor.parentElement && (rgb(getComputedStyle(ancestor).backgroundColor)[3] ?? 1) === 0) ancestor = ancestor.parentElement;
+   const foreground = luminance(getComputedStyle(el).color);
+   const background = luminance(getComputedStyle(ancestor).backgroundColor);
+   return {text:el.textContent.trim(),ratio:(Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05)};
+  });
+ });
+ assert.ok(contrast.length > 0);
+ assert.deepEqual(contrast.filter(item => item.ratio < 4.5),[], 'Contraste insuficiente en modo oscuro');
+ await fs.writeFile(path.join(root,'audit/visual-contrast.json'),JSON.stringify(contrast,null,2));
  await page.locator('#adminTheme').click();
  assert.equal(await page.locator('html').getAttribute('data-admin-theme'),'light');
  await page.goto('https://audit.local/customizer.html' ,{waitUntil:'load'});

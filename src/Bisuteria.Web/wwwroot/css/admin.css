@@ -17,6 +17,7 @@ body.admin-body { background:var(--admin-bg); color:var(--admin-text); font-fami
 .admin-search { display:flex; align-items:center; background:var(--admin-surface); border-radius:40px; padding:9px 14px; gap:10px; width:min(340px,32vw); }
 .admin-search input { border:0; background:transparent; color:var(--admin-text); min-width:0; width:100%; font-size:.75rem; outline-offset:4px; }
 .admin-topbar .btn-outline-light { border:1px solid var(--admin-border); color:var(--admin-text); border-radius:30px; }
+.admin-topbar .btn-outline-light:hover { background:var(--admin-text); color:var(--admin-surface); }
 .admin-content { margin-left:232px; padding:18px 30px 40px; min-height:calc(100vh - 90px); }
 .admin-title { font-family:inherit; font-size:1.6rem; font-weight:500; }
 .card-admin,.stat-card,.admin-body .modal-content { background:var(--admin-surface); border-radius:var(--admin-radius); box-shadow:var(--admin-shadow); border:1px solid transparent; }
@@ -26,6 +27,7 @@ body.admin-body { background:var(--admin-bg); color:var(--admin-text); font-fami
 .admin-body .table { --bs-table-bg:transparent; --bs-table-color:var(--admin-text); --bs-table-border-color:var(--admin-border); }
 .table-admin th { font-size:.75rem; color:var(--admin-muted); font-weight:500; }.table-admin td { vertical-align:middle; padding:16px 10px; font-size:.82rem; }
 .admin-body .form-control,.admin-body .form-select { background-color:var(--admin-surface); color:var(--admin-text); border-color:var(--admin-border); border-radius:12px; }
+.admin-body .form-label { color:var(--admin-text); }
 .admin-body .btn { border-radius:24px; }.admin-body .btn-outline-dark { color:var(--admin-text); border-color:var(--admin-border); }.admin-body .btn-outline-dark:hover { background:var(--admin-text); color:var(--admin-surface); }
 .btn-gold { background:#c9a227; color:#171719; }.btn-gold:hover { background:#b28c1b; color:#171719; }
 .admin-body :focus-visible { outline:3px solid var(--admin-accent); outline-offset:3px; }.admin-body .table-responsive { position:relative; }
