@@ -8,7 +8,7 @@ namespace Bisuteria.Infrastructure.Data;
 /// <summary>
 /// Contexto de base de datos de la aplicación (EF Core + Identity).
 /// </summary>
-public class AppDbContext : IdentityDbContext<ApplicationUser>
+public partial class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -34,6 +34,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<EmailOutbox>(e =>
+        {
+            e.Property(x => x.Recipient).HasMaxLength(200);
+            e.Property(x => x.Kind).HasMaxLength(40);
+            e.Property(x => x.Subject).HasMaxLength(200);
+            e.Property(x => x.LastError).HasMaxLength(100);
+            e.HasIndex(x => new { x.SentAt, x.NextAttemptAt });
+        });
         builder.Entity<AuditLog>(e =>
         {
             e.Property(x => x.ActorId).HasMaxLength(450);

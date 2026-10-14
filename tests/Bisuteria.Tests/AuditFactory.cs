@@ -24,8 +24,11 @@ using Xunit;
 
 public sealed class MailCapture : IEmailSender
 {
+    public bool FailNotifications { get; set; }
     public Task SendConfirmationAsync(string email, string url, CancellationToken ct = default)
-        => SendPasswordResetAsync(email, url, ct);
+        => Task.CompletedTask;
+    public Task SendNotificationAsync(string email, string subject, string text, CancellationToken ct = default)
+        => FailNotifications ? Task.FromException(new InvalidOperationException("Fallo simulado")) : Task.CompletedTask;
     public string? Url { get; private set; }
     public Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken ct = default)
     { Url = resetUrl; return Task.CompletedTask; }
@@ -33,6 +36,7 @@ public sealed class MailCapture : IEmailSender
 
 public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    public bool ProcessEmail { get; set; } = true;
     public string DatabaseName { get; } = "BisuteriaAudit_" + Guid.NewGuid().ToString("N");
     public string TestConnection => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
         Environment.GetEnvironmentVariable("BISUTERIA_TEST_CONNECTION") ?? "Server=localhost;Trusted_Connection=True;TrustServerCertificate=True")
@@ -49,6 +53,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string,string?>
         {
             ["Database:Initialize"] = "false",
+            ["EmailOutbox:AutoProcess"] = ProcessEmail.ToString(),
             ["ConnectionStrings:DefaultConnection"] = TestConnection,
             ["PublicBaseUrl"] = "https://localhost",
             ["Payments:EnabledMethods:0"] = "CashOnDelivery"
