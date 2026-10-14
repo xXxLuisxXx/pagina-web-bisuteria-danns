@@ -1,6 +1,6 @@
 # Preparación del despliegue
 
-El código fue validado en Windows y en GitHub Actions sobre Linux. Todavía no existe un despliegue productivo verificado. El proveedor, dominio y servicios externos deben definirse antes de elegir instrucciones específicas de instalación.
+El código fue validado en Windows y en GitHub Actions sobre Linux. Todavía no existe un despliegue verificado. Para publicar una demo gratuita compatible con .NET 10 y SQL Server, MonsterASP.NET es la ruta inicial más directa: ofrece subdominio, HTTPS bajo solicitud, 1 sitio, 1 base de datos de hasta 1 GB y 256 MB RAM. Su documentación destina el plan Free a aprendizaje/pruebas; no incluye copias diarias, capacidad AlwaysRunning ni garantías, y sitios inactivos se archivan a los seis meses. La cola durable de correo de este proyecto requiere que la aplicación esté corriendo; en el plan Free su procesamiento no queda garantizado cuando el sitio duerme. Sirve para enseñar/probar el proyecto, no para operar una tienda con pedidos y correos que deban atenderse continuamente. Fuente: [comparativa oficial Free/Premium](https://help.monsterasp.net/getting-started/first-steps/free-vs-premium), [primeros pasos](https://help.monsterasp.net/getting-started/first-steps/create-first-website).
 
 ## Configuración necesaria
 
@@ -25,7 +25,7 @@ Activar `Identity__RequireConfirmedEmail=true` únicamente después de verificar
 
 1. Elegir hosting compatible con .NET 10 y SQL Server. Mantener una sola instancia mientras el carrito sea local al proceso.
 2. Preparar volúmenes persistentes para claves y `wwwroot/img/uploads`. Respaldar SQL y archivos de imágenes por separado y comprobar restauración en un entorno aislado.
-3. Generar el artefacto desde la raíz: `dotnet publish src/Bisuteria.Web/Bisuteria.Web.csproj -c Release -o audit/publish`. El directorio de salida está ignorado por Git.
+3. Para IIS en Windows generar el artefacto desde la raíz: `dotnet publish src/Bisuteria.Web/Bisuteria.Web.csproj -c Release -r win-x64 --self-contained false -o audit/publish-win-x64`. El directorio está ignorado por Git. Paquete preparado en `audit/Bisuteria-Web-Release.zip` (aprox. 29 MB comprimido, solo recursos win-x64); antes de usarlo hay que crear el sitio y su base, añadir configuración de producción al hosting y migrar una base vacía revisada. El paquete aún no contiene secretos ni configuración del hosting.
 4. Revisar migraciones pendientes y respaldo antes de aplicarlas a la base real en una ventana controlada. No usar el arranque de la web para migrar automáticamente.
 5. Configurar secretos, HTTPS y proxy del proveedor. Preparar roles, configuración inicial y primer administrador mediante un procedimiento controlado; retirar las credenciales iniciales después. La inicialización deshabilitada no crea estos datos.
 6. Publicar primero en un entorno de prueba equivalente al productivo. Verificar `/health`, catálogo, registro, acceso administrativo, recuperación y confirmación de correo, carga de imágenes y un pedido de prueba con cancelación y restitución de stock.
@@ -38,10 +38,12 @@ Conservar el artefacto anterior y un respaldo verificado antes del despliegue. U
 
 ## Pendientes externos
 
-- Proveedor, dominio y presupuesto.
+- Crear el sitio Free y la base SQL de prueba en el panel del proveedor; elegir un subdominio `runasp.net` o `tryasp.net`. Para una demo es gratuito y no requiere dominio propio. El servicio gratuito solo permite dominio de ellos y está en Europa; un dominio propio exige plan Premium. Para pedidos reales, usar hosting con recursos y operación garantizados, presupuesto y ubicación apropiados.
 - SQL Server y almacenamiento persistente disponibles.
 - Cuenta SMTP y prueba real de entrega.
 - Métodos de cobro y política de reembolso confirmados.
 - Objetivos de recuperación de respaldos y responsables de operación.
+
+En MonsterASP, guardar `ASPNETCORE_ENVIRONMENT=Production`, `Database__Initialize=false`, `ConnectionStrings__DefaultConnection` (cadena **Local access**, nunca compartirla), `AllowedHosts`, `PublicBaseUrl`, `DataProtection__KeysPath` y `Smtp__*` como variables de entorno del sitio y reiniciarlo. La ayuda oficial explica [variables de entorno](https://help.monsterasp.net/websites/configuration/environment-variables), [cadena SQL local/remota](https://help.monsterasp.net/databases/mssql/connection-string) y [Web Deploy desde Visual Studio](https://help.monsterasp.net/websites/deploy/webdeploy). No pegar contraseñas en Git ni en el chat. Para correo en plan Free se necesita SMTP externo.
 
 Esta lista prepara la publicación; no acredita que los servicios ya estén configurados.
