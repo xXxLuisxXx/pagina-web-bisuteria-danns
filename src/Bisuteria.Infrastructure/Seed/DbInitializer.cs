@@ -15,6 +15,10 @@ namespace Bisuteria.Infrastructure.Seed;
 /// </summary>
 public static class DbInitializer
 {
+    // Cuenta histórica de ejemplo. Si quedó en una base de datos previa, se desactiva
+    // en el siguiente arranque para impedir que siga teniendo acceso administrativo.
+    private const string LegacyDefaultAdminEmail = "admin@bisuteriasdanns.com";
+
     public static async Task InitializeAsync(
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
@@ -32,6 +36,17 @@ public static class DbInitializer
 
         if (!await roleManager.RoleExistsAsync(customerRole))
             await roleManager.CreateAsync(new IdentityRole(customerRole));
+
+        var legacyAdmin = await userManager.FindByEmailAsync(LegacyDefaultAdminEmail);
+        if (legacyAdmin is { IsActive: true })
+        {
+            legacyAdmin.IsActive = false;
+            legacyAdmin.LockoutEnabled = true;
+            legacyAdmin.LockoutEnd = DateTimeOffset.MaxValue;
+            var disableResult = await userManager.UpdateAsync(legacyAdmin);
+            if (!disableResult.Succeeded)
+                throw new InvalidOperationException("No se pudo desactivar la cuenta administrativa histórica.");
+        }
 
         // ---- Usuario administrador inicial ----
         // Las credenciales nunca se incluyen en el código ni en appsettings.
