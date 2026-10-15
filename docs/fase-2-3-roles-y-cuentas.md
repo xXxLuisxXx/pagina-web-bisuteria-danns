@@ -26,6 +26,8 @@ Las contraseñas requieren mínimo 12 caracteres, mayúscula, minúscula, númer
 
 La invitación de Owner es por correo y vence en 24 horas. La cuenta queda activada tras escoger contraseña y puede usar el panel después del enrolamiento TOTP. El propietario define su propio secreto de autenticación.
 
-## Límites pendientes
+## Reautenticación y bloqueo progresivo
 
-La política de bloqueo Identity sigue usando cinco intentos con bloqueo de cinco minutos; el retraso aún no aumenta progresivamente. Las acciones de invitación, revocación y activación están sujetas a reautenticación reciente. La reautenticación aún se basa en la antigüedad de la cookie, no en una solicitud explícita de contraseña o TOTP para cada acción crítica.
+Identity inicia el bloqueo tras cinco fallos. Cada nuevo bloqueo antes de un acceso completo correcto duplica el tiempo anterior (5, 10, 20 y 40 minutos), con un máximo de 60 minutos. El nivel queda guardado como claim de usuario y se reinicia después de un inicio de sesión completo exitoso; los códigos TOTP incorrectos también alimentan el contador de Identity.
+
+Las operaciones administrativas sensibles y las exportaciones exigen sesión con menos de 15 minutos. Si vence ese plazo, la aplicación redirige al login y exige contraseña y, si está activado, TOTP. Las exportaciones GET vuelven a su destino después de autenticarse. Para un POST, se conserva de forma segura la página local del formulario; el usuario vuelve allí y debe repetir el envío. El sistema no guarda ni reproduce automáticamente el cuerpo del POST.

@@ -11,6 +11,13 @@
 
             @await Html.PartialAsync("_Alerts")
 
+            @if (ViewBag.ReauthenticationRequired == true)
+            {
+                <div class="alert alert-warning" role="status">
+                    Confirma tu identidad para continuar con esta acción. Al volver al panel, tendrás que repetir el envío del formulario.
+                </div>
+            }
+
             <form asp-action="Login" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ReturnUrl" />

@@ -33,7 +33,7 @@ En variables de entorno sustituir `:` por `__`. Gmail requiere verificación en 
 
 DurableEmailAndInitialPassword añade EmailOutbox, Products.LowStockNotified y AspNetUsers.MustChangePassword. InitialPasswordReuseGuard añade InitialPasswordHash. Up solo agrega objetos/columnas; no elimina datos. Se probaron únicamente en BisuteriaAudit_GUID. Deben aplicarse antes de ejecutar esta versión contra otra base. No reiniciar la web sobre la base real con Database:Initialize=true hasta revisar y autorizar esa aplicación.
 
-Respaldar la cola con SQL y limitar su acceso porque contiene direcciones de correo y resúmenes de pedidos. Planificar retención/purga de mensajes ya enviados y una herramienta administrativa para reintentar fallos agotados; no se implementó esa pantalla. Monitorizar LastError y Attempts. No activar confirmación obligatoria sin comprobar entrega externa. Un hosting gratuito que prohíba SMTP no puede cumplir el envío real.
+Respaldar la cola con SQL y limitar su acceso porque contiene direcciones de correo y resúmenes de pedidos. El panel Developer ahora permite consultar pendientes con destinatarios enmascarados y reintentar mensajes agotados; la acción queda auditada. Falta acordar y configurar la retención/purga de mensajes ya enviados. Monitorizar LastError y Attempts. No activar confirmación obligatoria sin comprobar entrega externa. Un hosting gratuito que prohíba SMTP no puede cumplir el envío real.
 
 ## Pruebas
 

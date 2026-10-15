@@ -418,6 +418,33 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.ToTable("Customizations");
                 });
 
+            modelBuilder.Entity("Bisuteria.Domain.Entities.DistributedCacheRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(449)
+                        .HasColumnType("nvarchar(449)");
+
+                    b.Property<DateTimeOffset?>("AbsoluteExpiration")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAtTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long?>("SlidingExpirationInSeconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("Value")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAtTime")
+                        .HasDatabaseName("Index_ExpiresAtTime");
+
+                    b.ToTable("DistributedCache", (string)null);
+                });
+
             modelBuilder.Entity("Bisuteria.Domain.Entities.EmailOutbox", b =>
                 {
                     b.Property<int>("Id")

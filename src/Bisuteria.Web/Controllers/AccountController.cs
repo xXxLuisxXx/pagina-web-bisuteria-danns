@@ -80,9 +80,10 @@ public partial class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login(string? returnUrl = null)
+    public IActionResult Login(string? returnUrl = null, bool reauthenticationRequired = false)
     {
         ViewData["Title"] = "Iniciar sesión";
+        ViewBag.ReauthenticationRequired = reauthenticationRequired;
         return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
@@ -119,6 +120,10 @@ public partial class AccountController : Controller
             if (login.RequiresTwoFactor)
                 return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
             if (!login.Succeeded) return RedirectToAction(nameof(Login));
+            var lockoutLevel = (await _userManager.GetClaimsAsync(user))
+                .FirstOrDefault(claim => claim.Type == "security:lockout-level");
+            if (lockoutLevel is not null)
+                await _userManager.RemoveClaimAsync(user, lockoutLevel);
             await _audit.PrivilegedLoginAsync(user);
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);

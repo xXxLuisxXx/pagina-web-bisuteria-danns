@@ -12,6 +12,7 @@ Configura estos valores en el almacén de secretos o entorno del hosting, nunca 
 | `ConnectionStrings__DefaultConnection` | SQL Server productivo, usuario con permisos mínimos y certificado válido |
 | `Database__ApplyMigrations` | `false`; producción nunca migra al arrancar |
 | `Database__Initialize` | `true` después de aplicar el script de migración; crea roles, configuración base y Developer inicial |
+| `Session__Provider` | `SqlServer`; guarda el carrito en la tabla `DistributedCache` creada por la migración |
 | `AllowedHosts` | Dominio real, sin comodín |
 | `PublicBaseUrl` | Origen HTTPS público |
 | `DataProtection__KeysPath` | Directorio persistente con acceso restringido al proceso |
@@ -24,13 +25,13 @@ Activar `Identity__RequireConfirmedEmail=true` únicamente después de verificar
 
 ## Secuencia de publicación
 
-1. Elegir hosting compatible con .NET 10 y SQL Server. Mantener una sola instancia mientras el carrito sea local al proceso.
+1. Elegir hosting compatible con .NET 10 y SQL Server. Configurar `Session__Provider=SqlServer` para compartir el carrito y conservarlo tras reinicios; la caché usa la base de la aplicación. [Microsoft recomienda un almacén dedicado cuando el tráfico crezca](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/distributed?view=aspnetcore-10.0), porque compartir la base puede afectar el rendimiento.
 2. Preparar volúmenes persistentes para claves y `wwwroot/img/uploads`. Respaldar SQL y archivos de imágenes por separado y comprobar restauración en un entorno aislado.
 3. Para IIS en Windows generar el artefacto desde la raíz: `dotnet publish src/Bisuteria.Web/Bisuteria.Web.csproj -c Release -r win-x64 --self-contained false -o audit/publish-win-x64`. El directorio está ignorado por Git. Paquete preparado en `audit/Bisuteria-Web-Release.zip` (aprox. 29 MB comprimido, solo recursos win-x64); antes de usarlo hay que crear el sitio y su base, añadir configuración de producción al hosting y migrar una base vacía revisada. El paquete aún no contiene secretos ni configuración del hosting.
 4. Revisar y generar el script idempotente (`dotnet ef migrations script --idempotent --project src/Bisuteria.Infrastructure --startup-project src/Bisuteria.Web -o migrations.sql`); respaldar y aplicar ese artefacto a la base real mediante el paso controlado del proveedor. No uses `Database__ApplyMigrations=true` en el sitio.
 5. Configurar secretos, HTTPS y proxy del proveedor. Tras aplicar las migraciones, iniciar con `Database__Initialize=true` y `InitialDeveloper__Email`/`InitialDeveloper__Password` para crear roles, datos base y Developer; retirar la clave inicial del entorno después del alta.
 6. Publicar primero en un entorno de prueba equivalente al productivo. Verificar `/health`, catálogo, registro, acceso administrativo, recuperación y confirmación de correo, carga de imágenes y un pedido de prueba con cancelación y restitución de stock.
-7. Reiniciar la instancia y comprobar conservación de imágenes y claves. El carrito puede perderse al reiniciar y requiere almacenamiento compartido si el negocio necesita esa garantía. La cola de correo ya es durable en SQL y debe respaldarse junto a la base.
+7. Reiniciar la instancia y comprobar conservación de imágenes, claves y carrito SQL. La cola de correo también es durable en SQL y debe respaldarse junto a la base.
 8. Publicar al dominio definitivo y repetir las comprobaciones externas; registrar fecha, versión y evidencia sin credenciales ni datos personales.
 
 ## Recuperación ante un fallo
@@ -41,6 +42,7 @@ Conservar el artefacto anterior y un respaldo verificado antes del despliegue. U
 
 - Crear el sitio Free y la base SQL de prueba en el panel del proveedor; elegir un subdominio `runasp.net` o `tryasp.net`. Para una demo es gratuito y no requiere dominio propio. El servicio gratuito solo permite dominio de ellos y está en Europa; un dominio propio exige plan Premium. Para pedidos reales, usar hosting con recursos y operación garantizados, presupuesto y ubicación apropiados.
 - SQL Server y almacenamiento persistente disponibles.
+- Para varias instancias, compartir claves de Data Protection y distribuir también el rate limiter; sus contadores actuales son locales a cada proceso.
 - Cuenta SMTP y prueba real de entrega.
 - Métodos de cobro y política de reembolso confirmados.
 - Objetivos de recuperación de respaldos y responsables de operación.

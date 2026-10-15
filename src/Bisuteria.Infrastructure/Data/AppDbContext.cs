@@ -32,10 +32,20 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<StaffInvitation> StaffInvitations => Set<StaffInvitation>();
+    public DbSet<DistributedCacheRecord> DistributedCache => Set<DistributedCacheRecord>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<DistributedCacheRecord>(e =>
+        {
+            e.ToTable("DistributedCache");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasMaxLength(449).IsRequired();
+            e.Property(x => x.Value).HasColumnType("varbinary(max)").IsRequired();
+            e.Property(x => x.ExpiresAtTime).IsRequired();
+            e.HasIndex(x => x.ExpiresAtTime).HasDatabaseName("Index_ExpiresAtTime");
+        });
         builder.Entity<RolePermission>(e =>
         {
             e.Property(x => x.RoleName).HasMaxLength(64).IsRequired();

@@ -28,7 +28,7 @@ const root = path.resolve(__dirname, '../..');
  let errors=[];
  page.on('pageerror', e=>errors.push(e.message));
  page.on('console', m => { if(m.type() === 'error' && m.text().includes('Content Security Policy')) errors.push(m.text()); });
- for(const name of ['home','catalog','product','contact','login','register','forgot','profile','cart','checkout','admin','admin-products','admin-form','customizer']) {
+ for(const name of ['home','catalog','product','contact','login','register','forgot','profile','cart','checkout','admin','admin-products','admin-form','customizer','developer','developer-roles','developer-audit','developer-email']) {
   for(const width of [390,768,1440]) {
    await page.setViewportSize({width,height:900});errors=[];
    await page.goto('https://audit.local/'+name+'.html',{waitUntil:'load',timeout:20000});

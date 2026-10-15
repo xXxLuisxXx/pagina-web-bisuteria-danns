@@ -248,6 +248,9 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         await AuditFactory.Post(visitor,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
         foreach(var page in new[]{("cart","/Cart"),("checkout","/Checkout")}) await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await visitor.GetStringAsync(page.Item2));
         foreach(var page in new[]{("profile","/Account/Profile"),("admin","/Admin"),("admin-products","/Admin/Products"),("admin-form","/Admin/Products/Edit/"+f.ProductId)}) await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await admin.GetStringAsync(page.Item2));
+        using var developer=await f.Login("Developer");
+        foreach(var page in new[]{("developer","/Developer/Home"),("developer-roles","/Developer/Roles"),("developer-audit","/Developer/Audit"),("developer-email","/Developer/EmailQueue")})
+            await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await developer.GetStringAsync(page.Item2));
         visualDb.RemoveRange(samples); await visualDb.SaveChangesAsync();
         visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
     }

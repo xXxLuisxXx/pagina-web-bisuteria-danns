@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Text.Encodings.Web;
 
 namespace Bisuteria.Web.Security;
 
-public sealed class AdminReauthenticationFilter : IAsyncActionFilter
+public sealed class AdminReauthenticationFilter(TimeProvider timeProvider) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
@@ -17,12 +18,38 @@ public sealed class AdminReauthenticationFilter : IAsyncActionFilter
         if (HttpMethods.IsPost(context.HttpContext.Request.Method) && privilegedPost || sensitiveExport)
         {
             var ticket = await context.HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
-            if (ticket.Properties?.IssuedUtc is not { } issued || DateTimeOffset.UtcNow - issued > TimeSpan.FromMinutes(15))
+            var age = ticket.Properties?.IssuedUtc is { } issued
+                ? timeProvider.GetUtcNow() - issued
+                : (TimeSpan?)null;
+            if (age is null || age < TimeSpan.Zero || age > TimeSpan.FromMinutes(15))
             {
-                context.Result = new ContentResult { StatusCode = 403, Content = "Vuelve a iniciar sesión antes de realizar esta acción administrativa." };
+                var request = context.HttpContext.Request;
+                var returnUrl = GetSafeReturnUrl(request, HttpMethods.IsGet(request.Method));
+                var encodedReturnUrl = UrlEncoder.Default.Encode(returnUrl);
+                var reauthenticationUrl = $"{request.PathBase}/Account/Login?reauthenticationRequired=true&returnUrl={encodedReturnUrl}";
+                context.Result = new RedirectResult(reauthenticationUrl);
                 return;
             }
         }
         await next();
+    }
+
+    private static string GetSafeReturnUrl(HttpRequest request, bool currentRequestIsGet)
+    {
+        if (currentRequestIsGet)
+            return request.PathBase + request.Path + request.QueryString;
+
+        var referer = request.Headers.Referer.ToString();
+        if (Uri.TryCreate(referer, UriKind.Absolute, out var absolute) &&
+            string.Equals(absolute.Scheme, request.Scheme, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(absolute.Authority, request.Host.Value, StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrEmpty(absolute.UserInfo))
+            return absolute.PathAndQuery;
+
+        if (referer.StartsWith('/') && !referer.StartsWith("//", StringComparison.Ordinal) && !referer.StartsWith("/\\", StringComparison.Ordinal))
+            return referer;
+
+        var area = request.Path.StartsWithSegments("/Developer") ? "/Developer" : "/Admin";
+        return request.PathBase + area;
     }
 }

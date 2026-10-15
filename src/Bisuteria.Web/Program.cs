@@ -14,6 +14,7 @@ using Bisuteria.Domain.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddStoreSecurity();
+builder.Services.AddSingleton(TimeProvider.System);
 if (builder.Environment.IsProduction() && builder.Configuration.GetValue("Database:ApplyMigrations", false))
     throw new InvalidOperationException("En producción aplica las migraciones como paso controlado antes de iniciar la aplicación.");
 builder.Logging.AddJsonConsole();
@@ -60,7 +61,30 @@ builder.Services.AddControllersWithViews(options =>
 
 // Sesión para el carrito de compras.
 builder.Services.AddMemoryCache();
-builder.Services.AddDistributedMemoryCache();
+var sessionProvider = builder.Configuration["Session:Provider"]?.Trim();
+if (builder.Environment.IsProduction() && !string.Equals(sessionProvider, "SqlServer", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("En producción configura Session:Provider=SqlServer para conservar las sesiones del carrito fuera del proceso web.");
+
+if (string.IsNullOrWhiteSpace(sessionProvider) || string.Equals(sessionProvider, "Memory", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+else if (string.Equals(sessionProvider, "SqlServer", StringComparison.OrdinalIgnoreCase))
+{
+    var sessionConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrWhiteSpace(sessionConnection))
+        throw new InvalidOperationException("Session:Provider=SqlServer requiere ConnectionStrings:DefaultConnection.");
+    builder.Services.AddDistributedSqlServerCache(options =>
+    {
+        options.ConnectionString = sessionConnection;
+        options.SchemaName = "dbo";
+        options.TableName = "DistributedCache";
+    });
+}
+else
+{
+    throw new InvalidOperationException("Session:Provider acepta únicamente Memory o SqlServer.");
+}
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromDays(7);

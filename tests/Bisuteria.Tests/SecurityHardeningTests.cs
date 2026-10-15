@@ -8,14 +8,186 @@ using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 public partial class AuditTests
 {
+    [Fact]
+    public async Task SensitiveActionsRequireFreshLoginAndUseOnlyLocalReturnUrls()
+    {
+        var clock = new ManualTimeProvider(DateTimeOffset.UtcNow);
+        using var host = f.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(clock);
+        }));
+        using var client = host.CreateClient(new() { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Referrer = new Uri("https://evil.example/steal");
+        var login = await AuditFactory.Post(client, "/Account/Login", new()
+        { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password });
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+
+        clock.Advance(TimeSpan.FromMinutes(16));
+        var response = await AuditFactory.Post(client, "/Developer/Roles/Save", new() { ["role"] = "Operator" }, "/Developer/Roles");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.StartsWith("/Account/Login?reauthenticationRequired=true&returnUrl=%2FDeveloper", response.Headers.Location!.OriginalString);
+        var prompt = await client.GetAsync(response.Headers.Location);
+        Assert.Contains("Confirma tu identidad", await prompt.Content.ReadAsStringAsync());
+        Assert.DoesNotContain("evil.example", response.Headers.Location.OriginalString);
+        var renewedSession = await AuditFactory.Post(client, "/Account/Login", new()
+        { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password, ["ReturnUrl"] = "/Developer/Roles" });
+        Assert.Equal(HttpStatusCode.Redirect, renewedSession.StatusCode);
+        Assert.Equal("/Developer/Roles", renewedSession.Headers.Location!.OriginalString);
+    }
+
+    [Fact]
+    public async Task LoginLockoutDurationIncreasesAfterRepeatedLockouts()
+    {
+        var email = $"lockout-{Guid.NewGuid():N}@example.test";
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            Assert.True((await users.CreateAsync(new ApplicationUser { UserName = email, Email = email, IsActive = true }, AuditFactory.Password)).Succeeded);
+        }
+
+        using var client = f.Client();
+        for (var attempt = 0; attempt < 5; attempt++)
+            await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = "Incorrect-Password!123" });
+
+        DateTimeOffset? firstLockout;
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await users.FindByEmailAsync(email);
+            Assert.NotNull(user);
+            firstLockout = await users.GetLockoutEndDateAsync(user!);
+            Assert.InRange((firstLockout!.Value - DateTimeOffset.UtcNow).TotalMinutes, 4.8, 5.1);
+            Assert.Contains((await users.GetClaimsAsync(user!)), claim => claim.Type == "security:lockout-level" && claim.Value == "0");
+            await users.SetLockoutEndDateAsync(user!, DateTimeOffset.UtcNow.AddSeconds(-1));
+            await users.ResetAccessFailedCountAsync(user!);
+        }
+
+        for (var attempt = 0; attempt < 5; attempt++)
+            await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = "Incorrect-Password!123" });
+
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await users.FindByEmailAsync(email);
+            Assert.NotNull(user);
+            var secondLockout = await users.GetLockoutEndDateAsync(user!);
+            Assert.True(secondLockout > firstLockout!.Value.AddMinutes(4));
+            Assert.InRange((secondLockout!.Value - DateTimeOffset.UtcNow).TotalMinutes, 9.8, 10.1);
+            Assert.Contains((await users.GetClaimsAsync(user!)), claim => claim.Type == "security:lockout-level" && claim.Value == "1");
+            await users.SetLockoutEndDateAsync(user!, DateTimeOffset.UtcNow.AddSeconds(-1));
+            await users.ResetAccessFailedCountAsync(user!);
+        }
+
+        var successfulLogin = await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = AuditFactory.Password });
+        Assert.Equal(HttpStatusCode.Redirect, successfulLogin.StatusCode);
+        using var verify = f.Services.CreateScope();
+        var verifiedUser = await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email);
+        Assert.NotNull(verifiedUser);
+        Assert.DoesNotContain(await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().GetClaimsAsync(verifiedUser!), claim => claim.Type == "security:lockout-level");
+    }
+
+    [Fact]
+    public async Task DeveloperCanRetryExhaustedEmailWithoutExposingRecipient()
+    {
+        var isolated = new AuditFactory { ProcessEmail = false };
+        await isolated.InitializeAsync();
+        try
+        {
+        var recipient = $"private-{Guid.NewGuid():N}@example.test";
+        int outboxId;
+        using (var scope = isolated.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var item = new EmailOutbox
+            {
+                Recipient = recipient,
+                Kind = "Notification",
+                Subject = "Prueba de auditoría",
+                TextBody = "Contenido de prueba",
+                Attempts = 8,
+                LastError = "Entrega fallida; revisar proveedor de correo.",
+                NextAttemptAt = DateTime.UtcNow
+            };
+            db.Add(item);
+            await db.SaveChangesAsync();
+            outboxId = item.Id;
+        }
+
+        using var developer = isolated.Client();
+        Assert.Equal(HttpStatusCode.Redirect, (await AuditFactory.Post(developer, "/Account/Login", new()
+        { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password })).StatusCode);
+        var listing = await developer.GetAsync("/Developer/EmailQueue");
+        Assert.Equal(HttpStatusCode.OK, listing.StatusCode);
+        var html = await listing.Content.ReadAsStringAsync();
+        Assert.Contains("Reintentar envío", html);
+        Assert.DoesNotContain(recipient, html);
+
+        using var owner = await isolated.Login("Owner");
+        Assert.Equal(HttpStatusCode.Forbidden, (await owner.GetAsync("/Developer/EmailQueue")).StatusCode);
+
+        var retry = await AuditFactory.Post(developer, "/Developer/EmailQueue/RetryFailed", new() { ["id"] = outboxId.ToString() }, "/Developer/EmailQueue");
+        Assert.Equal(HttpStatusCode.Redirect, retry.StatusCode);
+        using var verify = isolated.Services.CreateScope();
+        var dbVerify = verify.ServiceProvider.GetRequiredService<AppDbContext>();
+        var queued = await dbVerify.Set<EmailOutbox>().SingleAsync(x => x.Id == outboxId);
+        Assert.Equal(0, queued.Attempts);
+        Assert.Null(queued.LastError);
+        Assert.True(await dbVerify.Set<AuditLog>().AnyAsync(x => x.Action == "EmailOutbox.RetryRequested" && x.EntityId == outboxId.ToString()));
+        }
+        finally
+        {
+            await ((IAsyncLifetime)isolated).DisposeAsync();
+        }
+    }
+
+    [Fact]
+    public async Task SqlServerDistributedCacheSharesSessionDataAcrossHosts()
+    {
+        using var firstHost = f.WithWebHostBuilder(builder => builder
+            .UseSetting("Session:Provider", "SqlServer")
+            .UseSetting("ConnectionStrings:DefaultConnection", f.TestConnection));
+        using var secondHost = f.WithWebHostBuilder(builder => builder
+            .UseSetting("Session:Provider", "SqlServer")
+            .UseSetting("ConnectionStrings:DefaultConnection", f.TestConnection));
+        using (var scope = firstHost.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.StartsWith("BisuteriaAudit_", db.Database.GetDbConnection().Database);
+            await db.Database.MigrateAsync();
+            Assert.Contains("20261015185347_SqlDistributedSessionStore", await db.Database.GetAppliedMigrationsAsync());
+            var cacheOptions = firstHost.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Microsoft.Extensions.Caching.SqlServer.SqlServerCacheOptions>>().Value;
+            Assert.Equal(db.Database.GetDbConnection().Database, new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(cacheOptions.ConnectionString).InitialCatalog);
+        }
+        var key = $"bisuteria-audit-{Guid.NewGuid():N}";
+        var firstCache = firstHost.Services.GetRequiredService<IDistributedCache>();
+        Assert.Contains("SqlServerCache", firstCache.GetType().Name);
+        await firstCache.SetStringAsync(key, "carrito-compartido", new DistributedCacheEntryOptions
+        { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
+
+        var secondCache = secondHost.Services.GetRequiredService<IDistributedCache>();
+        Assert.Equal("carrito-compartido", await secondCache.GetStringAsync(key));
+        await secondCache.RemoveAsync(key);
+    }
+
+    private sealed class ManualTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset current = now;
+        public override DateTimeOffset GetUtcNow() => current;
+        public void Advance(TimeSpan duration) => current += duration;
+    }
+
     [Fact]
     public async Task RoleMatrixSeparatesDeveloperOwnerAndOperatorAccess()
     {
