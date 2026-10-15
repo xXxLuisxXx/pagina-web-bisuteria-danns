@@ -1,0 +1,10 @@
+@model Bisuteria.Web.Areas.Admin.Controllers.RevealedCustomerViewModel
+@{
+    ViewData["Title"] = "Datos de cliente";
+}
+<section class="card-admin">
+    <h1 class="admin-title">Datos de cliente</h1>
+    <p>Este acceso quedó registrado en la auditoría.</p>
+    <dl class="row"><dt class="col-sm-3">Correo</dt><dd class="col-sm-9">@Model.Email</dd><dt class="col-sm-3">Teléfono</dt><dd class="col-sm-9">@(Model.Phone ?? "No registrado")</dd><dt class="col-sm-3">Ciudad</dt><dd class="col-sm-9">@(Model.City ?? "No registrada")</dd><dt class="col-sm-3">Provincia</dt><dd class="col-sm-9">@(Model.Province ?? "No registrada")</dd></dl>
+    <a asp-action="Index" class="btn btn-outline-secondary">Volver a usuarios</a>
+</section>

@@ -1,9 +1,12 @@
 using Bisuteria.Application.DTOs.Catalog;
 using Bisuteria.Application.Interfaces;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.CategoriesManage)]
 public class CategoriesController : AdminBaseController
 {
     private readonly IProductAdminService _products;

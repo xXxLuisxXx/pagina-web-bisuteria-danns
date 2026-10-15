@@ -140,7 +140,7 @@
         </div>
 
         <div class="col-lg-5">
-            <div class="cart-summary card shadow-sm sticky-lg-top" style="top:100px;">
+            <div class="cart-summary card shadow-sm sticky-lg-top checkout-summary">
                 <h5 class="mb-3">Tu pedido</h5>
                 @foreach (var item in Model.Cart.Items)
                 {
@@ -185,7 +185,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
+    <script nonce="@Context.Items["CspNonce"]">
         (function () {
             var form = document.querySelector('input[name="CheckoutToken"]').form;
             form.addEventListener('submit', function () {

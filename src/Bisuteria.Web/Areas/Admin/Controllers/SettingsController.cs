@@ -1,8 +1,11 @@
 using Bisuteria.Application.Interfaces;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.StoreSettingsEdit)]
 public class SettingsController : AdminBaseController
 {
     private readonly ISettingService _settings;

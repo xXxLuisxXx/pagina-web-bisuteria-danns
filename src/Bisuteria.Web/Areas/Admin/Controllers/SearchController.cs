@@ -1,6 +1,9 @@
 using Bisuteria.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Bisuteria.Domain.Security;
 namespace Bisuteria.Web.Areas.Admin.Controllers;
+[Authorize(Policy = StorePermissions.AdminSearch)]
 public sealed class SearchController(IAdminService admin) : AdminBaseController
 {
     [HttpGet]

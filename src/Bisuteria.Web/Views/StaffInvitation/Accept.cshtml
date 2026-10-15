@@ -1,0 +1,21 @@
+@model Bisuteria.Web.Models.StaffInvitationViewModel
+@{
+    ViewData["Title"] = "Activa tu cuenta";
+}
+<section class="container py-5 invitation-form-width">
+    <h1 class="h2">Activa tu cuenta @Model.RoleName</h1>
+    <p>Invitación para <strong>@Model.Email</strong>. Crea una contraseña personal de al menos 12 caracteres.</p>
+    <form asp-action="Accept" method="post" class="card card-body">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <input asp-for="Token" type="hidden" />
+        <input asp-for="Email" type="hidden" />
+        <input asp-for="RoleName" type="hidden" />
+        <label asp-for="Password" class="form-label">Nueva contraseña</label><input asp-for="Password" class="form-control" autocomplete="new-password" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+        <label asp-for="ConfirmPassword" class="form-label mt-3">Confirma la contraseña</label><input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+        <button class="btn btn-primary mt-4" type="submit">Activar cuenta</button>
+    </form>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

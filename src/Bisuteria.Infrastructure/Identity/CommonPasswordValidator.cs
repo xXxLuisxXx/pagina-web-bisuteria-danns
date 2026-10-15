@@ -7,7 +7,10 @@ public sealed class CommonPasswordValidator : IPasswordValidator<ApplicationUser
     public Task<IdentityResult> ValidateAsync(UserManager<ApplicationUser> manager, ApplicationUser user, string? password)
     {
         var common = new[] { "password", "contraseña", "contrasena", "qwerty", "123456789", "admin123" };
-        var weak = password is null || common.Any(p => password.Contains(p, StringComparison.OrdinalIgnoreCase));
+        var containsAccountName = !string.IsNullOrWhiteSpace(password) &&
+            (!string.IsNullOrWhiteSpace(user.Email) && password.Contains(user.Email, StringComparison.OrdinalIgnoreCase) ||
+             !string.IsNullOrWhiteSpace(user.UserName) && password.Contains(user.UserName, StringComparison.OrdinalIgnoreCase));
+        var weak = password is null || common.Any(p => password.Contains(p, StringComparison.OrdinalIgnoreCase)) || containsAccountName;
         return Task.FromResult(weak ? IdentityResult.Failed(new IdentityError { Code = "CommonPassword", Description = "Elige una contraseña menos predecible." }) : IdentityResult.Success);
     }
 }

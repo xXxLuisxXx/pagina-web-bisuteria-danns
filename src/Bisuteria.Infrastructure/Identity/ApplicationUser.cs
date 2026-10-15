@@ -24,5 +24,6 @@ public class ApplicationUser : IdentityUser
 
     public bool IsActive { get; set; } = true;
     public bool MustChangePassword { get; set; }
+    public bool RequireTwoFactorSetup { get; set; }
     public string? InitialPasswordHash { get; set; }
 }

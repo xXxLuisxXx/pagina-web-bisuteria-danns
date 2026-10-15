@@ -1,0 +1,16 @@
+@model Bisuteria.Web.Areas.Developer.Controllers.AuditListViewModel
+@{
+    ViewData["Title"] = "Auditoría";
+}
+<h2 class="h3">Registro de auditoría</h2>
+<form method="get" class="row g-2 my-3">
+    <div class="col-md-3"><label class="form-label" for="actor">Id del usuario</label><input id="actor" name="actor" value="@Model.Actor" maxlength="450" class="form-control" /></div>
+    <div class="col-md-3"><label class="form-label" for="action">Acción</label><input id="action" name="action" value="@Model.Action" maxlength="160" class="form-control" /></div>
+    <div class="col-md-2"><label class="form-label" for="from">Desde</label><input id="from" name="from" type="date" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" /></div>
+    <div class="col-md-2"><label class="form-label" for="to">Hasta</label><input id="to" name="to" type="date" value="@Model.To?.ToString("yyyy-MM-dd")" class="form-control" /></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Filtrar</button></div>
+</form>
+<a class="btn btn-outline-secondary btn-sm mb-3" asp-action="Export" asp-route-actor="@Model.Actor" asp-route-action="@Model.Action" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">Exportar CSV</a>
+<div class="table-responsive"><table class="table"><thead><tr><th>Fecha UTC</th><th>Usuario</th><th>Acción</th><th>Resultado</th></tr></thead><tbody>
+@foreach (var row in Model.Rows) { <tr><td>@row.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td><td>@row.ActorId</td><td>@row.Action</td><td>@row.Outcome</td></tr> }
+</tbody></table></div>

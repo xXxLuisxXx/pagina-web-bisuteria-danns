@@ -1,9 +1,12 @@
 using Bisuteria.Application.DTOs.Admin;
 using Bisuteria.Application.Interfaces;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.CouponsManage)]
 public class CouponsController : AdminBaseController
 {
     private readonly ICouponAdminService _coupons;

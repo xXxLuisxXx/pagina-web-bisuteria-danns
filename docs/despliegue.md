@@ -10,7 +10,8 @@ Configura estos valores en el almacén de secretos o entorno del hosting, nunca 
 |---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `ConnectionStrings__DefaultConnection` | SQL Server productivo, usuario con permisos mínimos y certificado válido |
-| `Database__Initialize` | `false`; aplicar migraciones revisadas por separado |
+| `Database__ApplyMigrations` | `false`; producción nunca migra al arrancar |
+| `Database__Initialize` | `true` después de aplicar el script de migración; crea roles, configuración base y Developer inicial |
 | `AllowedHosts` | Dominio real, sin comodín |
 | `PublicBaseUrl` | Origen HTTPS público |
 | `DataProtection__KeysPath` | Directorio persistente con acceso restringido al proceso |
@@ -26,8 +27,8 @@ Activar `Identity__RequireConfirmedEmail=true` únicamente después de verificar
 1. Elegir hosting compatible con .NET 10 y SQL Server. Mantener una sola instancia mientras el carrito sea local al proceso.
 2. Preparar volúmenes persistentes para claves y `wwwroot/img/uploads`. Respaldar SQL y archivos de imágenes por separado y comprobar restauración en un entorno aislado.
 3. Para IIS en Windows generar el artefacto desde la raíz: `dotnet publish src/Bisuteria.Web/Bisuteria.Web.csproj -c Release -r win-x64 --self-contained false -o audit/publish-win-x64`. El directorio está ignorado por Git. Paquete preparado en `audit/Bisuteria-Web-Release.zip` (aprox. 29 MB comprimido, solo recursos win-x64); antes de usarlo hay que crear el sitio y su base, añadir configuración de producción al hosting y migrar una base vacía revisada. El paquete aún no contiene secretos ni configuración del hosting.
-4. Revisar migraciones pendientes y respaldo antes de aplicarlas a la base real en una ventana controlada. No usar el arranque de la web para migrar automáticamente.
-5. Configurar secretos, HTTPS y proxy del proveedor. Preparar roles, configuración inicial y primer administrador mediante un procedimiento controlado; retirar las credenciales iniciales después. La inicialización deshabilitada no crea estos datos.
+4. Revisar y generar el script idempotente (`dotnet ef migrations script --idempotent --project src/Bisuteria.Infrastructure --startup-project src/Bisuteria.Web -o migrations.sql`); respaldar y aplicar ese artefacto a la base real mediante el paso controlado del proveedor. No uses `Database__ApplyMigrations=true` en el sitio.
+5. Configurar secretos, HTTPS y proxy del proveedor. Tras aplicar las migraciones, iniciar con `Database__Initialize=true` y `InitialDeveloper__Email`/`InitialDeveloper__Password` para crear roles, datos base y Developer; retirar la clave inicial del entorno después del alta.
 6. Publicar primero en un entorno de prueba equivalente al productivo. Verificar `/health`, catálogo, registro, acceso administrativo, recuperación y confirmación de correo, carga de imágenes y un pedido de prueba con cancelación y restitución de stock.
 7. Reiniciar la instancia y comprobar conservación de imágenes y claves. El carrito puede perderse al reiniciar y requiere almacenamiento compartido si el negocio necesita esa garantía. La cola de correo ya es durable en SQL y debe respaldarse junto a la base.
 8. Publicar al dominio definitivo y repetir las comprobaciones externas; registrar fecha, versión y evidencia sin credenciales ni datos personales.
@@ -44,6 +45,6 @@ Conservar el artefacto anterior y un respaldo verificado antes del despliegue. U
 - Métodos de cobro y política de reembolso confirmados.
 - Objetivos de recuperación de respaldos y responsables de operación.
 
-En MonsterASP, guardar `ASPNETCORE_ENVIRONMENT=Production`, `Database__Initialize=false`, `ConnectionStrings__DefaultConnection` (cadena **Local access**, nunca compartirla), `AllowedHosts`, `PublicBaseUrl`, `DataProtection__KeysPath` y `Smtp__*` como variables de entorno del sitio y reiniciarlo. La ayuda oficial explica [variables de entorno](https://help.monsterasp.net/websites/configuration/environment-variables), [cadena SQL local/remota](https://help.monsterasp.net/databases/mssql/connection-string) y [Web Deploy desde Visual Studio](https://help.monsterasp.net/websites/deploy/webdeploy). No pegar contraseñas en Git ni en el chat. Para correo en plan Free se necesita SMTP externo.
+En MonsterASP, guardar `ASPNETCORE_ENVIRONMENT=Production`, `Database__ApplyMigrations=false`, `Database__Initialize=true` tras el paso controlado de migración, `InitialDeveloper__Email`, `InitialDeveloper__Password`, `ConnectionStrings__DefaultConnection` (cadena **Local access**, nunca compartirla), `AllowedHosts`, `PublicBaseUrl`, `DataProtection__KeysPath` y `Smtp__*` como variables de entorno del sitio y reiniciarlo. La ayuda oficial explica [variables de entorno](https://help.monsterasp.net/websites/configuration/environment-variables), [cadena SQL local/remota](https://help.monsterasp.net/databases/mssql/connection-string) y [Web Deploy desde Visual Studio](https://help.monsterasp.net/websites/deploy/webdeploy). No pegar contraseñas en Git ni en el chat. Para correo en plan Free se necesita SMTP externo.
 
 Esta lista prepara la publicación; no acredita que los servicios ya estén configurados.

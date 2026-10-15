@@ -22,6 +22,9 @@
             <tbody>
                 @foreach (var user in Model)
                 {
+                    var canToggle = User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer)
+                        ? user.Roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner or Bisuteria.Domain.Security.StoreRoles.Operator)
+                        : User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Owner) && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Operator);
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -53,13 +56,21 @@
                             }
                         </td>
                         <td class="text-end">
-                            <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0"
-                                  data-confirm="¿Cambiar el estado de este usuario?">
-                                @Html.AntiForgeryToken()
-                                <button class="btn btn-sm btn-outline-secondary" type="submit" title="Cambiar estado">
-                                    <i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i>
-                                </button>
-                            </form>
+                            @if (User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer) && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Customer))
+                            {
+                                <form asp-action="Reveal" method="post" class="m-0 d-inline" data-confirm="Se registrará el acceso a los datos del cliente. ¿Continuar?">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Ver datos</button>
+                                </form>
+                            }
+                            @if (canToggle)
+                            {
+                                <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0" data-confirm="¿Cambiar el estado de este usuario?">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Cambiar estado"><i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i></button>
+                                </form>
+                            }
                         </td>
                     </tr>
                 }

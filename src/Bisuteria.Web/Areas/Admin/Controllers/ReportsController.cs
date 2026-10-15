@@ -4,9 +4,12 @@ using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Enums;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Bisuteria.Domain.Security;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.ReportsView)]
 public class ReportsController : AdminBaseController
 {
     private readonly IAdminService _admin;
@@ -57,6 +60,7 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
+    [Authorize(Policy = StorePermissions.ReportsExport)]
     public async Task<IActionResult> ExportSales(DateTime? from = null, DateTime? to = null, CancellationToken ct = default, PaymentStatus? payment = null, OrderStatus? status = null)
     {
         var rows = await _admin.GetSalesReportAsync(from, to, ct, payment);
@@ -114,6 +118,7 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
+    [Authorize(Policy = StorePermissions.ReportsExport)]
     public async Task<IActionResult> ExportProducts(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
     {
         var rows = await _admin.GetProductReportAsync(from, to, ct);
@@ -158,6 +163,7 @@ public class ReportsController : AdminBaseController
     }
 
     [HttpGet]
+    [Authorize(Policy = StorePermissions.ReportsExport)]
     public async Task<IActionResult> ExportCsv(string report, DateTime? from = null, DateTime? to = null, CancellationToken ct = default, PaymentStatus? payment = null, OrderStatus? status = null)
     {
         var sb = new StringBuilder();

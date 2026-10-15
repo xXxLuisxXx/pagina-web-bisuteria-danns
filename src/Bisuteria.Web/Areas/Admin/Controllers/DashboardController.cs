@@ -6,9 +6,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using ClosedXML.Excel;
 using System.Text;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.DashboardView)]
 public class DashboardController(IAdminService admin, IMemoryCache cache) : AdminBaseController
 {
     private Task<DashboardStats> Load(DateTime? from, DateTime? to, string interval, OrderStatus? status, CancellationToken ct)
@@ -26,6 +29,7 @@ public class DashboardController(IAdminService admin, IMemoryCache cache) : Admi
     }
 
     [HttpGet]
+    [Authorize(Policy = StorePermissions.ReportsExport)]
     public async Task<IActionResult> Export(CancellationToken ct, DateTime? from = null, DateTime? to = null, string interval = "day", string format = "csv")
     {
         if (format is not ("csv" or "xlsx")) return BadRequest("Formato inválido.");

@@ -1,7 +1,9 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<Bisuteria.Infrastructure.Identity.ApplicationUser> UserManager
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
 @{
     var currentUser = await UserManager.GetUserAsync(User);
     var displayName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}" : "Administrador";
+    async Task<bool> Allowed(string permission) => (await Authorization.AuthorizeAsync(User, null, permission)).Succeeded;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -38,19 +40,21 @@
 
     <nav class="admin-sidebar" id="adminSidebar" aria-label="Administración"><a href="/Admin" class="sidebar-brand"><img src="/img/logo-mark.svg" alt="" /><strong>DANN’S<small>Bisutería y accesorios</small></strong></a>
         <div class="nav flex-column gap-1">
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i>Panel de administración</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Products" ? "active" : "")" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i>Productos</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categories" ? "active" : "")" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i>Categorías</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Orders" ? "active" : "")" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i>Pedidos</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i>Usuarios</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reviews" ? "active" : "")" asp-area="Admin" asp-controller="Reviews" asp-action="Index"><i class="bi bi-star"></i>Reseñas</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Messages" ? "active" : "")" asp-area="Admin" asp-controller="Messages" asp-action="Index"><i class="bi bi-envelope"></i>Mensajes</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Coupons" ? "active" : "")" asp-area="Admin" asp-controller="Coupons" asp-action="Index"><i class="bi bi-ticket-perforated"></i>Cupones</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Blog" ? "active" : "")" asp-area="Admin" asp-controller="Blog" asp-action="Index"><i class="bi bi-journal-text"></i>Blog</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Gallery" ? "active" : "")" asp-area="Admin" asp-controller="Gallery" asp-action="Index"><i class="bi bi-images"></i>Galería</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Inventory" ? "active" : "")" asp-area="Admin" asp-controller="Inventory" asp-action="Index"><i class="bi bi-clipboard-data"></i>Inventario</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" asp-area="Admin" asp-controller="Reports" asp-action="Index"><i class="bi bi-graph-up"></i>Reportes</a>
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" asp-area="Admin" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear"></i>Configuración</a>
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView)) { <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i>Panel de administración</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ProductsManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i>Productos</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CategoriesManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i>Categorías</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.OrdersView)) { <a class="nav-link" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i>Pedidos</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CustomersViewLimited)) { <a class="nav-link" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i>Usuarios</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReviewsModerate)) { <a class="nav-link" asp-area="Admin" asp-controller="Reviews" asp-action="Index"><i class="bi bi-star"></i>Reseñas</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.MessagesView)) { <a class="nav-link" asp-area="Admin" asp-controller="Messages" asp-action="Index"><i class="bi bi-envelope"></i>Mensajes</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CouponsManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Coupons" asp-action="Index"><i class="bi bi-ticket-perforated"></i>Cupones</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.BlogManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Blog" asp-action="Index"><i class="bi bi-journal-text"></i>Blog</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.GalleryManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Gallery" asp-action="Index"><i class="bi bi-images"></i>Galería</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.InventoryAdjust)) { <a class="nav-link" asp-area="Admin" asp-controller="Inventory" asp-action="Index"><i class="bi bi-clipboard-data"></i>Inventario</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsView)) { <a class="nav-link" asp-area="Admin" asp-controller="Reports" asp-action="Index"><i class="bi bi-graph-up"></i>Reportes</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.StoreSettingsEdit)) { <a class="nav-link" asp-area="Admin" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear"></i>Configuración</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageStaff) || await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageOwner)) { <a class="nav-link" asp-area="" asp-controller="StaffInvitation" asp-action="Index"><i class="bi bi-person-plus"></i>Invitaciones de equipo</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.RolesViewMatrix)) { <a class="nav-link" asp-area="Developer" asp-controller="Roles" asp-action="Index"><i class="bi bi-shield-lock"></i>Modo desarrollador</a> }
         </div>
         <a href="/" class="sidebar-store"><i class="bi bi-shop" aria-hidden="true"></i><strong>Tu tienda, siempre cerca</strong><span>Ver tienda ↗</span></a>
         <form asp-area="" asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-outline-dark w-100" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión</button></form>
@@ -74,10 +78,10 @@
         @RenderBody()
     </main>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/admin.js" asp-append-version="true"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/js/site.js" asp-append-version="true"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/js/admin.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

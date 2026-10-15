@@ -1,6 +1,7 @@
 using Bisuteria.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Bisuteria.Domain.Security;
 
 namespace Bisuteria.Web.Controllers;
 
@@ -8,10 +9,12 @@ namespace Bisuteria.Web.Controllers;
 public class OrderController : Controller
 {
     private readonly IOrderService _orders;
+    private readonly IAuthorizationService _authorization;
 
-    public OrderController(IOrderService orders)
+    public OrderController(IOrderService orders, IAuthorizationService authorization)
     {
         _orders = orders;
+        _authorization = authorization;
     }
 
     [HttpGet]
@@ -33,7 +36,8 @@ public class OrderController : Controller
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var order = await _orders.GetByNumberAsync(orderNumber, ct);
 
-        if (order is null || (order.UserId != userId && !User.IsInRole("Admin")))
+        var canViewAll = (await _authorization.AuthorizeAsync(User, null, StorePermissions.OrdersView)).Succeeded;
+        if (order is null || (order.UserId != userId && !canViewAll))
             return NotFound();
 
         return View(order);

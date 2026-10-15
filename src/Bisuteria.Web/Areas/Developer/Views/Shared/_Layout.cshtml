@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Modo desarrollador</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="container py-4">
+    <header class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+        <div><span class="badge text-bg-dark">Modo desarrollador</span><h1 class="h4 mt-2">Bisuterías Dann's</h1></div>
+        <nav class="d-flex gap-2"><a class="btn btn-outline-secondary" asp-area="Developer" asp-controller="Home" asp-action="Index">Sistema</a><a class="btn btn-outline-secondary" asp-area="Developer" asp-controller="Roles" asp-action="Index">Permisos</a><a class="btn btn-outline-secondary" asp-area="Developer" asp-controller="Audit" asp-action="Index">Auditoría</a><a class="btn btn-outline-secondary" asp-area="" asp-controller="StaffInvitation" asp-action="Index">Equipo</a></nav>
+        <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">Volver al panel</a>
+    </header>
+    @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
+    @RenderBody()
+    <script nonce="@Context.Items["CspNonce"]" src="~/js/site.js" asp-append-version="true"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -59,7 +59,10 @@ public static class DependencyInjection
             options.Cookie.Name = "Bisuteria.Auth";
             options.Events.OnSigningIn = context =>
             {
-                if (context.Principal?.IsInRole("Admin") == true)
+                if (context.Principal?.IsInRole("Developer") == true ||
+                    context.Principal?.IsInRole("Owner") == true ||
+                    context.Principal?.IsInRole("Operator") == true ||
+                    context.Principal?.IsInRole("Admin") == true)
                 {
                     context.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30);
                     context.Properties.AllowRefresh = false;
@@ -76,6 +79,17 @@ public static class DependencyInjection
                     context.RejectPrincipal();
                     await context.HttpContext.RequestServices.GetRequiredService<SignInManager<ApplicationUser>>().SignOutAsync();
                 }
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                var path = context.Request.Path;
+                if (path.StartsWithSegments("/Admin") || path.StartsWithSegments("/Developer") || path.StartsWithSegments("/StaffInvitation"))
+                {
+                    context.Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
             };
         });
 

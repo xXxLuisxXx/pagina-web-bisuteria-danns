@@ -28,8 +28,11 @@ public partial class AccountController
             ? await _signInManager.TwoFactorRecoveryCodeSignInAsync(model.Code.Trim())
             : await _signInManager.TwoFactorAuthenticatorSignInAsync(model.Code.Trim(), model.RememberMe, rememberClient: false);
         if (result.Succeeded)
+        {
+            await _audit.PrivilegedLoginAsync(user);
             return !string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl)
                 ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Home");
+        }
         // Identity contabiliza fallos TOTP; los códigos de recuperación requieren contabilización explícita.
         if (model.Recovery) await _userManager.AccessFailedAsync(user);
         ModelState.AddModelError("", "No se pudo verificar el acceso. Revisa el código o vuelve a iniciar sesión.");
@@ -79,8 +82,17 @@ public partial class AccountController
         if (!(await _userManager.SetTwoFactorEnabledAsync(user, true)).Succeeded) return StatusCode(503);
         model.RecoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         if (model.RecoveryCodes is null) return StatusCode(503);
+        var mandatorySetup = user.RequireTwoFactorSetup;
+        if (mandatorySetup)
+        {
+            user.RequireTwoFactorSetup = false;
+            if (!(await _userManager.UpdateAsync(user)).Succeeded) return StatusCode(503);
+        }
         if (!(await _userManager.UpdateSecurityStampAsync(user)).Succeeded) return StatusCode(503);
-        await _signInManager.RefreshSignInAsync(user);
+        if (mandatorySetup)
+            await _signInManager.SignOutAsync();
+        else
+            await _signInManager.RefreshSignInAsync(user);
         model.Enabled = true;
         model.SharedKey = null;
         return View(model);

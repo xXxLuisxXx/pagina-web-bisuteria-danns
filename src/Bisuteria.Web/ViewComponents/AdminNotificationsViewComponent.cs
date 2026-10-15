@@ -1,12 +1,14 @@
 using Bisuteria.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Authorization;
+using Bisuteria.Domain.Security;
 namespace Bisuteria.Web.ViewComponents;
-public sealed class AdminNotificationsViewComponent(IAdminService admin, IMemoryCache cache) : ViewComponent
+public sealed class AdminNotificationsViewComponent(IAdminService admin, IMemoryCache cache, IAuthorizationService authorization) : ViewComponent
 {
     public async Task<IViewComponentResult> InvokeAsync()
     {
-        if (!User.IsInRole("Admin")) return Content("");
+        if (!(await authorization.AuthorizeAsync(HttpContext.User, resource: null, StorePermissions.AdminNotifications)).Succeeded) return Content("");
         var data = await cache.GetOrCreateAsync("dashboard:::day:", async entry => { entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30); return await admin.GetDashboardAsync(HttpContext.RequestAborted); });
         return View(data!);
     }

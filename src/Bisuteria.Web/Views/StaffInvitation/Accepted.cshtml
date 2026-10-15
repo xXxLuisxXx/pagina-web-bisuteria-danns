@@ -1,0 +1,12 @@
+@model Bisuteria.Web.Models.StaffInvitationViewModel
+@{
+    ViewData["Title"] = "Cuenta activada";
+}
+<section class="container py-5"><h1 class="h2">Cuenta activada</h1>
+    @if (Model.RoleName == Bisuteria.Domain.Security.StoreRoles.Owner)
+    {
+        <p>Tu cuenta está lista. Inicia sesión y registra la verificación TOTP antes de entrar al panel.</p>
+    }
+    else { <p>Tu cuenta está lista. Ya puedes iniciar sesión.</p> }
+    <a class="btn btn-primary" asp-controller="Account" asp-action="Login">Iniciar sesión</a>
+</section>

@@ -30,10 +30,27 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
     public DbSet<GalleryImage> GalleryImages => Set<GalleryImage>();
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<StaffInvitation> StaffInvitations => Set<StaffInvitation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<RolePermission>(e =>
+        {
+            e.Property(x => x.RoleName).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Permission).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => new { x.RoleName, x.Permission }).IsUnique();
+        });
+        builder.Entity<StaffInvitation>(e =>
+        {
+            e.Property(x => x.Email).HasMaxLength(254).IsRequired();
+            e.Property(x => x.RoleName).HasMaxLength(64).IsRequired();
+            e.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            e.Property(x => x.InvitedByUserId).HasMaxLength(450).IsRequired();
+            e.HasIndex(x => x.TokenHash).IsUnique();
+            e.HasIndex(x => new { x.Email, x.RoleName, x.AcceptedAtUtc, x.RevokedAtUtc });
+        });
         builder.Entity<EmailOutbox>(e =>
         {
             e.Property(x => x.Recipient).HasMaxLength(200);
@@ -45,9 +62,17 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<AuditLog>(e =>
         {
             e.Property(x => x.ActorId).HasMaxLength(450);
+            e.Property(x => x.ActorRole).HasMaxLength(64);
             e.Property(x => x.Action).HasMaxLength(160);
+            e.Property(x => x.EntityType).HasMaxLength(120);
+            e.Property(x => x.EntityId).HasMaxLength(450);
             e.Property(x => x.Outcome).HasMaxLength(40);
+            e.Property(x => x.BeforeJson).HasMaxLength(2000);
+            e.Property(x => x.AfterJson).HasMaxLength(2000);
+            e.Property(x => x.RemoteIp).HasMaxLength(45);
             e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => new { x.ActorId, x.CreatedAt });
+            e.HasIndex(x => new { x.Action, x.CreatedAt });
         });
 
         builder.Entity<Category>(e =>

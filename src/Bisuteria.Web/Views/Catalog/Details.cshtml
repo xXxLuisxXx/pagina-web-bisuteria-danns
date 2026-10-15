@@ -1,6 +1,7 @@
 @model ProductDetailDto
 @using Bisuteria.Application.Interfaces
 @inject ISettingService SettingsService
+@inject IConfiguration Configuration
 @{
     var isFav = ViewBag.IsFavorite is bool f && f;
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
@@ -9,7 +10,7 @@
         : new[] { new ProductImageDto { ImageUrl = Model.MainImageUrl ?? "/img/placeholder.svg" } };
     var seoSettings = await SettingsService.GetAllAsync();
     var seoStoreName = seoSettings.GetValueOrDefault("StoreName") ?? "Bisuterias Dann's";
-    var seoBaseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var seoBaseUrl = Configuration["PublicBaseUrl"]?.TrimEnd('/') ?? "";
 }
 @{
     var structuredData = new Dictionary<string, object?>
@@ -20,7 +21,7 @@
         ["offers"] = new Dictionary<string, object?> { ["@type"] = "Offer", ["url"] = seoBaseUrl + Url.Action("Details", "Catalog", new { slug = Model.Slug }), ["priceCurrency"] = "USD", ["price"] = Model.EffectivePrice, ["availability"] = Model.Stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" }
     };
 }
-<script type="application/ld+json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(structuredData))</script>
+<script type="application/ld+json" nonce="@Context.Items["CspNonce"]">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(structuredData))</script>
 
 <nav aria-label="Ruta de navegación" class="container pt-4">
     <ol class="breadcrumb">
@@ -158,7 +159,7 @@
         <div class="section-head">
             <h2>Detalles del producto</h2>
         </div>
-        <div class="mx-auto" style="max-width:820px;">
+        <div class="mx-auto content-width">
             <p class="fs-5 lh-lg">@Model.Description</p>
             <h5 class="mt-4 mb-3">¿Cómo cuidar tu pieza?</h5>
             <ul>
@@ -256,7 +257,7 @@
                 @if (Model.ApprovedReviews.Count == 0)
                 {
                     <div class="text-center py-4 text-muted">
-                        <i class="bi bi-chat-square-text" style="font-size:2.5rem;"></i>
+                        <i class="bi bi-chat-square-text empty-icon empty-icon-md"></i>
                         <p class="mt-2 mb-0">Aún no hay reseñas. ¡Sé la primera persona en opinar!</p>
                     </div>
                 }

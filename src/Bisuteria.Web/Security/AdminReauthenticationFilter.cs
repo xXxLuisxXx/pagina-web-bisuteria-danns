@@ -9,7 +9,12 @@ public sealed class AdminReauthenticationFilter : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        if (HttpMethods.IsPost(context.HttpContext.Request.Method) && context.RouteData.Values["area"]?.ToString() == "Admin")
+        var area = context.RouteData.Values["area"]?.ToString();
+        var controller = context.RouteData.Values["controller"]?.ToString();
+        var action = context.RouteData.Values["action"]?.ToString();
+        var privilegedPost = area is "Admin" or "Developer" || controller == "StaffInvitation" && action is "Create" or "Revoke" or "SetActive";
+        var sensitiveExport = HttpMethods.IsGet(context.HttpContext.Request.Method) && action?.StartsWith("Export", StringComparison.Ordinal) == true;
+        if (HttpMethods.IsPost(context.HttpContext.Request.Method) && privilegedPost || sensitiveExport)
         {
             var ticket = await context.HttpContext.AuthenticateAsync(IdentityConstants.ApplicationScheme);
             if (ticket.Properties?.IssuedUtc is not { } issued || DateTimeOffset.UtcNow - issued > TimeSpan.FromMinutes(15))

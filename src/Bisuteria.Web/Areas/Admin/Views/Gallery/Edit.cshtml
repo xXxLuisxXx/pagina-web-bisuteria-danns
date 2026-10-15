@@ -50,11 +50,11 @@
             <h6 class="fw-semibold mb-3">Vista previa</h6>
             @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
             {
-                <img src="@Model.ImageUrl" alt="@Model.Title" class="img-fluid rounded" style="max-height: 320px;" />
+                <img src="@Model.ImageUrl" alt="@Model.Title" class="img-fluid rounded gallery-preview" />
             }
             else
             {
-                <img src="/img/placeholder.svg" alt="Sin imagen" class="img-fluid rounded" style="max-height: 320px;" />
+                <img src="/img/placeholder.svg" alt="Sin imagen" class="img-fluid rounded gallery-preview" />
             }
         </div>
     </div>

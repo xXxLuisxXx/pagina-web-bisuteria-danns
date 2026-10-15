@@ -19,6 +19,12 @@ public sealed class InitialPasswordFilter(UserManager<ApplicationUser> users) : 
                 context.Result = new RedirectToActionResult("ChangePassword", "Account", new { area = "" });
                 return;
             }
+            if (user?.RequireTwoFactorSetup == true && !await users.GetTwoFactorEnabledAsync(user) &&
+                !(controller == "Account" && action is "Authenticator" or "ChangePassword" or "Logout"))
+            {
+                context.Result = new RedirectToActionResult("Authenticator", "Account", new { area = "" });
+                return;
+            }
         }
         await next();
     }

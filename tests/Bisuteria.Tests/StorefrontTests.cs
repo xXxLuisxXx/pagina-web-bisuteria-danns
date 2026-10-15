@@ -46,8 +46,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     {
         using var client=await f.Login("Customer");
         var result=await AuditFactory.Post(client,path,new(){["Id"]=f.ProductId.ToString(),["Name"]="Ataque"});
-        Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);
-        Assert.Contains("AccessDenied",result.Headers.Location!.OriginalString);
+        Assert.Equal(HttpStatusCode.Forbidden,result.StatusCode);
     }
     [Fact] public async Task VisitorCannotWriteAdmin()
     {
@@ -58,7 +57,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     [Fact] public async Task CustomerCannotReadAdmin()
     {
         using var client=await f.Login("Customer");
-        var result=await client.GetAsync("/Admin");Assert.Contains("AccessDenied",result.Headers.Location!.OriginalString);
+        var result=await client.GetAsync("/Admin");Assert.Equal(HttpStatusCode.Forbidden,result.StatusCode);
     }
     [Fact] public async Task AdminCanEditAndValidationRejectsBadProduct()
     {

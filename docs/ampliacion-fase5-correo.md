@@ -2,7 +2,7 @@
 
 ## Implementación
 
-InitialAdmin:Email e InitialAdmin:Password se leen de configuración privada. El inicializador comprueba los resultados de creación, rol y actualización. Un nuevo administrador tiene correo confirmado y MustChangePassword; un filtro impide usar el resto de la web hasta cambiar la contraseña. Se guarda el hash de la contraseña inicial para impedir reutilizarla tanto al cambiar como al restablecer contraseña. Los fallos de inicialización detienen producción. No se modifica ni se promueve una cuenta ya existente automáticamente.
+InitialDeveloper:Email e InitialDeveloper:Password se leen de configuración privada. El inicializador comprueba los resultados de creación, rol y actualización. La cuenta Developer tiene correo confirmado, debe cambiar la clave inicial y registrar TOTP antes de usar el panel. Se guarda el hash de la clave inicial para impedir reutilizarla tanto al cambiar como al restablecer la contraseña. Los fallos de inicialización detienen producción. No se convierte una cuenta existente del antiguo rol Admin automáticamente.
 
 EmailOutbox se guarda en SQL. Las notificaciones de pedidos, pago, contacto, bienvenida, cambio de contraseña y stock se agregan al mismo SaveChangesAsync que el evento de negocio. Los eventos de pedido incluyen invitados y el correo de la compra. Se conserva la arquitectura: captura de persistencia en Infrastructure, transporte SMTP y worker en Web. No se añadieron dependencias.
 
@@ -16,8 +16,8 @@ Configurar mediante user-secrets en desarrollo o variables de entorno en el host
 
 | Clave | Uso |
 |---|---|
-| InitialAdmin:Email | Correo oficial elegido por el propietario |
-| InitialAdmin:Password | Contraseña inicial fuerte, privada; retirar después del alta |
+| InitialDeveloper:Email | Correo técnico elegido por el responsable |
+| InitialDeveloper:Password | Clave inicial fuerte y privada; retirar después del alta |
 | Smtp:Host | smtp.gmail.com si se utiliza Gmail |
 | Smtp:Port | 587 |
 | Smtp:UseSsl | true; SmtpClient negocia STARTTLS |

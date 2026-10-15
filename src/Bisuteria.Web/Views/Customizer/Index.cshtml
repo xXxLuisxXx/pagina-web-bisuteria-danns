@@ -26,7 +26,7 @@
                         <img id="previewBase" src="@(selected?.MainImageUrl ?? "/img/placeholder.svg")"
                              alt="Vista previa de tu pieza" />
                         <div id="previewText" class="preview-text font-serif" data-display="Texto">Texto</div>
-                        <div id="previewCharm" class="preview-charm" style="display:none;"><i class="bi bi-heart-fill"></i></div>
+                        <div id="previewCharm" class="preview-charm d-none"><i class="bi bi-heart-fill"></i></div>
                         <div class="preview-badge">Vista previa ilustrativa</div>
                     </div>
                     <div class="preview-price-box">
@@ -38,11 +38,11 @@
                 <div class="card card-body mt-3 bg-white shadow-sm">
                     <h6 class="mb-2"><i class="bi bi-palette me-2 text-gold"></i>Elige el color de tu personalización</h6>
                     <div class="d-flex gap-2 flex-wrap">
-                        @foreach (var opt in new[] { ("#8B6914", "Oro"), ("#C0C0C0", "Plata"), ("#E8A0B4", "Rosa"), ("#111", "Negro"), ("#fff", "Blanco") })
+                        @foreach (var opt in new[] { ("#8B6914", "Oro", "swatch-gold"), ("#C0C0C0", "Plata", "swatch-silver"), ("#E8A0B4", "Rosa", "swatch-pink"), ("#111", "Negro", "swatch-black"), ("#fff", "Blanco", "swatch-white") })
                         {
                             <label class="color-swatch" title="@opt.Item2">
                                 <input type="radio" name="Customization.Color" value="@opt.Item1" @(opt.Item2 == "Oro" ? "checked" : "") />
-                                <span style="background:@opt.Item1; @(opt.Item2 == "Blanco" ? "border:1px solid #ccc;" : "")"></span>
+                                <span class="@opt.Item3"></span>
                             </label>
                         }
                     </div>
@@ -170,7 +170,7 @@
 </div>
 
 @section Scripts {
-    <script>
+    <script nonce="@Context.Items["CspNonce"]">
         (function () {
             const prices = {
                 Text: 4, Initials: 3, Date: 3, Phrase: 5, Charm: 5, GiftWrap: 3
@@ -235,9 +235,12 @@
             });
 
             // Color
+            const colorClasses = ['custom-text-gold', 'custom-text-silver', 'custom-text-pink', 'custom-text-black', 'custom-text-white'];
+            const colorMap = { '#8B6914': colorClasses[0], '#C0C0C0': colorClasses[1], '#E8A0B4': colorClasses[2], '#111': colorClasses[3], '#fff': colorClasses[4] };
             document.querySelectorAll('.color-swatch input').forEach(inp => {
                 inp.addEventListener('change', () => {
-                    textEl.style.color = inp.value;
+                    textEl.classList.remove(...colorClasses);
+                    if (colorMap[inp.value]) textEl.classList.add(colorMap[inp.value]);
                 });
             });
 
@@ -247,9 +250,9 @@
                 const icon = charm.querySelector('i');
                 if (e.target.value) {
                     icon.className = 'bi ' + (charmIcons[e.target.value] || 'bi-heart-fill');
-                    charm.style.display = 'block';
+                    charm.classList.remove('d-none');
                 } else {
-                    charm.style.display = 'none';
+                    charm.classList.add('d-none');
                 }
                 render();
             });

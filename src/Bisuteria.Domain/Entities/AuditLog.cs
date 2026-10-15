@@ -5,6 +5,12 @@ namespace Bisuteria.Domain.Entities;
 public sealed class AuditLog : BaseEntity
 {
     public string ActorId { get; set; } = "";
+    public string ActorRole { get; set; } = "";
     public string Action { get; set; } = "";
+    public string? EntityType { get; set; }
+    public string? EntityId { get; set; }
     public string Outcome { get; set; } = "";
+    public string? BeforeJson { get; set; }
+    public string? AfterJson { get; set; }
+    public string? RemoteIp { get; set; }
 }

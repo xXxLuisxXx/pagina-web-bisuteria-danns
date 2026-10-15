@@ -23,11 +23,11 @@ dotnet run --project src/Bisuteria.Web --launch-profile https
 
 Abre `https://localhost:7083`. La configuración incluida usa `localhost`, base `BisuteriaDb` y autenticación integrada. `TrustServerCertificate=True` es para desarrollo; en despliegue configura un certificado SQL válido, el dominio público y `AllowedHosts` restringido.
 
-**Antes del primer arranque**, revisa la conexión: por defecto se aplica la migración existente y se insertan roles/configuración inicial. Para impedir esa inicialización usa `$env:Database__Initialize = "false"`; en ese caso la base ya debe estar preparada. No ejecutes migraciones sobre una base real sin respaldo y revisión.
+**Antes del primer arranque en desarrollo**, revisa la conexión: por defecto se aplican las migraciones y se insertan roles/configuración inicial. Para impedir esa inicialización usa `$env:Database__Initialize = "false"`; en ese caso la base ya debe estar preparada. En producción, aplica migraciones como artefacto controlado y luego deja `Database__Initialize=true` para el seed; el proceso web nunca aplica migraciones automáticamente.
 
-Para crear el primer administrador, configura de forma privada `InitialAdmin:Email` y `InitialAdmin:Password` mediante user-secrets o variables `InitialAdmin__Email`/`InitialAdmin__Password`. El inicializador solo crea esa cuenta si no existe. Retira la contraseña inicial de la configuración después. No existe contraseña de administrador en el código.
+Para crear la primera cuenta técnica, configura `InitialDeveloper:Email` y `InitialDeveloper:Password` con user-secrets en desarrollo o variables `InitialDeveloper__Email` y `InitialDeveloper__Password` en producción. El arranque crea el rol Developer solo si aún no existe una cuenta Developer; obliga a cambiar la clave inicial y a registrar TOTP antes de entrar al panel técnico. No conviertas cuentas del antiguo rol Admin automáticamente. En producción, una instalación sin Developer ni credenciales iniciales se detiene con un mensaje claro.
 
-El catálogo es público. `/Admin` exige el rol `Admin`; registrarse asigna exclusivamente `Customer`. `/Account/Profile` y los pedidos personales requieren autenticación.
+El catálogo es público. `/Admin` verifica permisos de `Developer`, `Owner` y `Operator`; registrarse asigna exclusivamente `Customer`. `/Account/Profile` y los pedidos personales requieren autenticación.
 
 ## Pagos y entrega
 
@@ -101,9 +101,9 @@ npm run check
 
 Usa Edge instalado o define `BROWSER_PATH` con el ejecutable de Chromium compatible. El script comprueba 14 páginas en 390, 768 y 1440 px; guarda `audit/screenshots` y `audit/visual-results.json`. Falla ante desbordamiento de página, imágenes rotas o errores JavaScript. Las tablas pueden desplazarse dentro de su contenedor. Es una inspección del HTML generado, no un reemplazo de las pruebas HTTP ni una certificación en dispositivos físicos.
 
-## Estado de la auditoría (11 de octubre de 2026)
+## Estado de la revisión integral (15 de octubre de 2026)
 
-Consulta [el resultado vigente](docs/resultado-auditoria.md). Las cinco fases terminaron con **134 pruebas aprobadas**, compilación Release sin errores ni advertencias y 42 comprobaciones visuales más 5 interacciones aprobadas. [GitHub Actions verificó compilación, pruebas y dependencias en Linux con SQL temporal](https://github.com/xXxLuisxXx/pagina-web-bisuteria-danns/actions/runs/38194505198). El informe `docs/auditoria-final.md` conserva la revisión histórica anterior.
+El alcance ampliado se trabaja en la rama `mejoras/integral`. La matriz de permisos y el modelo de invitaciones están en [la documentación de roles y cuentas](docs/fase-2-3-roles-y-cuentas.md) y [la matriz de permisos](docs/matriz-permisos.md). Los resultados completos y los pendientes externos se registran en [el informe final](docs/revision-integral-final.md). Los informes de octubre 11–13 son históricos y corresponden a revisiones anteriores.
 
 SMTP real, cobros bancarios y despliegue requieren configuración y comprobación externas. Consulta [la preparación del despliegue](docs/despliegue.md) y [las funciones parciales](docs/funciones-pendientes.md).
 
@@ -117,16 +117,14 @@ Sesión y limitación de solicitudes son locales a un proceso. Un despliegue con
 
 En PowerShell, establece `$env:BISUTERIA_TEST_CONNECTION` con la conexión de un servidor de pruebas; Linux usa `export BISUTERIA_TEST_CONNECTION=...`. No copies credenciales al repositorio. La fixture sustituye siempre el catálogo por `BisuteriaAudit_<GUID>` y verifica su nombre antes de migrar/eliminar. Ejecuta `dotnet test Bisuteria.slnx -c Release`. El workflow `.github/workflows/verify.yml` prepara SQL Server temporal con contraseña aleatoria y bloquea dependencias vulnerables.
 
-Producción requiere `AllowedHosts`, `PublicBaseUrl` HTTPS y `DataProtection:KeysPath` persistente con permisos restringidos. Configura `ReverseProxy:KnownProxies:0` solo para un proxy confiable. Confirmación de correo: `Identity:RequireConfirmedEmail=true`, tras comprobar SMTP. `/health` devuelve disponibilidad de SQL sin detalles internos. JSON logging se configura con `Logging:LogLevel`. Conserva `Database:Initialize=false` en producción y aplica migraciones revisadas durante el despliegue.
+Producción requiere `AllowedHosts`, `PublicBaseUrl` HTTPS, `DataProtection:KeysPath` persistente con permisos restringidos y `Database:ApplyMigrations=false`. Configura `ReverseProxy:KnownProxies:0` solo para un proxy confiable. Después de aplicar un script de migración revisado, deja `Database:Initialize=true` para seed de roles/configuración y la cuenta inicial. Confirmación de correo: `Identity:RequireConfirmedEmail=true`, tras comprobar SMTP. `/health` devuelve disponibilidad de SQL sin detalles internos. JSON logging se configura con `Logging:LogLevel`.
 
 El carrito está en memoria y requiere almacenamiento compartido para varias instancias. El correo usa EmailOutbox persistente en SQL con reservas y reintentos; consulta [operación de correo](docs/ampliacion-fase5-correo.md). Consulta los informes `docs/fase-*.md` para resultados concretos; no constituyen una certificación de producción.
 
-## Ampliación del panel y las cuentas (13 de octubre de 2026)
+## Panel y seguridad
 
-La suite local ampliada aprobó **149 pruebas**, con compilación Release sin advertencias ni errores.
+El Developer cuenta con vistas separadas para salud del sistema, auditoría y matriz de roles. El Owner y el Operator reciben permisos explícitos; la cuenta histórica `Admin` no se eleva automáticamente. La suite de las fases anteriores y la rama actual tienen resultados distintos: consulta el informe final antes de reutilizar cifras antiguas.
 
-La rama `mejoras/auditoria` incorpora verificación en dos pasos, cambio obligatorio de contraseña para nuevos administradores iniciales, correos durables y el nuevo panel. Informes: `docs/ampliacion-fase*-*.md`. La contraseña inicial no se puede reutilizar; no se creó ninguna cuenta en la base real durante las pruebas.
+**Hay nuevas migraciones aditivas.** Antes de ejecutar esta versión sobre tu base habitual, respalda y revisa las migraciones con un procedimiento explícito. Las verificaciones de desarrollo usan bases temporales; producción se detiene si `Database:ApplyMigrations=true`. Aplica el SQL durante un despliegue controlado.
 
-**Hay nuevas migraciones aditivas.** Antes de ejecutar esta versión sobre tu base habitual, respalda y revisa las migraciones con un procedimiento explícito. Las verificaciones del agente solo usan bases temporales. El arranque con `Database:Initialize=true` aplica migraciones automáticamente: no lo uses sobre datos reales sin revisar ese paso.
-
-La búsqueda global del Admin encuentra pedidos por número/cliente y productos por nombre/SKU. La meta mensual se configura en Configuración. El calendario usa Guayaquil y excluye pedidos cancelados. El modo oscuro se activa con el botón de luna. Los importes representan pedidos, no confirmación bancaria de cobros. Productos activos muestra el estado actual porque no existe un historial completo para calcular su variación.
+La búsqueda global del Admin encuentra pedidos por número/cliente y productos por nombre/SKU. La meta mensual se configura en Configuración. El calendario usa Guayaquil y excluye pedidos cancelados. Los importes representan pedidos, no confirmación bancaria de cobros. Productos activos muestra el estado actual porque no existe un historial completo para calcular su variación.

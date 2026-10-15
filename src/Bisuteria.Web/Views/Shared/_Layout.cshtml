@@ -2,6 +2,7 @@
 @using Bisuteria.Web.Cart
 @inject ISettingService Settings
 @inject CartManager Cart
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
 @{
     var settings = await Settings.GetAllAsync();
     var storeName = settings.GetValueOrDefault("StoreName") ?? "Bisuterias Dann's";
@@ -129,7 +130,7 @@
                                 <li><h6 class="dropdown-header">@User.Identity!.Name</h6></li>
                                 <li><a class="dropdown-item" asp-area="" asp-controller="Order" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Mis pedidos</a></li>
                                 <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="bi bi-person-gear me-2"></i>Mi perfil</a></li>
-                                @if (User.IsInRole("Admin"))
+                                @if ((await Authorization.AuthorizeAsync(User, null, Bisuteria.Domain.Security.StorePermissions.DashboardView)).Succeeded)
                                 {
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2 me-2"></i>Panel de administración</a></li>
@@ -238,9 +239,9 @@
     <!-- Toasts -->
     <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script nonce="@Context.Items["CspNonce"]" src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

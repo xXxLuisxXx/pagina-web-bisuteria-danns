@@ -5,6 +5,8 @@ using Bisuteria.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Bisuteria.Domain.Security;
 
 namespace Bisuteria.Infrastructure.Seed;
 
@@ -23,19 +25,27 @@ public static class DbInitializer
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger? logger = null,
+        bool isProduction = false,
+        bool applyMigrations = true)
     {
-        await context.Database.MigrateAsync();
+        if (applyMigrations) await context.Database.MigrateAsync();
 
         // ---- Roles ----
         var adminRole = "Admin";
         var customerRole = "Customer";
+        foreach (var roleName in new[] { StoreRoles.Developer, StoreRoles.Owner, StoreRoles.Operator })
+            if (!await roleManager.RoleExistsAsync(roleName))
+                Ensure(await roleManager.CreateAsync(new IdentityRole(roleName)));
 
         if (!await roleManager.RoleExistsAsync(adminRole))
             Ensure(await roleManager.CreateAsync(new IdentityRole(adminRole)));
 
         if (!await roleManager.RoleExistsAsync(customerRole))
             Ensure(await roleManager.CreateAsync(new IdentityRole(customerRole)));
+
+        await SeedRolePermissionsAsync(context);
 
         var legacyAdmin = await userManager.FindByEmailAsync(LegacyDefaultAdminEmail);
         if (legacyAdmin is { IsActive: true })
@@ -48,30 +58,41 @@ public static class DbInitializer
                 throw new InvalidOperationException("No se pudo desactivar la cuenta administrativa histórica.");
         }
 
-        // ---- Usuario administrador inicial ----
-        // Las credenciales nunca se incluyen en el código ni en appsettings.
-        var adminEmail = configuration["InitialAdmin:Email"];
-        var adminPassword = configuration["InitialAdmin:Password"];
-        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword) &&
-            await userManager.FindByEmailAsync(adminEmail) is null)
+        // ---- Desarrollador inicial ----
+        // Las credenciales solo se leen desde user-secrets o variables de entorno.
+        var developerEmail = configuration["InitialDeveloper:Email"];
+        var developerPassword = configuration["InitialDeveloper:Password"];
+        if (!(await userManager.GetUsersInRoleAsync(StoreRoles.Developer)).Any())
         {
-            var admin = new ApplicationUser
+            if (string.IsNullOrWhiteSpace(developerEmail) || string.IsNullOrWhiteSpace(developerPassword))
             {
-                UserName = adminEmail,
-                Email = adminEmail,
-                FirstName = "Dann",
-                LastName = "Administrador",
-                EmailConfirmed = true,
-                MustChangePassword = true,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
+                const string message = "No hay cuenta Developer. Configura InitialDeveloper:Email y InitialDeveloper:Password para crearla.";
+                if (isProduction) throw new InvalidOperationException(message);
+                logger?.LogWarning("{Message}", message);
+            }
+            else if (await userManager.FindByEmailAsync(developerEmail) is null)
+            {
+                var developer = new ApplicationUser
+                {
+                    UserName = developerEmail,
+                    Email = developerEmail,
+                    FirstName = "Desarrollador",
+                    EmailConfirmed = true,
+                    MustChangePassword = true,
+                    RequireTwoFactorSetup = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            var result = await userManager.CreateAsync(admin, adminPassword);
-            Ensure(result);
-            admin.InitialPasswordHash = admin.PasswordHash;
-            Ensure(await userManager.UpdateAsync(admin));
-            Ensure(await userManager.AddToRoleAsync(admin, adminRole));
+                var result = await userManager.CreateAsync(developer, developerPassword);
+                Ensure(result, logger, "crear el usuario Developer");
+                developer.InitialPasswordHash = developer.PasswordHash;
+                Ensure(await userManager.UpdateAsync(developer), logger, "guardar la protección de contraseña inicial");
+                Ensure(await userManager.AddToRoleAsync(developer, StoreRoles.Developer), logger, "asignar el rol Developer");
+                logger?.LogInformation("Se creó la cuenta Developer inicial; el primer acceso exige cambiar contraseña y configurar TOTP.");
+            }
+            else
+                throw new InvalidOperationException("El correo configurado para InitialDeveloper ya pertenece a otra cuenta. No se convirtió automáticamente al rol Developer.");
         }
 
         // ---- Configuración del sitio ----
@@ -93,9 +114,12 @@ public static class DbInitializer
 
     }
 
-    private static void Ensure(IdentityResult result)
+    private static void Ensure(IdentityResult result, ILogger? logger = null, string operation = "inicializar Identity")
     {
-        if (!result.Succeeded) throw new InvalidOperationException("No se pudo inicializar Identity. Revisa la configuración y la política de contraseñas.");
+        if (result.Succeeded) return;
+        logger?.LogError("No se pudo {Operation}. Códigos de error de Identity: {Codes}", operation,
+            string.Join(",", result.Errors.Select(error => error.Code)));
+        throw new InvalidOperationException("No se pudo inicializar Identity. Revisa la configuración y la política de contraseñas.");
     }
 
     private static Category CreateCategory(string name, string slug, int order) => new()
@@ -106,6 +130,21 @@ public static class DbInitializer
         DisplayOrder = order,
         Description = $"Accesorios de la categoría {name}."
     };
+
+    private static async Task SeedRolePermissionsAsync(AppDbContext context)
+    {
+        foreach (var (role, permissions) in new (string Role, IEnumerable<string> Permissions)[]
+        {
+            (StoreRoles.Developer, StorePermissions.All),
+            (StoreRoles.Owner, StorePermissions.OwnerDefault),
+            (StoreRoles.Operator, StorePermissions.OperatorDefault)
+        })
+        {
+            if (await context.RolePermissions.AnyAsync(x => x.RoleName == role)) continue;
+            context.RolePermissions.AddRange(permissions.Select(permission => new RolePermission { RoleName = role, Permission = permission }));
+        }
+        await context.SaveChangesAsync();
+    }
 
     private static async Task SeedSettingsAsync(AppDbContext context)
     {

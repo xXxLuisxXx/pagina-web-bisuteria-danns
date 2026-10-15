@@ -1,6 +1,8 @@
 using Bisuteria.Application.DTOs.Orders;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Bisuteria.Web.Cart;
 using Bisuteria.Web.Models;
 using Microsoft.AspNetCore.Http;
@@ -14,15 +16,17 @@ public class CheckoutController : Controller
     private readonly CartManager _cart;
     private readonly IOrderService _orders;
     private readonly IConfiguration _configuration;
+    private readonly IAuthorizationService _authorization;
     private PaymentMethod[] AvailablePayments => (_configuration.GetSection("Payments:EnabledMethods").Get<string[]>() ?? [])
         .Select(x => Enum.TryParse<PaymentMethod>(x, out var method) && method is PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer ? (PaymentMethod?)method : null)
         .Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToArray();
 
-    public CheckoutController(CartManager cart, IOrderService orders, IConfiguration configuration)
+    public CheckoutController(CartManager cart, IOrderService orders, IConfiguration configuration, IAuthorizationService authorization)
     {
         _cart = cart;
         _orders = orders;
         _configuration = configuration;
+        _authorization = authorization;
     }
 
     [HttpGet]
@@ -110,7 +114,8 @@ public class CheckoutController : Controller
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var isOwner = !string.IsNullOrWhiteSpace(userId) && order.UserId == userId;
         var isCurrentGuestOrder = string.Equals(HttpContext.Session.GetString("Bisuteria.LastOrderNumber"), orderNumber, StringComparison.Ordinal);
-        if (!User.IsInRole("Admin") && !isOwner && !isCurrentGuestOrder)
+        var canViewAll = (await _authorization.AuthorizeAsync(User, null, StorePermissions.OrdersView)).Succeeded;
+        if (!canViewAll && !isOwner && !isCurrentGuestOrder)
             return Challenge();
 
         return View(order);

@@ -4,9 +4,12 @@ using Bisuteria.Application.Interfaces;
 using Bisuteria.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.ProductsManage)]
 public class ProductsController : AdminBaseController
 {
     private readonly IProductAdminService _products;

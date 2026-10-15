@@ -4,13 +4,15 @@ using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bisuteria.Web.Services;
 
 // Cola durable: la solicitud HTTP guarda trabajo y nunca espera al servidor SMTP.
-public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfiguration configuration, ILogger<PasswordRecoveryQueue> logger, IWebHostEnvironment environment) : BackgroundService
+public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfiguration configuration, ILogger<PasswordRecoveryQueue> logger, IWebHostEnvironment environment, IDataProtectionProvider dataProtection) : BackgroundService
 {
+    private const string InviteEmailProtectionPurpose = "BisuteriasDanns.StaffInvitation.Email.v1";
     public async Task EnqueueAsync(string email, bool confirm = false)
     {
         using var scope = scopes.CreateScope();
@@ -50,7 +52,13 @@ public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfigur
                     else await sender.SendPasswordResetAsync(job.Recipient, url, ct);
                 }
             }
-            else await sender.SendNotificationAsync(job.Recipient, job.Subject, job.TextBody, ct);
+            else
+            {
+                var text = job.Kind == "StaffInvitation"
+                    ? dataProtection.CreateProtector(InviteEmailProtectionPurpose).Unprotect(job.TextBody)
+                    : job.TextBody;
+                await sender.SendNotificationAsync(job.Recipient, job.Subject, text, ct);
+            }
             job.SentAt = DateTime.UtcNow;
             job.LastError = null;
             logger.LogInformation("Correo de cola {Id} procesado, intento {Attempt}.", job.Id, job.Attempts);

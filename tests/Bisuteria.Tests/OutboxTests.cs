@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Application.DTOs.Cart;
 using Bisuteria.Domain.Entities;
@@ -53,19 +54,27 @@ public partial class AuditTests
     }
 
     [Fact]
-    public async Task InitialAdministratorMustChangePasswordAndCannotReuseIt()
+    public async Task InitialDeveloperMustChangePasswordEnrollTotpAndCannotReuseInitialPassword()
     {
-        using var scope = f.Services.CreateScope();
+        var isolated = new AuditFactory { ProcessEmail = false };
+        try
+        {
+        await isolated.InitializeAsync();
+        using var scope = isolated.Services.CreateScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var seededDeveloper = await users.FindByEmailAsync("developer@example.test");
+        if (seededDeveloper is not null) Assert.True((await users.DeleteAsync(seededDeveloper)).Succeeded);
         var email = $"initial-{Guid.NewGuid():N}@example.test";
         var password = "Aa1!" + Guid.NewGuid().ToString("N");
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> { ["InitialAdmin:Email"] = email, ["InitialAdmin:Password"] = password }).Build();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Bisuteria.Infrastructure.Seed.DbInitializer.InitializeAsync(
+            db, users, roles, new ConfigurationBuilder().Build(), isProduction: true));
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> { ["InitialDeveloper:Email"] = email, ["InitialDeveloper:Password"] = password }).Build();
         await Bisuteria.Infrastructure.Seed.DbInitializer.InitializeAsync(db, users, roles, config);
         var user = (await users.FindByEmailAsync(email))!;
-        Assert.True(user.MustChangePassword); Assert.True(user.EmailConfirmed); Assert.True(await users.IsInRoleAsync(user, "Admin"));
-        using var client = f.Client();
+        Assert.True(user.MustChangePassword); Assert.True(user.RequireTwoFactorSetup); Assert.True(user.EmailConfirmed); Assert.True(await users.IsInRoleAsync(user, "Developer"));
+        using var client = isolated.Client();
         await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
         Assert.Equal("/Account/ChangePassword", (await client.GetAsync("/Admin")).Headers.Location!.OriginalString);
         var same = await AuditFactory.Post(client, "/Account/ChangePassword", new() { ["CurrentPassword"] = password, ["Password"] = password, ["ConfirmPassword"] = password }, "/Account/ChangePassword");
@@ -73,10 +82,24 @@ public partial class AuditTests
         var changed = "Bb2!" + Guid.NewGuid().ToString("N");
         var result = await AuditFactory.Post(client, "/Account/ChangePassword", new() { ["CurrentPassword"] = password, ["Password"] = changed, ["ConfirmPassword"] = changed }, "/Account/ChangePassword");
         Assert.Equal(HttpStatusCode.Redirect, result.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin")).StatusCode);
         var reused = await AuditFactory.Post(client, "/Account/ChangePassword", new() { ["CurrentPassword"] = changed, ["Password"] = password, ["ConfirmPassword"] = password }, "/Account/ChangePassword");
         Assert.Equal(HttpStatusCode.OK, reused.StatusCode);
         Assert.Contains("diferente", await reused.Content.ReadAsStringAsync());
+        var forcedSetup = await client.GetAsync("/Admin");
+        Assert.Equal("/Account/Authenticator", forcedSetup.Headers.Location!.OriginalString);
+        var prepared = await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed }, "/Account/Authenticator");
+        var html = await prepared.Content.ReadAsStringAsync();
+        var key = Regex.Match(html, "Clave privada: <code>([^<]+)</code>").Groups[1].Value;
+        Assert.NotEmpty(key);
+        var setup = await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed, ["Code"] = Totp(key) }, "/Account/Authenticator");
+        Assert.Contains("cada uno sirve", await setup.Content.ReadAsStringAsync());
+        using var reauthenticated = isolated.Client();
+        var login = await AuditFactory.Post(reauthenticated, "/Account/Login", new() { ["Email"] = email, ["Password"] = changed });
+        Assert.StartsWith("/Account/TwoFactor", login.Headers.Location!.OriginalString);
+        await AuditFactory.Post(reauthenticated, "/Account/TwoFactor", new() { ["Code"] = Totp(key) }, "/Account/TwoFactor");
+        Assert.Equal(HttpStatusCode.OK, (await reauthenticated.GetAsync("/Admin")).StatusCode);
+        }
+        finally { await ((IAsyncLifetime)isolated).DisposeAsync(); }
     }
 
     [Fact]

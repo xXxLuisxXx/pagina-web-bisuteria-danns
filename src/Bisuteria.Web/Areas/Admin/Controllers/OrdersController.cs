@@ -1,9 +1,12 @@
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.OrdersView)]
 public class OrdersController : AdminBaseController
 {
     private readonly IOrderService _orders;
@@ -47,6 +50,7 @@ public class OrdersController : AdminBaseController
     }
 
     [HttpPost]
+    [Authorize(Policy = StorePermissions.OrdersUpdateStatus)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(string orderNumber, OrderStatus status, string? adminNotes, CancellationToken ct)
     {
@@ -62,6 +66,7 @@ public class OrdersController : AdminBaseController
     }
 
     [HttpPost]
+    [Authorize(Policy = StorePermissions.PaymentsUpdate)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdatePayment(string orderNumber, PaymentStatus status, CancellationToken ct)
     {

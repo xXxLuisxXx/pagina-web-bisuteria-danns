@@ -8,10 +8,14 @@ using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Bisuteria.Infrastructure.Seed;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Bisuteria.Domain.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddStoreSecurity();
+if (builder.Environment.IsProduction() && builder.Configuration.GetValue("Database:ApplyMigrations", false))
+    throw new InvalidOperationException("En producción aplica las migraciones como paso controlado antes de iniciar la aplicación.");
 builder.Logging.AddJsonConsole();
 builder.Services.AddHealthChecks().AddCheck<Bisuteria.Web.Services.DatabaseHealthCheck>("database");
 
@@ -30,6 +34,13 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 // Capas de Aplicación e Infraestructura (servicios, mapeos explícitos, FluentValidation, Identity, EF Core).
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IAuthorizationHandler, StorePermissionHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in StorePermissions.All)
+        options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser()
+            .AddRequirements(new StorePermissionRequirement(permission)));
+});
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -60,6 +71,7 @@ builder.Services.AddSession(options =>
     options.Cookie.Name = "Bisuteria.Cart";
 });
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Bisuteria.Web.Services.SecurityAuditLogger>();
 builder.Services.AddScoped<Bisuteria.Web.Cart.CartManager>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IImageUploadService, Bisuteria.Web.Services.ImageUploadService>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IEmailSender, Bisuteria.Web.Services.SmtpEmailSender>();
@@ -91,7 +103,8 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<AppDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        await DbInitializer.InitializeAsync(context, userManager, roleManager, builder.Configuration);
+        await DbInitializer.InitializeAsync(context, userManager, roleManager, builder.Configuration,
+            services.GetRequiredService<ILogger<Program>>(), app.Environment.IsProduction(), applyMigrations: !app.Environment.IsProduction());
     }
     catch (Exception ex)
     {

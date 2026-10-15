@@ -1,0 +1,39 @@
+@model Bisuteria.Web.Controllers.StaffManagementViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
+@{
+    ViewData["Title"] = "Invitaciones de equipo";
+    var canOwner = (await Authorization.AuthorizeAsync(User, null, Bisuteria.Domain.Security.StorePermissions.UsersManageOwner)).Succeeded;
+    var canOperator = (await Authorization.AuthorizeAsync(User, null, Bisuteria.Domain.Security.StorePermissions.UsersManageStaff)).Succeeded;
+}
+<section class="container py-5">
+    <h1 class="h2">Invitaciones de equipo</h1>
+    <p class="text-secondary">El enlace dura 24 horas y solo puede usarse una vez. El invitado establece su propia contraseña; nunca se envía por correo.</p>
+    <form asp-action="Create" method="post" class="card card-body mb-4">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="text-danger"></div>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6"><label for="email" class="form-label">Correo de invitación</label><input id="email" name="email" type="email" maxlength="254" class="form-control" required /></div>
+            <div class="col-md-3"><label for="roleName" class="form-label">Rol</label><select id="roleName" name="roleName" class="form-select" required>
+                @if (canOwner) { <option value="Owner">Owner</option> }
+                @if (canOperator) { <option value="Operator">Operator</option> }
+            </select></div>
+            <div class="col-md-3"><button type="submit" class="btn btn-primary">Enviar invitación</button></div>
+        </div>
+    </form>
+    <h2 class="h4">Pendientes</h2>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Correo</th><th>Rol</th><th>Vence (UTC)</th><th></th></tr></thead><tbody>
+    @foreach (var invitation in Model.Invitations)
+    {
+        <tr><td>@invitation.Email</td><td>@invitation.RoleName</td><td>@invitation.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm")</td><td><form asp-action="Revoke" method="post" data-confirm="¿Desactivar esta invitación?">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@invitation.Id" /><button class="btn btn-sm btn-outline-danger" type="submit">Desactivar</button></form></td></tr>
+    }
+    </tbody></table></div>
+    <h2 class="h4 mt-5">Cuentas del equipo</h2>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>
+    @foreach (var member in Model.Members)
+    {
+        <tr><td>@member.Email</td><td>@member.RoleName</td><td>@(member.IsActive ? "Activa" : "Desactivada")</td><td>
+            <form asp-action="SetActive" method="post" data-confirm="¿@(member.IsActive ? "Desactivar" : "Reactivar") esta cuenta?">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@member.Id" /><input type="hidden" name="active" value="@(!member.IsActive)" /><button class="btn btn-sm btn-outline-secondary" type="submit">@(member.IsActive ? "Desactivar" : "Reactivar")</button></form>
+        </td></tr>
+    }
+    </tbody></table></div>
+</section>

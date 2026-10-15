@@ -1,8 +1,11 @@
 using Bisuteria.Application.Interfaces;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.MessagesView)]
 public class MessagesController : AdminBaseController
 {
     private readonly IContactService _contact;

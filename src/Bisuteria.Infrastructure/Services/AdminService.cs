@@ -5,6 +5,7 @@ using Bisuteria.Application.DTOs.Orders;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -192,9 +193,13 @@ public partial class AdminService : IAdminService
             return false;
 
         if (!isActive && await _userManager.IsInRoleAsync(user, "Admin")) return false;
+        if (!isActive && await _userManager.IsInRoleAsync(user, StoreRoles.Developer) &&
+            (await _userManager.GetUsersInRoleAsync(StoreRoles.Developer)).Count(x => x.IsActive) <= 1) return false;
         user.IsActive = isActive;
+        user.LockoutEnabled = !isActive;
+        user.LockoutEnd = isActive ? null : DateTimeOffset.MaxValue;
         var result = await _userManager.UpdateAsync(user);
-        if (result.Succeeded && !isActive) await _userManager.UpdateSecurityStampAsync(user);
+        if (result.Succeeded) result = await _userManager.UpdateSecurityStampAsync(user);
         return result.Succeeded;
     }
 

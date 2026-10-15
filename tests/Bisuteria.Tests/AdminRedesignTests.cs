@@ -25,7 +25,7 @@ public partial class AuditTests
             Assert.Contains(sku, await result.Content.ReadAsStringAsync());
             using var guest = f.Client(); using var customer = await f.Login("Customer");
             Assert.Equal(HttpStatusCode.Redirect, (await guest.GetAsync("/Admin/Search?q=" + sku)).StatusCode);
-            Assert.Contains("AccessDenied", (await customer.GetAsync("/Admin/Search?q=" + sku)).Headers.Location!.OriginalString);
+            Assert.Equal(HttpStatusCode.Forbidden, (await customer.GetAsync("/Admin/Search?q=" + sku)).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, (await admin.GetAsync("/Admin/Search?q=" + new string('x',201))).StatusCode);
         } finally { db.Remove(product); await db.SaveChangesAsync(); }
     }

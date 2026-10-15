@@ -1,9 +1,12 @@
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Application.DTOs.Common;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.InventoryAdjust)]
 public class InventoryController : AdminBaseController
 {
     private readonly IAdminService _admin;

@@ -65,15 +65,18 @@ public partial class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ICatalogService _catalog;
+    private readonly Bisuteria.Web.Services.SecurityAuditLogger _audit;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ICatalogService catalog)
+        ICatalogService catalog,
+        Bisuteria.Web.Services.SecurityAuditLogger audit)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _catalog = catalog;
+        _audit = audit;
     }
 
     [HttpGet]
@@ -116,6 +119,7 @@ public partial class AccountController : Controller
             if (login.RequiresTwoFactor)
                 return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
             if (!login.Succeeded) return RedirectToAction(nameof(Login));
+            await _audit.PrivilegedLoginAsync(user);
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction(nameof(HomeController.Index), "Home");

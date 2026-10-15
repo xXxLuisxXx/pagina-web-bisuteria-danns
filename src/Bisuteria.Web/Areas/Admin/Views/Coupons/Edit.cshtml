@@ -5,7 +5,7 @@
     <h1 class="admin-title mt-2 mb-0">@(Model.Id == 0 ? "Nuevo cupón" : "Editar cupón")</h1>
 </div>
 
-<div class="card-admin p-3" style="max-width:680px;">
+<div class="card-admin p-3 admin-form-width-wide">
     <form asp-action="Edit" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="Id" />

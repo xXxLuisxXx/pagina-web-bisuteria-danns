@@ -8,6 +8,7 @@ using Bisuteria.Application.Interfaces;
 using Bisuteria.Application.Validators;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Bisuteria.Web.Services;
@@ -77,10 +78,19 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         Assert.Matches("^BisuteriaAudit_[0-9a-f]{32}$", DatabaseName);
         await db.Database.MigrateAsync();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        foreach(var role in new[]{"Admin","Customer"}) Assert.True((await roles.CreateAsync(new IdentityRole(role))).Succeeded);
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        foreach (var role in new[]{"Admin","Customer"})
+        foreach(var role in new[]{"Admin","Customer"})
+            if (!await roles.RoleExistsAsync(role)) Assert.True((await roles.CreateAsync(new IdentityRole(role))).Succeeded);
+        // Admin solo existe en el fixture para conservar pruebas del panel legado;
+        // no recibe concesiones automáticas en bases reales.
+        db.RolePermissions.AddRange(StorePermissions.All.Select(permission => new RolePermission
         {
+            RoleName = "Admin", Permission = permission
+        }));
+        await db.SaveChangesAsync();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        foreach (var role in new[]{"Admin","Customer","Developer","Owner","Operator"})
+        {
+            if (!await roles.RoleExistsAsync(role)) continue;
             var user = new ApplicationUser { UserName=$"{role.ToLower()}@example.test", Email=$"{role.ToLower()}@example.test", FirstName=role, IsActive=true };
             Assert.True((await users.CreateAsync(user, Password)).Succeeded);
             Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
@@ -100,6 +110,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
     }
     async Task IAsyncLifetime.DisposeAsync()
     {
+        await Services.GetRequiredService<PasswordRecoveryQueue>().StopAsync(CancellationToken.None);
         using var scope=Services.CreateScope();
         var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (db.Database.GetDbConnection().Database == DatabaseName && DatabaseName.StartsWith("BisuteriaAudit_"))

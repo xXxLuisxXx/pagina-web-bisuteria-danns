@@ -31,7 +31,7 @@ public partial class AuditTests
         foreach(var path in new[]{"/Admin/Categories","/Admin/Orders","/Admin/Users","/Admin/Reviews","/Admin/Messages","/Admin/Coupons","/Admin/Blog","/Admin/Gallery","/Admin/Inventory","/Admin/Reports","/Admin/Reports/Sales","/Admin/Reports/Products","/Admin/Reports/ExportSales","/Admin/Reports/ExportProducts","/Admin/Settings"})
         {
             Assert.Equal(HttpStatusCode.OK,(await admin.GetAsync(path)).StatusCode);
-            var denied=await customer.GetAsync(path);Assert.Equal(HttpStatusCode.Redirect,denied.StatusCode);Assert.Contains("AccessDenied",denied.Headers.Location!.OriginalString);
+            var denied=await customer.GetAsync(path);Assert.Equal(HttpStatusCode.Forbidden,denied.StatusCode);
             Assert.Contains("/Account/Login",(await guest.GetAsync(path)).Headers.Location!.OriginalString);
         }
     }

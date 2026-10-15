@@ -36,6 +36,12 @@ body.admin-body { background:var(--admin-bg); color:var(--admin-text); font-fami
 .period-pills { display:flex; gap:8px; flex-wrap:wrap; }.period-pills a { border-radius:30px; background:var(--admin-surface); padding:8px 20px; text-decoration:none; font-size:.8rem; }.period-pills a[aria-current=true] { background:var(--admin-text); color:var(--admin-surface)!important; }
 .dashboard-primary { display:grid; grid-template-columns: minmax(0,2fr) minmax(260px,1fr); gap:18px; }.calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); text-align:center; gap:5px; }.calendar-grid a,.calendar-grid span { padding:8px 0; font-size:.75rem; border-radius:10px; }.calendar-grid a.has-orders { background:var(--admin-text); color:var(--admin-surface)!important; }.goal-ring { display:flex; align-items:center; gap:20px; }.goal-ring svg { width:110px; flex-shrink:0; }.chart-columns { display:flex; gap:14px; align-items:end; overflow-x:auto; min-height:230px; padding:16px 4px; }.chart-column { min-width:38px; flex:1; text-align:center; font-size:.65rem; }.chart-column svg { width:100%; height:180px; }.chart-column rect { fill:#85858a; }.chart-column.maximum rect { fill:var(--admin-text); }.chart-column strong { display:block; font-size:.65rem; white-space:nowrap; }
 .admin-loading { padding:16px; background:var(--admin-surface); border-radius:20px; margin-bottom:15px; }.admin-loading span { display:inline-block; width:26%; height:40px; background:var(--admin-bg); margin:5px; border-radius:10px; }
+.admin-form-width { max-width:640px; }
+.admin-form-width-wide { max-width:680px; }
+.review-comment-width { max-width:300px; }
+.gallery-preview { max-height:320px; }
+.gallery-thumb { height:180px; width:100%; object-fit:cover; }
+.product-search-width { max-width:420px; }
 @media(max-width:1199px) { .admin-page-title { display:none; }.admin-search { margin-right:auto; width:40vw; } }
 @media(max-width:991.98px) { .admin-sidebar { transform:translateX(-100%); top:76px; }.admin-sidebar.open { transform:translateX(0); }.admin-topbar { left:0; padding:12px; }.admin-content { margin-left:0; padding:16px; }.admin-topbar>a.btn { display:none; }.dashboard-primary { grid-template-columns:minmax(0,1fr); }.admin-search { width:auto; flex:1; }.admin-topbar { gap:6px; }.admin-topbar form.m-0 { display:none; } }
 @media(prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; } }

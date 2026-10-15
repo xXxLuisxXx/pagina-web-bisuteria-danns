@@ -2,9 +2,12 @@ using Bisuteria.Application.DTOs.Catalog;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Bisuteria.Domain.Security;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bisuteria.Web.Areas.Admin.Controllers;
 
+[Authorize(Policy = StorePermissions.GalleryManage)]
 public class GalleryController : AdminBaseController
 {
     private readonly IGalleryAdminService _gallery;
