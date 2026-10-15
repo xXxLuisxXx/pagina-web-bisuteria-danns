@@ -25,8 +25,8 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="avatar-admin">@user.FullName.Substring(0, 1).ToUpper()</span>
-                                <strong>@user.FullName</strong>
+                                <span class="avatar-admin">@(string.IsNullOrWhiteSpace(user.FullName) ? "?" : System.Globalization.StringInfo.GetNextTextElement(user.FullName.Trim()).ToUpperInvariant())</span>
+                                <strong>@(string.IsNullOrWhiteSpace(user.FullName) ? "Sin nombre" : user.FullName)</strong>
                             </div>
                         </td>
                         <td>

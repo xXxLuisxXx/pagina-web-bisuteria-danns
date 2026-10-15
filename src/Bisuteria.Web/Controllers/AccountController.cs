@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Bisuteria.Web.Controllers;
 
-public class AccountController : Controller
+public partial class AccountController : Controller
 {
     [HttpGet]
     public IActionResult ConfirmEmail(string email, string token)
@@ -44,12 +44,19 @@ public class AccountController : Controller
         if (!ModelState.IsValid) return View(model);
         var user = await _userManager.GetUserAsync(User);
         if (user is null) return Challenge();
+        if (IsInitialPassword(user, model.Password) || await _userManager.CheckPasswordAsync(user, model.Password))
+        {
+            ModelState.AddModelError(nameof(model.Password), "La nueva contraseña debe ser diferente de la actual.");
+            return View(model);
+        }
         var result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.Password);
         if (!result.Succeeded)
         {
             ModelState.AddModelError("", "No se pudo cambiar la contraseña. Revisa la contraseña actual y usa una nueva de 12 caracteres con mayúscula, minúscula, número y símbolo.");
             return View(model);
         }
+        user.MustChangePassword = false;
+        if (!(await _userManager.UpdateAsync(user)).Succeeded) return StatusCode(503);
         await _signInManager.RefreshSignInAsync(user);
         TempData["Success"] = "Contraseña actualizada. Las otras sesiones quedaron invalidadas.";
         return RedirectToAction(nameof(Profile));
@@ -58,18 +65,15 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ICatalogService _catalog;
-    private readonly IEmailSender _emailSender;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ICatalogService catalog,
-        IEmailSender emailSender)
+        ICatalogService catalog)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _catalog = catalog;
-        _emailSender = emailSender;
     }
 
     [HttpGet]
@@ -108,7 +112,10 @@ public class AccountController : Controller
         }
         if (result.Succeeded && user.IsActive)
         {
-            await _signInManager.SignInAsync(user, model.RememberMe);
+            var login = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
+            if (login.RequiresTwoFactor)
+                return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
+            if (!login.Succeeded) return RedirectToAction(nameof(Login));
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction(nameof(HomeController.Index), "Home");
@@ -157,9 +164,9 @@ public class AccountController : Controller
                 ModelState.AddModelError(string.Empty, "No se pudo completar el registro. Contacta con administración.");
                 return View(model);
             }
+            await HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().EnqueueAsync(user.Email!, confirm: true);
             if (_userManager.Options.SignIn.RequireConfirmedEmail)
             {
-                HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().Enqueue(user.Email!, confirm: true);
                 TempData["Success"] = "Revisa tu correo para confirmar la cuenta antes de iniciar sesión.";
                 return RedirectToAction(nameof(Login));
             }
@@ -186,13 +193,13 @@ public class AccountController : Controller
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public-forms")]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult ForgotPassword(ForgotPasswordViewModel model)
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
     {
         ViewData["Title"] = "Recuperar contraseña";
         if (!ModelState.IsValid)
             return View(model);
 
-        HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().Enqueue(model.Email);
+        await HttpContext.RequestServices.GetRequiredService<PasswordRecoveryQueue>().EnqueueAsync(model.Email);
 
         TempData["Success"] = "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña.";
         return RedirectToAction(nameof(Login));
@@ -232,9 +239,16 @@ public class AccountController : Controller
             return View(model);
         }
 
+        if (IsInitialPassword(user, model.Password) || await _userManager.CheckPasswordAsync(user, model.Password))
+        {
+            ModelState.AddModelError(nameof(model.Password), "La nueva contraseña debe ser diferente de la actual.");
+            return View(model);
+        }
         var result = await _userManager.ResetPasswordAsync(user, token, model.Password);
         if (result.Succeeded)
         {
+            user.MustChangePassword = false;
+            if (!(await _userManager.UpdateAsync(user)).Succeeded) return StatusCode(503);
             TempData["Success"] = "Tu contraseña se actualizó correctamente. Ya puedes iniciar sesión.";
             return RedirectToAction(nameof(Login));
         }
@@ -319,10 +333,13 @@ public class AccountController : Controller
         return View();
     }
 
+    private bool IsInitialPassword(ApplicationUser user, string password)
+        => user.InitialPasswordHash is { Length: > 0 } hash && _userManager.PasswordHasher.VerifyHashedPassword(user, hash, password) != PasswordVerificationResult.Failed;
+
     private static string GetIdentityErrorMessage(string code) => code switch
     {
         "DuplicateEmail" or "DuplicateUserName" => "Este correo ya está registrado.",
-        "PasswordTooShort" => "La contraseña debe tener al menos 8 caracteres.",
+        "PasswordTooShort" => "La contraseña debe tener al menos 12 caracteres.",
         "PasswordRequiresDigit" => "La contraseña debe incluir un número.",
         "PasswordRequiresUpper" => "La contraseña debe incluir una letra mayúscula.",
         "PasswordRequiresLower" => "La contraseña debe incluir una letra minúscula.",

@@ -75,8 +75,15 @@ public partial class AdminService
         var coupons = await _context.Coupons.CountAsync(c => c.IsActive && c.ExpiresAt >= utcNow && c.ExpiresAt <= expiry, ct);
         var recent = await _context.Orders.AsNoTracking().Where(o => o.CreatedAt >= beginUtc && o.CreatedAt < endUtc && (!status.HasValue || o.Status == status))
             .OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id).Take(8)
-            .Select(o => new OrderDto { Id = o.Id, OrderNumber = o.OrderNumber, CustomerName = o.CustomerName, CreatedAt = o.CreatedAt, Status = o.Status, PaymentStatus = o.PaymentStatus, Total = o.Total }).ToListAsync(ct);
+            .Select(o => new OrderDto { Id = o.Id, OrderNumber = o.OrderNumber, CustomerName = o.CustomerName, MainProductName = o.Items.OrderBy(i => i.Id).Select(i => i.ProductName).FirstOrDefault() ?? "Sin detalle", CreatedAt = o.CreatedAt, Status = o.Status, PaymentStatus = o.PaymentStatus, Total = o.Total }).ToListAsync(ct);
+        var calendarStart = new DateTime(end.Year, end.Month, 1);
+        var calendarEnd = calendarStart.AddMonths(1).AddDays(-1);
+        var calendar = await SalesCriteria.Apply(_context.Orders.AsNoTracking(), calendarStart, calendarEnd)
+            .GroupBy(o => o.CreatedAt.AddHours(-5).Date).Select(g => new { Date = g.Key, Count = g.Count(), Sales = g.Sum(o => o.Total) }).ToListAsync(ct);
+        var goalText = await _context.SiteSettings.Where(s => s.Key == "MonthlySalesGoal").Select(s => s.Value).FirstOrDefaultAsync(ct);
+        var goal = decimal.TryParse(goalText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsedGoal) ? Math.Max(0, parsedGoal) : 0;
         return new DashboardStats {
+            MonthlyGoal = goal, CalendarSales = calendar.Sum(d => d.Sales), CalendarDays = calendar.Select(d => new ChartPoint { Label = d.Date.ToString("yyyy-MM-dd"), Value = d.Count }).ToList(),
             From = start, To = end, Interval = interval, RecentStatus = status, GeneratedAt = DateTime.UtcNow,
             PeriodSales = totals?.Period ?? 0, PreviousSales = totals?.Previous ?? 0, PeriodOrders = totals?.Orders ?? 0, PreviousOrders = totals?.PreviousOrders ?? 0,
             SalesToday = totals?.Today ?? 0, PreviousDaySales = totals?.Yesterday ?? 0, SalesMonth = totals?.Month ?? 0, PreviousMonthSales = totals?.LastMonth ?? 0,

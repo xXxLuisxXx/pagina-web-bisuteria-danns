@@ -1,0 +1,11 @@
+@model IReadOnlyList<ChartPoint>
+@{ var max = Model.Count == 0 ? 0 : Model.Max(p => p.Value); }
+@if (max <= 0) { <p class="text-muted py-5">Aún no hay ventas en este periodo. Selecciona otro rango para explorar tus pedidos.</p> }
+else {
+<div class="chart-columns" tabindex="0" role="region" aria-label="Ventas por periodo; desplaza horizontalmente para ver todas las barras">
+@foreach(var point in Model) {
+    var height = point.Value / max * 160;
+    <div class="chart-column @(point.Value == max ? "maximum" : "")"><strong>@point.Value.ToString("N2")</strong><svg viewBox="0 0 40 180" preserveAspectRatio="none" aria-hidden="true"><rect x="4" y="@((180-height).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture))" width="32" height="@height.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)" rx="9" /></svg><span>@point.Label</span></div>
+}
+</div>
+}

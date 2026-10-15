@@ -32,10 +32,10 @@ public static class DbInitializer
         var customerRole = "Customer";
 
         if (!await roleManager.RoleExistsAsync(adminRole))
-            await roleManager.CreateAsync(new IdentityRole(adminRole));
+            Ensure(await roleManager.CreateAsync(new IdentityRole(adminRole)));
 
         if (!await roleManager.RoleExistsAsync(customerRole))
-            await roleManager.CreateAsync(new IdentityRole(customerRole));
+            Ensure(await roleManager.CreateAsync(new IdentityRole(customerRole)));
 
         var legacyAdmin = await userManager.FindByEmailAsync(LegacyDefaultAdminEmail);
         if (legacyAdmin is { IsActive: true })
@@ -62,13 +62,16 @@ public static class DbInitializer
                 FirstName = "Dann",
                 LastName = "Administrador",
                 EmailConfirmed = true,
+                MustChangePassword = true,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
             var result = await userManager.CreateAsync(admin, adminPassword);
-            if (result.Succeeded)
-                await userManager.AddToRoleAsync(admin, adminRole);
+            Ensure(result);
+            admin.InitialPasswordHash = admin.PasswordHash;
+            Ensure(await userManager.UpdateAsync(admin));
+            Ensure(await userManager.AddToRoleAsync(admin, adminRole));
         }
 
         // ---- Configuración del sitio ----
@@ -88,6 +91,11 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
+    }
+
+    private static void Ensure(IdentityResult result)
+    {
+        if (!result.Succeeded) throw new InvalidOperationException("No se pudo inicializar Identity. Revisa la configuración y la política de contraseñas.");
     }
 
     private static Category CreateCategory(string name, string slug, int order) => new()

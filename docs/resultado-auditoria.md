@@ -1,5 +1,7 @@
 # Resultado de la revisión por fases
 
+Actualización del 13 de octubre de 2026: el alcance se amplió a seis fases. Consultar `ampliacion-20261012.md` y `ampliacion-fase2-seguridad.md` hasta `ampliacion-fase6-panel.md`. Ya se implementaron TOTP, cambio inicial de contraseña, EmailOutbox y rediseño; las cifras y límites siguientes conservan el cierre anterior. La base real y el envío SMTP externo siguen sin modificarse/verificarse.
+
 Este es el punto de entrada vigente. Los informes fase-1/seguimiento, fase-2, fase-3, fase-4 y fase-5 contienen alcance y evidencia; auditoria-final.md corresponde a una revisión histórica anterior.
 
 | Hallazgo original | Estado | Evidencia o límite |

@@ -237,12 +237,20 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         var root=new DirectoryInfo(AppContext.BaseDirectory);
         while(root is not null && !File.Exists(Path.Combine(root.FullName,"Bisuteria.slnx"))) root=root.Parent;
         var output=Path.Combine(root!.FullName,"audit","rendered");Directory.CreateDirectory(output);
+        using var visualScope = f.Services.CreateScope();
+        var visualDb = visualScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var today = Bisuteria.Application.Services.SalesCriteria.Local(DateTime.UtcNow).Date;
+        var samples = Enumerable.Range(0, 7).Select(i => new Order { OrderNumber = "VIS-" + Guid.NewGuid().ToString("N")[..20], CustomerName = "Cliente de demostración", CustomerEmail = "visual@example.test", CreatedAt = Bisuteria.Application.Services.SalesCriteria.Utc(today.AddDays(-i).AddHours(12)), Total = 20 + i * 15, Subtotal = 20 + i * 15, Items = [new OrderItem { ProductId = f.ProductId, ProductName = "Pulsera personalizada", Quantity = 1, UnitPrice = 20 + i * 15 }] }).ToList();
+        visualDb.AddRange(samples); await visualDb.SaveChangesAsync();
+        visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
         using var visitor=f.Client();using var admin=await f.Login("Admin");
         foreach(var page in new[]{("home","/"),("catalog","/Catalog"),("product","/Catalog/Details?id="+f.ProductId),("contact","/Contact"),("login","/Account/Login"),("register","/Account/Register"),("forgot","/Account/ForgotPassword"),("customizer","/Customizer?productId="+f.ProductId)})
         {var response=await visitor.GetAsync(page.Item2);Assert.Equal(HttpStatusCode.OK,response.StatusCode);await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await response.Content.ReadAsStringAsync());}
         await AuditFactory.Post(visitor,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
         foreach(var page in new[]{("cart","/Cart"),("checkout","/Checkout")}) await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await visitor.GetStringAsync(page.Item2));
         foreach(var page in new[]{("profile","/Account/Profile"),("admin","/Admin"),("admin-products","/Admin/Products"),("admin-form","/Admin/Products/Edit/"+f.ProductId)}) await File.WriteAllTextAsync(Path.Combine(output,page.Item1+".html"),await admin.GetStringAsync(page.Item2));
+        visualDb.RemoveRange(samples); await visualDb.SaveChangesAsync();
+        visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
     }
     private static CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",City="Ciudad",Province="Provincia",PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
 }

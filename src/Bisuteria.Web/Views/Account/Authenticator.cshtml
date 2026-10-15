@@ -1,0 +1,27 @@
+@model AuthenticatorViewModel
+@{ ViewData["Title"] = "Seguridad en dos pasos"; }
+<div class="container py-5">
+    <h1>Seguridad en dos pasos</h1>
+    <p>Recomendamos activar esta protección, especialmente para cuentas administradoras.</p>
+    @if (Model.Enabled)
+    {
+        <p class="alert alert-success">Verificación en dos pasos activada.</p>
+        @if (Model.RecoveryCodes is not null)
+        {
+            <p>Guarda estos códigos fuera de este dispositivo. Se muestran una sola vez y cada uno sirve para un acceso si pierdes tu autenticador.</p>
+            <ul>@foreach (var code in Model.RecoveryCodes) { <li><code>@code</code></li> }</ul>
+        }
+    }
+    else
+    {
+        <p>Confirma tu contraseña para obtener una clave. Añádela manualmente a tu aplicación autenticadora como clave temporal (TOTP) de Bisuterías Dann’s.</p>
+        @if (Model.SharedKey is not null) { <p>Clave privada: <code>@Model.SharedKey</code></p><p>Después introduce el código de seis dígitos y confirma de nuevo tu contraseña.</p> }
+        <form asp-action="Authenticator" method="post">
+            <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+            <label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="current-password" />
+            <label asp-for="Code" class="form-label mt-3"></label><input asp-for="Code" class="form-control" inputmode="numeric" autocomplete="one-time-code" />
+            <button class="btn btn-brand mt-3" type="submit">@(Model.SharedKey is null ? "Preparar autenticador" : "Activar verificación")</button>
+        </form>
+    }
+    <a asp-action="Profile" class="btn btn-outline-brand mt-3">Volver al perfil</a>
+</div>

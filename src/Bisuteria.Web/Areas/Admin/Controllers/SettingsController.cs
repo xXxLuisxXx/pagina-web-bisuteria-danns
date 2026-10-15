@@ -17,6 +17,7 @@ public class SettingsController : AdminBaseController
     {
         ViewData["Title"] = "Configuración";
         var settings = await _settings.GetAllAsync(ct);
+        settings.TryAdd("MonthlySalesGoal", "0");
         return View(settings);
     }
 
@@ -27,6 +28,7 @@ public class SettingsController : AdminBaseController
         if (values is not null)
         {
             var existing = await _settings.GetAllAsync(ct);
+            existing.TryAdd("MonthlySalesGoal", "0");
             foreach (var kv in values)
             {
                 var value = kv.Value ?? "";
@@ -38,13 +40,19 @@ public class SettingsController : AdminBaseController
                     invalid |= !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(value);
                 if (kv.Key.EndsWith("Url", StringComparison.Ordinal) && value.Length > 0)
                     invalid |= !Uri.TryCreate(value, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !string.IsNullOrEmpty(uri.UserInfo);
-                if (kv.Key == "ShippingCost" || (kv.Key == "FreeShippingThreshold" && value.Length > 0))
+                if (kv.Key is "ShippingCost" or "MonthlySalesGoal" || (kv.Key == "FreeShippingThreshold" && value.Length > 0))
                     invalid |= !decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var amount) || amount < 0 || amount > 1000000 || decimal.Round(amount, 2) != amount;
                 if (invalid)
                 {
-                    TempData["Error"] = $"El campo {kv.Key} no es válido. Revisa su formato, importe o longitud.";
-                    return RedirectToAction(nameof(Index));
+                    ModelState.AddModelError($"values[{kv.Key}]", "Revisa el formato, importe o longitud de este campo.");
                 }
+            }
+            if (!ModelState.IsValid)
+            {
+                foreach (var kv in values.Where(kv => existing.ContainsKey(kv.Key)))
+                    existing[kv.Key] = kv.Value ?? "";
+                ViewData["Title"] = "Configuración";
+                return View("Index", existing);
             }
             foreach (var kv in values)
             {

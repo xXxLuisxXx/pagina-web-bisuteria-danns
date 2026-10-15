@@ -40,6 +40,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add<AntispamFilter>();
     options.Filters.Add<AdminReauthenticationFilter>();
     options.Filters.Add<AdminAuditFilter>();
+    options.Filters.Add<InitialPasswordFilter>();
     options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(_ => "Este campo es obligatorio.");
     options.ModelBindingMessageProvider.SetAttemptedValueIsInvalidAccessor((_, field) => $"El valor de {field} no es válido.");
     options.ModelBindingMessageProvider.SetValueMustBeANumberAccessor(_ => "Introduce un número válido.");
@@ -96,6 +97,7 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Ocurrió un error al inicializar la base de datos.");
+        if (app.Environment.IsProduction()) throw;
     }
 }
 

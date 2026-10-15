@@ -8,6 +8,7 @@ namespace Bisuteria.Application.Interfaces;
 /// </summary>
 public interface IAdminService
 {
+    Task<IReadOnlyList<AdminSearchResult>> SearchAsync(string query, CancellationToken cancellationToken = default);
     Task<DashboardStats> GetDashboardAsync(CancellationToken cancellationToken = default, DateTime? from = null, DateTime? to = null, string interval = "day", OrderStatus? status = null);
 
     Task<int> AddStockAsync(int productId, int quantity, string reason, string? createdBy, CancellationToken cancellationToken = default);

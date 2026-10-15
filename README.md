@@ -47,7 +47,7 @@ dotnet user-secrets set "Payments:EnabledMethods:0" "CashOnDelivery" --project s
 
 Configura privadamente `Smtp:Host`, `Smtp:Port` (587 por defecto), `Smtp:UseSsl` (true), `Smtp:From`, `Smtp:Username` y `Smtp:Password`. Sus equivalentes de entorno usan doble guion bajo, por ejemplo `Smtp__Password`. Configura también `PublicBaseUrl` con el origen HTTPS real para los enlaces de recuperación.
 
-Sin SMTP, desarrollo registra solo un aviso; **no imprime el enlace ni el token**. En producción la falta de configuración produce un error controlado y se mantiene el mensaje público genérico. Las pruebas capturan el enlace con un doble de correo y verifican el token y su uso único. **El envío real SMTP está pendiente de configuración y prueba externa.**
+Sin SMTP, desarrollo registra solo un aviso y conserva el correo pendiente; **no imprime el enlace ni el token**. La cola SQL conserva el trabajo para reintentos si falta configuración o falla SMTP; se mantiene el mensaje público genérico. Las pruebas capturan el enlace con un doble de correo y verifican el token y su uso único. **El envío real SMTP está pendiente de configuración y prueba externa.**
 
 ## Arquitectura
 
@@ -119,4 +119,14 @@ En PowerShell, establece `$env:BISUTERIA_TEST_CONNECTION` con la conexión de un
 
 Producción requiere `AllowedHosts`, `PublicBaseUrl` HTTPS y `DataProtection:KeysPath` persistente con permisos restringidos. Configura `ReverseProxy:KnownProxies:0` solo para un proxy confiable. Confirmación de correo: `Identity:RequireConfirmedEmail=true`, tras comprobar SMTP. `/health` devuelve disponibilidad de SQL sin detalles internos. JSON logging se configura con `Logging:LogLevel`. Conserva `Database:Initialize=false` en producción y aplica migraciones revisadas durante el despliegue.
 
-El carrito y la cola SMTP están en memoria: un despliegue con varias instancias requiere almacenamiento compartido/durable. Consulta los informes `docs/fase-*.md` para resultados concretos; no constituyen una certificación de producción.
+El carrito está en memoria y requiere almacenamiento compartido para varias instancias. El correo usa EmailOutbox persistente en SQL con reservas y reintentos; consulta [operación de correo](docs/ampliacion-fase5-correo.md). Consulta los informes `docs/fase-*.md` para resultados concretos; no constituyen una certificación de producción.
+
+## Ampliación del panel y las cuentas (13 de octubre de 2026)
+
+La suite local ampliada aprobó **149 pruebas**, con compilación Release sin advertencias ni errores.
+
+La rama `mejoras/auditoria` incorpora verificación en dos pasos, cambio obligatorio de contraseña para nuevos administradores iniciales, correos durables y el nuevo panel. Informes: `docs/ampliacion-fase*-*.md`. La contraseña inicial no se puede reutilizar; no se creó ninguna cuenta en la base real durante las pruebas.
+
+**Hay nuevas migraciones aditivas.** Antes de ejecutar esta versión sobre tu base habitual, respalda y revisa las migraciones con un procedimiento explícito. Las verificaciones del agente solo usan bases temporales. El arranque con `Database:Initialize=true` aplica migraciones automáticamente: no lo uses sobre datos reales sin revisar ese paso.
+
+La búsqueda global del Admin encuentra pedidos por número/cliente y productos por nombre/SKU. La meta mensual se configura en Configuración. El calendario usa Guayaquil y excluye pedidos cancelados. El modo oscuro se activa con el botón de luna. Los importes representan pedidos, no confirmación bancaria de cobros. Productos activos muestra el estado actual porque no existe un historial completo para calcular su variación.
