@@ -19,7 +19,7 @@
                 <td>@row.Recipient</td>
                 <td>@row.Attempts / 8</td>
                 <td>@row.NextAttemptAt.ToString("yyyy-MM-dd HH:mm")</td>
-                <td>@(row.Failed ? row.LastError ?? "Requiere reintento" : "Pendiente")</td>
+                <td>@(row.LastError ?? (row.Failed ? "Requiere reintento" : "Pendiente"))</td>
                 <td>
                     @if (row.Failed)
                     {

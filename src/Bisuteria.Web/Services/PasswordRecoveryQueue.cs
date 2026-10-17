@@ -1,4 +1,5 @@
 using System.Text;
+using System.Net.Mail;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
@@ -64,14 +65,30 @@ public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfigur
             logger.LogInformation("Correo de cola {Id} procesado, intento {Attempt}.", job.Id, job.Attempts);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-        catch (Exception)
+        catch (Exception ex)
         {
-            job.LastError = "Entrega fallida; revisar proveedor de correo.";
+            job.LastError = GetSafeFailureMessage(ex, configuration["Smtp:Host"]);
             job.NextAttemptAt = DateTime.UtcNow.AddSeconds(Math.Min(3600, 30 * Math.Pow(2, job.Attempts - 1)));
-            logger.LogWarning("Entrega de correo {Id} fallida, intento {Attempt}.", job.Id, job.Attempts);
+            if (ex is SmtpException smtpException)
+                logger.LogWarning("Entrega de correo {Id} fallida, intento {Attempt}; estado SMTP {StatusCode}.", job.Id, job.Attempts, smtpException.StatusCode);
+            else
+                logger.LogWarning("Entrega de correo {Id} fallida, intento {Attempt}; tipo {ExceptionType}.", job.Id, job.Attempts, ex.GetType().Name);
         }
         await db.SaveChangesAsync(ct);
         return true;
+    }
+
+    private static string GetSafeFailureMessage(Exception exception, string? host)
+    {
+        if (exception is SmtpConfigurationException configurationException)
+            return configurationException.Message;
+
+        if (exception is SmtpException)
+            return string.Equals(host, "smtp.gmail.com", StringComparison.OrdinalIgnoreCase)
+                ? "Gmail rechazó o no pudo completar el envío. Revisa Smtp:User y la contraseña de aplicación de 16 caracteres."
+                : "El servidor SMTP rechazó o no pudo completar el envío. Revisa host, puerto, TLS y credenciales.";
+
+        return "Entrega fallida; revisar proveedor de correo.";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -81,10 +98,10 @@ public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfigur
             try
             {
                 if (configuration.GetValue("EmailOutbox:AutoProcess", true) && await ProcessOneAsync(stoppingToken)) continue;
+                await Task.Delay(environment.IsEnvironment("Testing") ? 100 : 5000, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
             catch (Exception) { logger.LogWarning("Cola de correo no disponible; se reintentará sin detener la aplicación."); }
-            await Task.Delay(environment.IsEnvironment("Testing") ? 100 : 5000, stoppingToken);
         }
     }
 }

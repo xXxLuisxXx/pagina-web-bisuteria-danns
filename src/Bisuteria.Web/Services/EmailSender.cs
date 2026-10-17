@@ -10,6 +10,10 @@ public interface IEmailSender
     Task SendNotificationAsync(string email, string subject, string text, CancellationToken ct = default);
 }
 
+public sealed class SmtpConfigurationException(string message) : InvalidOperationException(message)
+{
+}
+
 public sealed class SmtpEmailSender : IEmailSender
 {
     private readonly IConfiguration _configuration;
@@ -43,21 +47,41 @@ public sealed class SmtpEmailSender : IEmailSender
         {
             if (_environment.IsDevelopment())
             {
-                _logger.LogWarning("SMTP no configurado: no se envió el correo de recuperación.");
-                throw new InvalidOperationException("SMTP no configurado.");
+                _logger.LogWarning("SMTP no configurado: no se envió el correo.");
+                throw new SmtpConfigurationException("Configura Smtp:Host y Smtp:From para habilitar el correo.");
             }
 
-            throw new InvalidOperationException("El correo de recuperación no está configurado.");
+            throw new SmtpConfigurationException("El correo no está configurado.");
         }
 
-        var port = int.TryParse(_configuration["Smtp:Port"], out var configuredPort) ? configuredPort : 587;
+        var portValue = _configuration["Smtp:Port"];
+        if (!string.IsNullOrWhiteSpace(portValue) && (!int.TryParse(portValue, out var parsedPort) || parsedPort is < 1 or > 65535))
+            throw new SmtpConfigurationException("Smtp:Port debe ser un puerto válido entre 1 y 65535.");
+        var port = string.IsNullOrWhiteSpace(portValue) ? 587 : int.Parse(portValue);
+
+        var username = _configuration["Smtp:User"] ?? _configuration["Smtp:Username"];
+        var password = _configuration["Smtp:Password"];
+        if (string.IsNullOrWhiteSpace(username) != string.IsNullOrWhiteSpace(password))
+            throw new SmtpConfigurationException("Configura Smtp:User y Smtp:Password juntos para autenticar el servidor de correo.");
+
+        if (host.Equals("smtp.gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                throw new SmtpConfigurationException("Gmail requiere Smtp:User y una contraseña de aplicación.");
+
+            // Google muestra la contraseña de aplicación en grupos; los espacios no forman parte de ella.
+            password = new string(password!.Where(character => !char.IsWhiteSpace(character)).ToArray());
+            if (password.Length != 16)
+                throw new SmtpConfigurationException("La contraseña de aplicación de Gmail debe tener 16 caracteres. No uses la contraseña normal de Google.");
+            if (_configuration.GetValue("Smtp:UseSsl", true) is false)
+                throw new SmtpConfigurationException("Gmail requiere TLS; configura Smtp:UseSsl en true.");
+        }
+
         using var client = new SmtpClient(host, port)
         {
             EnableSsl = bool.TryParse(_configuration["Smtp:UseSsl"], out var useSsl) ? useSsl : true
         };
 
-        var username = _configuration["Smtp:User"] ?? _configuration["Smtp:Username"];
-        var password = _configuration["Smtp:Password"];
         if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
             client.Credentials = new NetworkCredential(username, password);
 
