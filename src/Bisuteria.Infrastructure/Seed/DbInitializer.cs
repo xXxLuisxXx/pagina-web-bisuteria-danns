@@ -11,7 +11,7 @@ using Bisuteria.Domain.Security;
 namespace Bisuteria.Infrastructure.Seed;
 
 /// <summary>
-/// Inicializa la base de datos: aplica migraciones, crea roles, el usuario administrador,
+/// Inicializa la base de datos: aplica migraciones, crea roles y, con secretos externos, el desarrollador inicial,
 /// la configuración del sitio y las categorías base de Bisuterias Dann's.
 /// El catálogo inicia vacío: los productos se cargan desde el panel de administración.
 /// </summary>
@@ -48,11 +48,14 @@ public static class DbInitializer
         await SeedRolePermissionsAsync(context);
 
         var legacyAdmin = await userManager.FindByEmailAsync(LegacyDefaultAdminEmail);
-        if (legacyAdmin is { IsActive: true })
+        if (legacyAdmin is not null && (legacyAdmin.IsActive || !legacyAdmin.LockoutEnabled ||
+            legacyAdmin.LockoutEnd != DateTimeOffset.MaxValue))
         {
             legacyAdmin.IsActive = false;
             legacyAdmin.LockoutEnabled = true;
             legacyAdmin.LockoutEnd = DateTimeOffset.MaxValue;
+            // Invalida las sesiones anteriores incluso si la cuenta ya estaba inactiva.
+            legacyAdmin.SecurityStamp = Guid.NewGuid().ToString("N");
             var disableResult = await userManager.UpdateAsync(legacyAdmin);
             if (!disableResult.Succeeded)
                 throw new InvalidOperationException("No se pudo desactivar la cuenta administrativa histórica.");

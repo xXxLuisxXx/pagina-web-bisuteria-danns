@@ -8,15 +8,15 @@ public sealed class SmtpEmailSenderTests
     [Fact]
     public async Task GmailRejectsIncorrectApplicationPasswordLengthBeforeConnecting()
     {
-        const string secret = "not-a-real-secret";
+        var secret = Guid.NewGuid().ToString("N");
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Smtp:Host"] = "smtp.gmail.com",
             ["Smtp:Port"] = "587",
             ["Smtp:UseSsl"] = "true",
-            ["Smtp:User"] = "store@gmail.com",
+            ["Smtp:User"] = "smtp@example.test",
             ["Smtp:Password"] = secret,
-            ["Smtp:From"] = "store@gmail.com"
+            ["Smtp:From"] = "smtp@example.test"
         }).Build();
         var sender = new SmtpEmailSender(configuration, NullLogger<SmtpEmailSender>.Instance, new TestEnvironment());
 
@@ -30,14 +30,16 @@ public sealed class SmtpEmailSenderTests
     [Fact]
     public async Task GmailRemovesDisplaySpacesBeforeValidatingApplicationPassword()
     {
+        var secret = Guid.NewGuid().ToString("N")[..16];
+        var spacedSecret = string.Join(" ", Enumerable.Range(0, 4).Select(index => secret.Substring(index * 4, 4)));
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Smtp:Host"] = "smtp.gmail.com",
             ["Smtp:Port"] = "587",
             ["Smtp:UseSsl"] = "false",
-            ["Smtp:User"] = "store@gmail.com",
-            ["Smtp:Password"] = "abcd efgh ijkl mnop",
-            ["Smtp:From"] = "store@gmail.com"
+            ["Smtp:User"] = "smtp@example.test",
+            ["Smtp:Password"] = spacedSecret,
+            ["Smtp:From"] = "smtp@example.test"
         }).Build();
         var sender = new SmtpEmailSender(configuration, NullLogger<SmtpEmailSender>.Instance, new TestEnvironment());
 

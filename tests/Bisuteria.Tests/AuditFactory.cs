@@ -42,7 +42,8 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
     public string TestConnection => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
         Environment.GetEnvironmentVariable("BISUTERIA_TEST_CONNECTION") ?? "Server=localhost;Trusted_Connection=True;TrustServerCertificate=True")
         { InitialCatalog = DatabaseName, AttachDBFilename = "" }.ConnectionString;
-    public const string Password = "Audit-Only!12345";
+    // Credencial efímera exclusiva de la base temporal, distinta en cada ejecución.
+    public static string Password { get; } = $"Aa1!{Guid.NewGuid():N}";
     public int ProductId { get; private set; }
     public int CategoryId { get; private set; }
     public int HiddenProductId { get; private set; }
