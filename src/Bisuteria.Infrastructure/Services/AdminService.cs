@@ -188,19 +188,37 @@ public partial class AdminService : IAdminService
 
     public async Task<bool> SetUserActiveAsync(string userId, bool isActive, CancellationToken ct = default)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user is null)
-            return false;
-
-        if (!isActive && await _userManager.IsInRoleAsync(user, "Admin")) return false;
-        if (!isActive && await _userManager.IsInRoleAsync(user, StoreRoles.Developer) &&
-            (await _userManager.GetUsersInRoleAsync(StoreRoles.Developer)).Count(x => x.IsActive) <= 1) return false;
-        user.IsActive = isActive;
-        user.LockoutEnabled = !isActive;
-        user.LockoutEnd = isActive ? null : DateTimeOffset.MaxValue;
-        var result = await _userManager.UpdateAsync(user);
-        if (result.Succeeded) result = await _userManager.UpdateSecurityStampAsync(user);
-        return result.Succeeded;
+        return await _context.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            // Un bloqueo por base coordina también solicitudes concurrentes de distintas instancias.
+            await _context.Database.ExecuteSqlRawAsync("""
+                DECLARE @result int;
+                EXEC @result = sys.sp_getapplock @Resource=N'Bisuteria.PrivilegedAccountState',
+                    @LockMode=N'Exclusive', @LockOwner=N'Transaction', @LockTimeout=15000;
+                IF @result < 0 THROW 51000, 'No se pudo reservar la actualización de cuentas.', 1;
+                """, ct);
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user is null) return false;
+            await _context.Entry(user).ReloadAsync(ct);
+            if (!isActive && await _userManager.IsInRoleAsync(user, StoreRoles.LegacyAdmin)) return false;
+            if (!isActive && await _userManager.IsInRoleAsync(user, StoreRoles.Developer))
+            {
+                var activeDevelopers = await (from identityUser in _context.Users.AsNoTracking()
+                    join membership in _context.UserRoles on identityUser.Id equals membership.UserId
+                    join role in _context.Roles on membership.RoleId equals role.Id
+                    where identityUser.IsActive && role.Name == StoreRoles.Developer
+                    select identityUser.Id).CountAsync(ct);
+                if (activeDevelopers <= 1) return false;
+            }
+            user.IsActive = isActive;
+            user.LockoutEnabled = !isActive;
+            user.LockoutEnd = isActive ? null : DateTimeOffset.MaxValue;
+            user.SecurityStamp = Guid.NewGuid().ToString("N");
+            if (!(await _userManager.UpdateAsync(user)).Succeeded) return false;
+            await transaction.CommitAsync(ct);
+            return true;
+        });
     }
 
     public async Task<List<SalesReportRow>> GetSalesReportAsync(DateTime? from, DateTime? to, CancellationToken ct = default, PaymentStatus? payment = null)

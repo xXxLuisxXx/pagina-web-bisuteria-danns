@@ -22,7 +22,8 @@ public sealed class StaffInvitationController(
     IAuthorizationService authorization,
     IConfiguration configuration,
     SecurityAuditLogger audit,
-    IDataProtectionProvider dataProtection) : Controller
+    IDataProtectionProvider dataProtection,
+    Bisuteria.Application.Interfaces.IAdminService admin) : Controller
 {
     private const string InviteEmailProtectionPurpose = "BisuteriasDanns.StaffInvitation.Email.v1";
     [HttpGet]
@@ -212,11 +213,8 @@ public sealed class StaffInvitationController(
             }
         }
         var previousActive = user.IsActive;
-        user.IsActive = active;
-        user.LockoutEnabled = !active;
-        user.LockoutEnd = active ? null : DateTimeOffset.MaxValue;
-        if (!(await users.UpdateAsync(user)).Succeeded || !(await users.UpdateSecurityStampAsync(user)).Succeeded)
-            return StatusCode(503);
+        if (!await admin.SetUserActiveAsync(id, active, ct))
+            return Conflict("No se pudo cambiar el estado; debe conservarse al menos un Developer activo.");
         await audit.RecordAsync("StaffAccount.StateChanged", "User", user.Id, "200",
             System.Text.Json.JsonSerializer.Serialize(new { Active = previousActive }), System.Text.Json.JsonSerializer.Serialize(new { Active = active }), ct);
         TempData["Success"] = active ? "Cuenta reactivada." : "Cuenta desactivada y sesiones invalidadas.";

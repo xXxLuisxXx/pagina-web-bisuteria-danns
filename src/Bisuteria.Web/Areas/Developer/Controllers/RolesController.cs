@@ -13,7 +13,8 @@ namespace Bisuteria.Web.Areas.Developer.Controllers;
 
 [Area("Developer")]
 [Authorize(Policy = StorePermissions.RolesViewMatrix)]
-public sealed class RolesController(AppDbContext db, UserManager<ApplicationUser> users, SecurityAuditLogger audit) : Controller
+public sealed class RolesController(AppDbContext db, UserManager<ApplicationUser> users, SecurityAuditLogger audit,
+    IAuthorizationService authorization) : Controller
 {
     private static readonly string[] EditableRoles = [StoreRoles.Owner, StoreRoles.Operator];
 
@@ -37,6 +38,10 @@ public sealed class RolesController(AppDbContext db, UserManager<ApplicationUser
             return BadRequest("Rol o permisos no válidos.");
 
         var requested = permissions.ToHashSet(StringComparer.Ordinal);
+        if (requested.Any(permission => !StorePermissions.CanAssignTo(role, permission)))
+            return BadRequest("Ese rol no puede recibir permisos superiores a sus funciones.");
+        foreach (var permission in requested)
+            if (!(await authorization.AuthorizeAsync(User, null, permission)).Succeeded) return Forbid();
         var currentRows = await db.RolePermissions.Where(x => x.RoleName == role).ToListAsync(ct);
         var before = currentRows.Select(x => x.Permission).OrderBy(x => x, StringComparer.Ordinal).ToArray();
         db.RolePermissions.RemoveRange(currentRows.Where(x => !requested.Contains(x.Permission)));
