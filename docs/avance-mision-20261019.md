@@ -1,0 +1,27 @@
+# Revisión de la misión ampliada — 19 de octubre de 2026
+
+El usuario autorizó continuar todas las fases sin detenerse entre ellas. Se conserva un commit por fase y se exige build Release y suite completa aprobados antes de pasar a la siguiente. Las pruebas se ejecutan únicamente en bases `BisuteriaAudit_<GUID>`. No se aplican migraciones a la base real.
+
+Decisiones confirmadas en esta conversación:
+
+- Owner puede invitar exclusivamente operadores.
+- Se conserva el botón de WhatsApp con un mensaje preparado que el cliente envía voluntariamente. No se integra la API oficial.
+- La solicitud más reciente exige mínimo 12 caracteres y TOTP obligatorio en Developer/Owner; sustituye los ajustes previos de ocho caracteres y desactivación de TOTP. Se mantiene recordar el dispositivo.
+- Los datos bancarios, de contacto y del negocio se completan desde ajustes; no se inventan ni se incluyen valores reales en código o documentación.
+
+| Fase | Estado de esta ronda | Evidencia |
+| --- | --- | --- |
+| 1. Credenciales | Cerrada; commit `b924079` | Build sin advertencias, 175 pruebas; informe específico. |
+| 2. Roles y permisos | Cerrada; commit `c541d2f` | Build sin advertencias, 181 pruebas; informe específico. |
+| 3. Altas y autenticación | Cerrada; commit por registrar | Build Release sin advertencias, 185 pruebas; informe específico y TRX local. |
+| 4. Defectos de auditoría | Pendiente de cierre de esta ronda | Existen implementaciones y regresiones de revisiones anteriores; se revisarán contra el código actual. |
+| 5. Checkout y comprobantes | Pendiente de implementación completa | Envío por confirmar, comprobantes privados, avisos y revisión administrativa. |
+| 6. Seguridad | Pendiente de cierre de esta ronda | Revisión de endpoints, dependencias e historial ampliado. |
+| 7. Validaciones | Pendiente de cierre de esta ronda | Incluye formularios y endpoints nuevos. |
+| 8. Correo | Pendiente de ampliación | Outbox durable existente; faltan completar eventos, plantillas y salida de desarrollo. |
+| 9. Interfaz pública | Pendiente de diagnóstico y mediciones | Conservar paleta, logo y tipografías. No confundir HTML inspeccionado con navegador ejecutado. |
+| 10. Paneles | Pendiente de ampliación y validación | Incorporar nuevos avisos, envíos y comprobantes al panel existente. |
+| 11. Auditoría y privacidad | Pendiente de cierre de esta ronda | Revisar todos los accesos a datos y la integridad de las auditorías. |
+| 12. Calidad y entrega | Pendiente | CI, pruebas de navegador, README e informe consolidado. |
+
+Los documentos históricos conservan sus fechas y resultados propios. No constituyen evidencia de que la misión ampliada esté completada.

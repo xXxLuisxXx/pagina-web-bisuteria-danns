@@ -7,6 +7,39 @@ using Xunit;
 public partial class AuditTests
 {
     [Fact]
+    public async Task OwnerCannotDisableRequiredTwoFactorWithOnlyPassword()
+    {
+        using var owner = await f.Login("Owner");
+        var response = await AuditFactory.Post(owner, "/Account/Authenticator", new()
+        { ["Password"] = AuditFactory.Password, ["DisableTwoFactor"] = "true" }, "/Account/Authenticator");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("es obligatoria", System.Net.WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync()));
+        using var scope = f.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        Assert.True(await users.GetTwoFactorEnabledAsync((await users.FindByEmailAsync("owner@example.test"))!));
+    }
+
+    [Fact]
+    public async Task OwnerWithoutEnrollmentFlagStillNeedsTwoFactorBeforePanel()
+    {
+        using var owner = await f.Login("Owner");
+        using var scope = f.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = (await users.FindByEmailAsync("owner@example.test"))!;
+        Assert.False(user.RequireTwoFactorSetup);
+        Assert.True((await users.SetTwoFactorEnabledAsync(user, false)).Succeeded);
+        try
+        {
+            await AuditFactory.Post(owner, "/Account/Login", new()
+            { ["Email"] = "owner@example.test", ["Password"] = AuditFactory.Password });
+            var response = await owner.GetAsync("/Admin");
+            Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+            Assert.Equal("/Account/Authenticator", response.Headers.Location!.OriginalString);
+        }
+        finally { Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded); }
+    }
+
+    [Fact]
     public async Task AdminUsersAcceptsAnAccountWithoutDisplayName()
     {
         using var scope = f.Services.CreateScope();
@@ -42,6 +75,95 @@ public partial class AuditTests
         using var verificationScope = f.Services.CreateScope();
         var verificationUsers = verificationScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         Assert.False((await verificationUsers.RedeemTwoFactorRecoveryCodeAsync((await verificationUsers.FindByEmailAsync(email))!, codes[0])).Succeeded);
+    }
+
+    [Fact]
+    public async Task DeveloperLoginPreservesTwoFactorAndRequiresVerification()
+    {
+        using var scope = f.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email = $"developer-no-mfa-{Guid.NewGuid():N}@example.test";
+        var password = "Aa1!" + Guid.NewGuid().ToString("N");
+        var user = new ApplicationUser
+        {
+            UserName = email, Email = email, IsActive = true, EmailConfirmed = true,
+            RequireTwoFactorSetup = true
+        };
+        Assert.True((await users.CreateAsync(user, password)).Succeeded);
+        Assert.True((await users.AddToRoleAsync(user, "Developer")).Succeeded);
+        Assert.True((await users.ResetAuthenticatorKeyAsync(user)).Succeeded);
+        Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded);
+
+        using var client = f.Client();
+        var login = await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
+        Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+        Assert.StartsWith("/Account/TwoFactor", login.Headers.Location!.OriginalString);
+        using var verify = f.Services.CreateScope();
+        var saved = await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email);
+        Assert.NotNull(saved);
+        Assert.True(await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().GetTwoFactorEnabledAsync(saved!));
+        Assert.True(saved!.RequireTwoFactorSetup);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Admin")).StatusCode);
+    }
+
+    [Fact]
+    public async Task SignedInUserCanDisableTwoFactorWithPassword()
+    {
+        using var scope = f.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email = $"disable-mfa-{Guid.NewGuid():N}@example.test";
+        var password = "Aa1!" + Guid.NewGuid().ToString("N");
+        var user = new ApplicationUser { UserName = email, Email = email, IsActive = true, EmailConfirmed = true };
+        Assert.True((await users.CreateAsync(user, password)).Succeeded);
+        Assert.True((await users.ResetAuthenticatorKeyAsync(user)).Succeeded);
+        Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded);
+        var key = await users.GetAuthenticatorKeyAsync(user);
+
+        using var client = f.Client();
+        var first = await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
+        Assert.StartsWith("/Account/TwoFactor", first.Headers.Location!.OriginalString);
+        var passed = await AuditFactory.Post(client, "/Account/TwoFactor", new() { ["Code"] = Totp(key!) }, "/Account/TwoFactor");
+        Assert.Equal(HttpStatusCode.Redirect, passed.StatusCode);
+        var disabled = await AuditFactory.Post(client, "/Account/Authenticator", new()
+        { ["Password"] = password, ["DisableTwoFactor"] = "true" }, "/Account/Authenticator");
+        Assert.Equal(HttpStatusCode.Redirect, disabled.StatusCode);
+        Assert.DoesNotContain("/Account/TwoFactor", disabled.Headers.Location!.OriginalString);
+        using var verify = f.Services.CreateScope();
+        var updated = await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(email);
+        Assert.NotNull(updated);
+        Assert.False(await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().GetTwoFactorEnabledAsync(updated!));
+    }
+
+    [Fact]
+    public async Task RememberedBrowserSkipsTwoFactorOnNextLogin()
+    {
+        using var scope = f.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email = $"remembered-{Guid.NewGuid():N}@example.test";
+        var password = "Aa1!" + Guid.NewGuid().ToString("N");
+        var user = new ApplicationUser { UserName = email, Email = email, IsActive = true, EmailConfirmed = true };
+        Assert.True((await users.CreateAsync(user, password)).Succeeded);
+        Assert.True((await users.ResetAuthenticatorKeyAsync(user)).Succeeded);
+        Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded);
+        var key = await users.GetAuthenticatorKeyAsync(user);
+
+        using var client = f.Client();
+        var firstLogin = await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
+        Assert.StartsWith("/Account/TwoFactor", firstLogin.Headers.Location!.OriginalString);
+        var challenge = await client.GetAsync(firstLogin.Headers.Location);
+        Assert.Contains("Recordar este dispositivo durante 30 días", await challenge.Content.ReadAsStringAsync());
+
+        var verification = await AuditFactory.Post(client, "/Account/TwoFactor", new()
+        {
+            ["Code"] = Totp(key!), ["RememberClient"] = "true"
+        }, "/Account/TwoFactor");
+        Assert.Equal(HttpStatusCode.Redirect, verification.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await AuditFactory.Post(client, "/Account/Logout", new())).StatusCode);
+
+        var nextLogin = await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
+        Assert.Equal(HttpStatusCode.Redirect, nextLogin.StatusCode);
+        Assert.DoesNotContain("/Account/TwoFactor", nextLogin.Headers.Location!.OriginalString);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Account/Profile")).StatusCode);
     }
 
     [Fact]

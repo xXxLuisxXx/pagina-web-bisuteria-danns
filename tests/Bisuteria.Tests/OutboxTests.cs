@@ -85,18 +85,17 @@ public partial class AuditTests
         var reused = await AuditFactory.Post(client, "/Account/ChangePassword", new() { ["CurrentPassword"] = changed, ["Password"] = password, ["ConfirmPassword"] = password }, "/Account/ChangePassword");
         Assert.Equal(HttpStatusCode.OK, reused.StatusCode);
         Assert.Contains("diferente", await reused.Content.ReadAsStringAsync());
-        var forcedSetup = await client.GetAsync("/Admin");
-        Assert.Equal("/Account/Authenticator", forcedSetup.Headers.Location!.OriginalString);
-        var prepared = await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed }, "/Account/Authenticator");
-        var html = await prepared.Content.ReadAsStringAsync();
-        var key = Regex.Match(html, "Clave privada: <code>([^<]+)</code>").Groups[1].Value;
-        Assert.NotEmpty(key);
-        var setup = await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed, ["Code"] = Totp(key) }, "/Account/Authenticator");
-        Assert.Contains("cada uno sirve", await setup.Content.ReadAsStringAsync());
+        Assert.Equal("/Account/Authenticator", (await client.GetAsync("/Admin")).Headers.Location!.OriginalString);
+        await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed }, "/Account/Authenticator");
+        var key = (await users.GetAuthenticatorKeyAsync(user))!;
+        var enrolled = await AuditFactory.Post(client, "/Account/Authenticator", new()
+        { ["Password"] = changed, ["Code"] = TestTotp.Generate(key) }, "/Account/Authenticator");
+        Assert.Equal(HttpStatusCode.OK, enrolled.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Admin")).StatusCode);
         using var reauthenticated = isolated.Client();
         var login = await AuditFactory.Post(reauthenticated, "/Account/Login", new() { ["Email"] = email, ["Password"] = changed });
         Assert.StartsWith("/Account/TwoFactor", login.Headers.Location!.OriginalString);
-        await AuditFactory.Post(reauthenticated, "/Account/TwoFactor", new() { ["Code"] = Totp(key) }, "/Account/TwoFactor");
+        await AuditFactory.Post(reauthenticated, "/Account/TwoFactor", new() { ["Code"] = TestTotp.Generate(key) }, "/Account/TwoFactor");
         Assert.Equal(HttpStatusCode.OK, (await reauthenticated.GetAsync("/Admin")).StatusCode);
         }
         finally { await ((IAsyncLifetime)isolated).DisposeAsync(); }

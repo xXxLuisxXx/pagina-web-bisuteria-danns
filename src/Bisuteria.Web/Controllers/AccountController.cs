@@ -1,4 +1,5 @@
 using Bisuteria.Application.Interfaces;
+using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Identity;
 using Bisuteria.Web.Models;
 using Bisuteria.Web.Services;
@@ -106,24 +107,14 @@ public partial class AccountController : Controller
         var alreadyLocked = await _userManager.IsLockedOutAsync(user);
         var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
         if (result.IsLockedOut && !alreadyLocked)
-        {
-            var strikes = (await _userManager.GetClaimsAsync(user)).FirstOrDefault(c => c.Type == "security:lockout-level");
-            var level = strikes is not null && int.TryParse(strikes.Value, out var savedLevel) ? Math.Min(savedLevel + 1, 5) : 0;
-            var replacement = new System.Security.Claims.Claim("security:lockout-level", level.ToString());
-            if (strikes is null) await _userManager.AddClaimAsync(user, replacement);
-            else await _userManager.ReplaceClaimAsync(user, strikes, replacement);
-            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(Math.Min(60, 5 * Math.Pow(2, level))));
-        }
+            await ApplyProgressiveLockoutAsync(user);
         if (result.Succeeded && user.IsActive)
         {
             var login = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
             if (login.RequiresTwoFactor)
                 return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
             if (!login.Succeeded) return RedirectToAction(nameof(Login));
-            var lockoutLevel = (await _userManager.GetClaimsAsync(user))
-                .FirstOrDefault(claim => claim.Type == "security:lockout-level");
-            if (lockoutLevel is not null)
-                await _userManager.RemoveClaimAsync(user, lockoutLevel);
+            await ResetLockoutProgressAsync(user);
             await _audit.PrivilegedLoginAsync(user);
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
@@ -187,7 +178,16 @@ public partial class AccountController : Controller
         }
 
         foreach (var error in result.Errors)
-            ModelState.AddModelError(string.Empty, GetIdentityErrorMessage(error.Code));
+        {
+            var key = error.Code switch
+            {
+                "DuplicateEmail" or "DuplicateUserName" => nameof(model.Email),
+                "PasswordTooShort" or "PasswordRequiresDigit" or "PasswordRequiresUpper" or
+                    "PasswordRequiresLower" or "PasswordRequiresNonAlphanumeric" or "CommonPassword" => nameof(model.Password),
+                _ => string.Empty
+            };
+            ModelState.AddModelError(key, GetIdentityErrorMessage(error.Code));
+        }
 
         return View(model);
     }
@@ -345,6 +345,22 @@ public partial class AccountController : Controller
     private bool IsInitialPassword(ApplicationUser user, string password)
         => user.InitialPasswordHash is { Length: > 0 } hash && _userManager.PasswordHasher.VerifyHashedPassword(user, hash, password) != PasswordVerificationResult.Failed;
 
+    private async Task ApplyProgressiveLockoutAsync(ApplicationUser user)
+    {
+        var strikes = (await _userManager.GetClaimsAsync(user)).FirstOrDefault(claim => claim.Type == "security:lockout-level");
+        var level = strikes is not null && int.TryParse(strikes.Value, out var previous) ? Math.Min(previous + 1, 5) : 0;
+        var replacement = new System.Security.Claims.Claim("security:lockout-level", level.ToString());
+        if (strikes is null) await _userManager.AddClaimAsync(user, replacement);
+        else await _userManager.ReplaceClaimAsync(user, strikes, replacement);
+        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(Math.Min(60, 5 * Math.Pow(2, level))));
+    }
+
+    private async Task ResetLockoutProgressAsync(ApplicationUser user)
+    {
+        var strike = (await _userManager.GetClaimsAsync(user)).FirstOrDefault(claim => claim.Type == "security:lockout-level");
+        if (strike is not null) await _userManager.RemoveClaimAsync(user, strike);
+    }
+
     private static string GetIdentityErrorMessage(string code) => code switch
     {
         "DuplicateEmail" or "DuplicateUserName" => "Este correo ya está registrado.",
@@ -352,6 +368,8 @@ public partial class AccountController : Controller
         "PasswordRequiresDigit" => "La contraseña debe incluir un número.",
         "PasswordRequiresUpper" => "La contraseña debe incluir una letra mayúscula.",
         "PasswordRequiresLower" => "La contraseña debe incluir una letra minúscula.",
+        "PasswordRequiresNonAlphanumeric" => "La contraseña debe incluir un símbolo.",
+        "CommonPassword" => "Elige una contraseña menos predecible y que no contenga tu correo.",
         _ => "No fue posible completar la operación. Verifica los datos e inténtalo nuevamente."
     };
 }

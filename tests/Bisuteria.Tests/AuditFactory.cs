@@ -95,6 +95,11 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             var user = new ApplicationUser { UserName=$"{role.ToLower()}@example.test", Email=$"{role.ToLower()}@example.test", FirstName=role, IsActive=true };
             Assert.True((await users.CreateAsync(user, Password)).Succeeded);
             Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
+            if (role is StoreRoles.Developer or StoreRoles.Owner)
+            {
+                Assert.True((await users.ResetAuthenticatorKeyAsync(user)).Succeeded);
+                Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded);
+            }
         }
         var category = new Category { Name="Pruebas aisladas", Slug="audit", IsActive=true };
         var product = new Product { Name="Pieza de ensayo aislada", Slug="audit-product", Price=20, Stock=100, Category=category, IsActive=true, IsCustomizable=true, IsFeatured=true };
@@ -143,6 +148,16 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         var client=Client();
         var response=await Post(client,"/Account/Login",new(){["Email"]=$"{role.ToLower()}@example.test",["Password"]=Password});
         Assert.Equal(HttpStatusCode.Redirect,response.StatusCode);
+        if (response.Headers.Location!.OriginalString.StartsWith("/Account/TwoFactor", StringComparison.Ordinal))
+        {
+            using var scope = Services.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = (await users.FindByEmailAsync($"{role.ToLower()}@example.test"))!;
+            var key = (await users.GetAuthenticatorKeyAsync(user))!;
+            var verified = await Post(client, "/Account/TwoFactor", new()
+            { ["Code"] = TestTotp.Generate(key), ["RememberClient"] = "true" }, "/Account/TwoFactor");
+            Assert.Equal(HttpStatusCode.Redirect, verified.StatusCode);
+        }
         return client;
     }
 }

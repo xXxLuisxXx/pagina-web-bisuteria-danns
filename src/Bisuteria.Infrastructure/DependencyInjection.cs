@@ -3,6 +3,7 @@ using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Bisuteria.Infrastructure.Repositories;
 using Bisuteria.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -91,6 +92,16 @@ public static class DependencyInjection
                 context.Response.Redirect(context.RedirectUri);
                 return Task.CompletedTask;
             };
+        });
+
+        services.Configure<CookieAuthenticationOptions>(IdentityConstants.TwoFactorRememberMeScheme, options =>
+        {
+            options.ExpireTimeSpan = TimeSpan.FromDays(30);
+            options.SlidingExpiration = false;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
         });
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

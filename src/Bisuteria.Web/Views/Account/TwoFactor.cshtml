@@ -9,6 +9,11 @@
         <label asp-for="Code" class="form-label"></label>
         <input asp-for="Code" class="form-control" autocomplete="one-time-code" />
         <div class="form-check my-3"><input asp-for="Recovery" class="form-check-input" /><label asp-for="Recovery">Estoy usando un código de recuperación</label></div>
+        <div class="form-check my-3">
+            <input asp-for="RememberClient" class="form-check-input" />
+            <label asp-for="RememberClient" class="form-check-label">Recordar este dispositivo durante 30 días</label>
+            <div class="form-text">No actives esta opción en una computadora compartida.</div>
+        </div>
         <button class="btn btn-brand" type="submit">Verificar</button>
     </form>
 </div>

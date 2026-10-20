@@ -24,7 +24,12 @@
     <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Correo</th><th>Rol</th><th>Vence (UTC)</th><th></th></tr></thead><tbody>
     @foreach (var invitation in Model.Invitations)
     {
-        <tr><td>@invitation.Email</td><td>@invitation.RoleName</td><td>@invitation.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm")</td><td><form asp-action="Revoke" method="post" data-confirm="¿Desactivar esta invitación?">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@invitation.Id" /><button class="btn btn-sm btn-outline-danger" type="submit">Desactivar</button></form></td></tr>
+        <tr><td>@invitation.Email</td><td>@invitation.RoleName</td><td>@invitation.ExpiresAtUtc.ToString("yyyy-MM-dd HH:mm")</td><td>
+            <form asp-action="Create" method="post" class="d-inline" data-confirm="Se enviará un enlace nuevo y se invalidará el anterior. ¿Continuar?">
+                @Html.AntiForgeryToken()<input type="hidden" name="email" value="@invitation.Email" /><input type="hidden" name="roleName" value="@invitation.RoleName" />
+                <button class="btn btn-sm btn-outline-primary" type="submit">Reenviar</button>
+            </form>
+            <form asp-action="Revoke" method="post" class="d-inline" data-confirm="¿Desactivar esta invitación?">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@invitation.Id" /><button class="btn btn-sm btn-outline-danger" type="submit">Desactivar</button></form></td></tr>
     }
     </tbody></table></div>
     <h2 class="h4 mt-5">Cuentas del equipo</h2>

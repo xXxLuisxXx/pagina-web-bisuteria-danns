@@ -19,7 +19,10 @@ public sealed class InitialPasswordFilter(UserManager<ApplicationUser> users) : 
                 context.Result = new RedirectToActionResult("ChangePassword", "Account", new { area = "" });
                 return;
             }
-            if (user?.RequireTwoFactorSetup == true && !await users.GetTwoFactorEnabledAsync(user) &&
+            var roles = user is null ? Array.Empty<string>() : await users.GetRolesAsync(user);
+            var requiresTwoFactor = roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner)
+                || user?.RequireTwoFactorSetup == true;
+            if (requiresTwoFactor && user is not null && !await users.GetTwoFactorEnabledAsync(user) &&
                 !(controller == "Account" && action is "Authenticator" or "ChangePassword" or "Logout"))
             {
                 context.Result = new RedirectToActionResult("Authenticator", "Account", new { area = "" });

@@ -10,6 +10,7 @@ public sealed class TwoFactorViewModel
     public string Code { get; set; } = "";
     public bool Recovery { get; set; }
     public bool RememberMe { get; set; }
+    public bool RememberClient { get; set; }
     [StringLength(2048)] public string? ReturnUrl { get; set; }
 }
 
@@ -23,5 +24,8 @@ public sealed class AuthenticatorViewModel
     public string? Code { get; set; }
     [BindNever] public string? SharedKey { get; set; }
     [BindNever] public bool Enabled { get; set; }
+    [BindNever] public bool CanEnableTwoFactor { get; set; } = true;
+    [BindNever] public bool RequiresTwoFactor { get; set; }
+    public bool DisableTwoFactor { get; set; }
     [BindNever] public IEnumerable<string>? RecoveryCodes { get; set; }
 }
