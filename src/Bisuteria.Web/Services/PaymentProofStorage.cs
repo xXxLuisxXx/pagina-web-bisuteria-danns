@@ -16,8 +16,12 @@ public sealed class PaymentProofStorage : IPaymentProofStorage
             ? Path.Combine(environment.ContentRootPath, "App_Data", "PaymentProofs")
             : Path.IsPathRooted(configured) ? configured : Path.Combine(environment.ContentRootPath, configured));
         var webRoot = Path.GetFullPath(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"))
-            .TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        if (_directory.StartsWith(webRoot, StringComparison.OrdinalIgnoreCase))
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var relativeToWebRoot = Path.GetRelativePath(webRoot, _directory);
+        if (relativeToWebRoot == "." ||
+            (!Path.IsPathRooted(relativeToWebRoot) && relativeToWebRoot != ".." &&
+             !relativeToWebRoot.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
+             !relativeToWebRoot.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal)))
             throw new InvalidOperationException("El almacenamiento de comprobantes debe permanecer fuera de wwwroot.");
     }
 

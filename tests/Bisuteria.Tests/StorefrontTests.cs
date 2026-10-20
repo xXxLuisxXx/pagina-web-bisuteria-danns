@@ -93,7 +93,7 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     {
         using var client=f.Client();
         var email=$"invalid-password-{Guid.NewGuid():N}@example.test";
-        const string password="AA12345!ABCDE";
+        var password="AA1!"+Guid.NewGuid().ToString("N").ToUpperInvariant();
         var response=await AuditFactory.Post(client,"/Account/Register",new()
         {
             ["Email"]=email,["FirstName"]="Cliente",["LastName"]="Ensayo",

@@ -137,6 +137,8 @@ public class CheckoutController : Controller
         if (!canViewAll && !isOwner && !isCurrentGuestOrder && !hasGuestToken)
             return Challenge();
 
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
         ViewBag.AccessToken = accessToken;
         var paymentProofs = await _proofs.GetForOrderAsync(orderNumber, ct);
         ViewBag.PaymentProofs = paymentProofs;

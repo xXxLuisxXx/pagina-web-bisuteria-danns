@@ -129,10 +129,10 @@ public class ImageUploadService : IImageUploadService
             if (File.Exists(absolutePath)) File.Delete(absolutePath);
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             if (File.Exists(absolutePath)) File.Delete(absolutePath);
-            _logger.LogError(ex, "Error al procesar la imagen {FileName}", file.FileName);
+            _logger.LogError("Error al procesar una imagen cargada desde el panel.");
             throw new Bisuteria.Application.Services.BusinessRuleException("No se pudo procesar la imagen. Verifica que sea un archivo válido.");
         }
 

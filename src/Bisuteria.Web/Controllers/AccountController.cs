@@ -100,6 +100,9 @@ public partial class AccountController : Controller
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user is null)
         {
+            // Ejecuta el hash de Identity también cuando el correo no existe para
+            // reducir la diferencia temporal entre cuentas registradas y ajenas.
+            _userManager.PasswordHasher.HashPassword(new ApplicationUser(), model.Password);
             ModelState.AddModelError(string.Empty, "Correo o contraseña incorrectos.");
             return View(model);
         }
