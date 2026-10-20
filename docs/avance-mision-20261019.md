@@ -14,8 +14,8 @@ Decisiones confirmadas en esta conversación:
 | 1. Credenciales | Cerrada; commit `b924079` | Build sin advertencias, 175 pruebas; informe específico. |
 | 2. Roles y permisos | Cerrada; commit `c541d2f` | Build sin advertencias, 181 pruebas; informe específico. |
 | 3. Altas y autenticación | Cerrada; commit `f4c0b00` | Build Release sin advertencias, 185 pruebas; informe específico y TRX local. |
-| 4. Defectos de auditoría | Cerrada; commit por registrar | Build Release sin advertencias, 192 pruebas; incluye los dos fallos reportados y estados corruptos. |
-| 5. Checkout y comprobantes | Pendiente de implementación completa | Envío por confirmar, comprobantes privados, avisos y revisión administrativa. |
+| 4. Defectos de auditoría | Cerrada; commit `322bc3d` | Build Release sin advertencias, 192 pruebas; incluye los dos fallos reportados y estados corruptos. |
+| 5. Checkout y comprobantes | Cerrada; commit `c84b775` | Build Release 0/0; 199 pruebas. Capturas responsive comparativas y detalle en `fase-5-revision-2026-10-19.md`. |
 | 6. Seguridad | Pendiente de cierre de esta ronda | Revisión de endpoints, dependencias e historial ampliado. |
 | 7. Validaciones | Pendiente de cierre de esta ronda | Incluye formularios y endpoints nuevos. |
 | 8. Correo | Pendiente de ampliación | Outbox durable existente; faltan completar eventos, plantillas y salida de desarrollo. |

@@ -43,6 +43,8 @@ secrets.json
 
 # Contenido de usuarios: respaldar junto con la base, no como código
 /src/Bisuteria.Web/wwwroot/img/uploads/
+/src/Bisuteria.Web/App_Data/PaymentProofs/
+/src/Bisuteria.Web/App_Data/
 
 # Sistema operativo
 .DS_Store

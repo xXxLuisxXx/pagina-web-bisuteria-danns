@@ -627,6 +627,10 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<string>("GiftRecipientName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("GuestAccessTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("IsGift")
                         .HasColumnType("bit");
 
@@ -655,6 +659,9 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<decimal>("ShippingCost")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("ShippingToConfirm")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -788,6 +795,57 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Bisuteria.Domain.Entities.PaymentProof", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("Length")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "Status");
+
+                    b.ToTable("PaymentProofs");
                 });
 
             modelBuilder.Entity("Bisuteria.Domain.Entities.Product", b =>
@@ -1427,6 +1485,17 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("Bisuteria.Domain.Entities.PaymentProof", b =>
+                {
+                    b.HasOne("Bisuteria.Domain.Entities.Order", "Order")
+                        .WithMany("PaymentProofs")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("Bisuteria.Domain.Entities.Product", b =>
                 {
                     b.HasOne("Bisuteria.Domain.Entities.Category", "Category")
@@ -1530,6 +1599,8 @@ namespace Bisuteria.Infrastructure.Migrations
             modelBuilder.Entity("Bisuteria.Domain.Entities.Order", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("PaymentProofs");
 
                     b.Navigation("Payments");
                 });

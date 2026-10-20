@@ -48,6 +48,16 @@ public class Order : BaseEntity
 
     public decimal Total { get; set; }
 
+    /// <summary>El recargo aún debe acordarse con el cliente según su destino.</summary>
+    public bool ShippingToConfirm { get; set; }
+
+    /// <summary>Hash SHA-256 del acceso de invitado; el token original nunca se persiste.</summary>
+    public string? GuestAccessTokenHash { get; set; }
+
+    /// <summary>Token efímero disponible solo al crear el pedido para formar el aviso de invitado.</summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? GuestAccessToken { get; set; }
+
     /// <summary>Número de seguimiento de envío (opcional).</summary>
     public string? TrackingNumber { get; set; }
 
@@ -69,4 +79,6 @@ public class Order : BaseEntity
     public virtual ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<PaymentProof> PaymentProofs { get; set; } = new List<PaymentProof>();
 }

@@ -37,6 +37,7 @@ public class SettingsController : AdminBaseController
                 var value = kv.Value ?? "";
                 var invalid = !existing.ContainsKey(kv.Key) || value.Length > 1000;
                 if (kv.Key == "CouponSingleUsePerCustomer") invalid |= !bool.TryParse(value, out _);
+                if (kv.Key == "PaymentBankTransferEnabled") invalid |= !bool.TryParse(value, out _);
                 if (kv.Key is "WhatsApp" or "ContactPhone" && value.Length > 0)
                     invalid |= !System.Text.RegularExpressions.Regex.IsMatch(value, @"^\+?[0-9 ()-]{7,25}$");
                 if (kv.Key == "ContactEmail" && value.Length > 0)
@@ -49,6 +50,13 @@ public class SettingsController : AdminBaseController
                 {
                     ModelState.AddModelError($"values[{kv.Key}]", "Revisa el formato, importe o longitud de este campo.");
                 }
+            }
+            if (values.TryGetValue("PaymentBankTransferEnabled", out var transferEnabled) &&
+                bool.TryParse(transferEnabled, out var isTransferEnabled) && isTransferEnabled)
+            {
+                foreach (var key in new[] { "BankName", "BankAccountType", "BankAccountNumber", "BankAccountHolder" })
+                    if (string.IsNullOrWhiteSpace(values.GetValueOrDefault(key)) && string.IsNullOrWhiteSpace(existing.GetValueOrDefault(key)))
+                        ModelState.AddModelError($"values[{key}]", "Completa este dato antes de habilitar la transferencia.");
             }
             if (!ModelState.IsValid)
             {
@@ -63,6 +71,7 @@ public class SettingsController : AdminBaseController
                 {
                     "StoreName" or "StoreSlogan" or "StoreDescription" => "General",
                     "WhatsApp" or "ContactEmail" or "ContactPhone" or "ContactAddress" => "Contacto",
+                    "PaymentBankTransferEnabled" or "BankName" or "BankAccountType" or "BankAccountNumber" or "BankAccountHolder" or "BankAccountId" => "Pagos",
                     "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
                     "ShippingCost" or "FreeShippingThreshold" => "Compras",
                     _ => "General"

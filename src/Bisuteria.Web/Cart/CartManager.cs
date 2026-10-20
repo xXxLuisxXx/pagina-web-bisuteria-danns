@@ -27,20 +27,17 @@ public sealed class CartManager
 
     private readonly IHttpContextAccessor _http;
     private readonly ICatalogService _catalog;
-    private readonly ISettingService _settings;
     private readonly ICouponService _coupons;
     private readonly ICustomizationService _customizations;
 
     public CartManager(
         IHttpContextAccessor http,
         ICatalogService catalog,
-        ISettingService settings,
         ICouponService coupons,
         ICustomizationService customizations)
     {
         _http = http;
         _catalog = catalog;
-        _settings = settings;
         _coupons = coupons;
         _customizations = customizations;
     }
@@ -127,10 +124,9 @@ public sealed class CartManager
             }
         }
 
-        // Envío.
-        var shippingCost = await _settings.GetShippingCostAsync(ct);
-        var freeShippingThreshold = await _settings.GetFreeShippingThresholdAsync(ct);
-        cart.ShippingCost = freeShippingThreshold.HasValue && cart.Subtotal >= freeShippingThreshold.Value ? 0m : shippingCost;
+        // La dirección todavía no existe en el carrito. El envío se calcula al crear
+        // el pedido, cuando el cliente ya indicó el destino y el método de entrega.
+        cart.ShippingCost = 0m;
 
         return cart;
     }

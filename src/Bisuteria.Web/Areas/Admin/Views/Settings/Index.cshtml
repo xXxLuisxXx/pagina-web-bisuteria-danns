@@ -1,7 +1,7 @@
 @model Dictionary<string, string>
 
 @{
-    var groups = new[] { "General", "Contacto", "Redes", "Compras" };
+    var groups = new[] { "General", "Contacto", "Redes", "Compras", "Pagos" };
 }
 
 <div class="mb-4">
@@ -40,6 +40,13 @@
                                 <option value="true" selected="@(string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">Sí</option>
                             </select>
                         }
+                        else if (item.Key == "PaymentBankTransferEnabled")
+                        {
+                            <select id="values_@item.Key" name="values[@item.Key]" class="form-select">
+                                <option value="false" selected="@(!string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">Desactivada</option>
+                                <option value="true" selected="@string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase)">Activada</option>
+                            </select>
+                        }
                         else
                         {
                             <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" maxlength="1000" type="@(item.Key == "ContactEmail" ? "email" : item.Key.EndsWith("Url") ? "url" : "text")" />
@@ -59,6 +66,7 @@
     {
         "StoreName" or "StoreSlogan" or "StoreDescription" => "General",
         "WhatsApp" or "ContactEmail" or "ContactPhone" or "ContactAddress" => "Contacto",
+        "PaymentBankTransferEnabled" or "BankName" or "BankAccountType" or "BankAccountNumber" or "BankAccountHolder" or "BankAccountId" => "Pagos",
         "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
         _ => "Compras"
     };
@@ -80,6 +88,12 @@
             "Tik Tok Url" => "TikTok",
             "Monthly Sales Goal" => "Meta mensual de ventas ($; 0 = sin meta)",
             "Shipping Cost" => "Costo de envío ($)",
+            "Payment Bank Transfer Enabled" => "Habilitar transferencia bancaria",
+            "Bank Name" => "Banco",
+            "Bank Account Type" => "Tipo de cuenta",
+            "Bank Account Number" => "Número de cuenta",
+            "Bank Account Holder" => "Titular de la cuenta",
+            "Bank Account Id" => "Identificación del titular (opcional)",
             "Free Shipping Threshold" => "Envío gratis desde ($)",
             "Coupon Single Use Per Customer" => "Limitar cupón a un uso por cliente",
             "Instagram Handle" => "Usuario de Instagram",

@@ -1,6 +1,7 @@
 using Bisuteria.Application.DTOs.Cart;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,6 +77,7 @@ public partial class AuditTests
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var service = scope.ServiceProvider.GetRequiredService<IOrderService>();
         var order = await service.CreateAsync(Checkout(), new CartDto { Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1 }] }, null);
+        Assert.True(await service.ConfirmShippingAsync(order.Id, 0m, "test-owner", StoreRoles.Owner));
         Assert.True(await service.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
         var paidAt = (await db.Payments.AsNoTracking().SingleAsync(p => p.OrderId == order.Id)).PaidAt;
         Assert.NotNull(paidAt);

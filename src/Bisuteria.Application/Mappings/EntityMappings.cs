@@ -124,6 +124,8 @@ public static class EntityMappings
         Discount = s.Discount,
         ShippingCost = s.ShippingCost,
         Total = s.Total,
+        ShippingToConfirm = s.ShippingToConfirm,
+        GuestAccessToken = s.GuestAccessToken,
         CreatedAt = s.CreatedAt,
         TrackingNumber = s.TrackingNumber,
         DeliveryMethod = s.DeliveryMethod,

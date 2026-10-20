@@ -8,6 +8,7 @@ namespace Bisuteria.Application.DTOs.Orders;
 public class CheckoutDto
 {
     public Guid? CheckoutToken { get; set; }
+    public string? GuestAccessToken { get; set; }
     public string CustomerName { get; set; } = string.Empty;
 
     public string CustomerEmail { get; set; } = string.Empty;
@@ -89,6 +90,10 @@ public class OrderDto
     public decimal ShippingCost { get; set; }
 
     public decimal Total { get; set; }
+
+    public bool ShippingToConfirm { get; set; }
+
+    public string? GuestAccessToken { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

@@ -23,6 +23,10 @@ public interface IOrderService
 
     Task<bool> UpdatePaymentStatusAsync(int orderId, PaymentStatus status, CancellationToken cancellationToken = default);
 
+    Task<bool> ConfirmShippingAsync(int orderId, decimal shippingCost, string actorId, string actorRole, CancellationToken cancellationToken = default);
+
+    Task<bool> CanViewGuestOrderAsync(string orderNumber, string accessToken, CancellationToken cancellationToken = default);
+
     Task<int> CountByStatusAsync(OrderStatus status, CancellationToken cancellationToken = default);
 }
 

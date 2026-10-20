@@ -149,6 +149,16 @@ public partial class AuditTests
         Assert.Equal(valid, new CheckoutValidator().Validate(checkout).IsValid);
     }
 
+    [Theory]
+    [InlineData("Manabí", true)]
+    [InlineData("Provincia inventada", false)]
+    public void CheckoutAcceptsOnlyEcuadorianProvincesForDelivery(string province, bool valid)
+    {
+        var checkout = Checkout();
+        checkout.Province = province;
+        Assert.Equal(valid, new CheckoutValidator().Validate(checkout).IsValid);
+    }
+
     [Fact]
     public async Task SalesExcludeCancelledAndUseGuayaquilDay()
     {
@@ -179,7 +189,7 @@ public partial class AuditTests
         {
             ["CheckoutToken"] = token, ["__RequestVerificationToken"] = await AuditFactory.Token(client, "/Checkout"),
             ["CustomerName"] = "Ensayo concurrente", ["CustomerEmail"] = "concurrent@example.test",
-            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Ensayo", ["Province"] = "Ensayo",
+            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Manta", ["Province"] = "Manabí",
             ["PaymentMethod"] = "CashOnDelivery", ["DeliveryMethod"] = "Shipping"
         };
         var responses = await Task.WhenAll(client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)), client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)));

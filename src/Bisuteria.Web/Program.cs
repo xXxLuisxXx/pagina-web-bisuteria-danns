@@ -98,6 +98,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Bisuteria.Web.Services.SecurityAuditLogger>();
 builder.Services.AddScoped<Bisuteria.Web.Cart.CartManager>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IImageUploadService, Bisuteria.Web.Services.ImageUploadService>();
+builder.Services.AddSingleton<Bisuteria.Web.Services.IPaymentProofStorage, Bisuteria.Web.Services.PaymentProofStorage>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IEmailSender, Bisuteria.Web.Services.SmtpEmailSender>();
 builder.Services.AddSingleton<Bisuteria.Web.Services.PasswordRecoveryQueue>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<Bisuteria.Web.Services.PasswordRecoveryQueue>());
@@ -138,8 +139,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Pipeline HTTP.
-app.UseExceptionHandler("/Home/Error");
+// En desarrollo local muestra la excepción completa para diagnosticar fallos.
+// En otros entornos conserva la página genérica y no expone detalles internos.
+if (app.Environment.IsDevelopment())
+    app.UseDeveloperExceptionPage();
+else
+    app.UseExceptionHandler("/Home/Error");
 app.UseStatusCodePagesWithReExecute("/Home/StatusCodePage", "?code={0}");
 if (!app.Environment.IsDevelopment())
 {

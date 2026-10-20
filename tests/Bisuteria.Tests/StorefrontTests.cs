@@ -81,13 +81,31 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     }
     [Fact] public async Task RegisterLoginLogoutAndLocalRedirect()
     {
-        using var client=f.Client();var email=$"new-{Guid.NewGuid():N}@example.test";
-        var result=await AuditFactory.Post(client,"/Account/Register",new(){["Email"]=email,["FirstName"]="Cliente",["LastName"]="Ensayo",["Password"]=AuditFactory.Password,["ConfirmPassword"]=AuditFactory.Password,["ReturnUrl"]="https://evil.example"});
+        using var client=f.Client();var email=$"new-{Guid.NewGuid():N}@example.test";var password=AuditFactory.Password;
+        var result=await AuditFactory.Post(client,"/Account/Register",new(){["Email"]=email,["FirstName"]="Cliente",["LastName"]="Ensayo",["Password"]=password,["ConfirmPassword"]=password,["ReturnUrl"]="https://evil.example"});
         Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);Assert.DoesNotContain("evil",result.Headers.Location!.OriginalString);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/Account/Profile")).StatusCode);
         Assert.Equal(HttpStatusCode.Redirect,(await AuditFactory.Post(client,"/Account/Logout",new())).StatusCode);
         Assert.Equal(HttpStatusCode.Redirect,(await client.GetAsync("/Account/Profile")).StatusCode);
-        result=await AuditFactory.Post(client,"/Account/Login",new(){["Email"]=email,["Password"]=AuditFactory.Password});Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);
+        result=await AuditFactory.Post(client,"/Account/Login",new(){["Email"]=email,["Password"]=password});Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);
+    }
+    [Fact] public async Task RegistrationPasswordErrorsAppearUnderPasswordField()
+    {
+        using var client=f.Client();
+        var email=$"invalid-password-{Guid.NewGuid():N}@example.test";
+        const string password="AA12345!ABCDE";
+        var response=await AuditFactory.Post(client,"/Account/Register",new()
+        {
+            ["Email"]=email,["FirstName"]="Cliente",["LastName"]="Ensayo",
+            ["Password"]=password,["ConfirmPassword"]=password
+        },"/Account/Register");
+
+        Assert.Equal(HttpStatusCode.OK,response.StatusCode);
+        var html=await response.Content.ReadAsStringAsync();
+        Assert.Contains("data-valmsg-for=\"Password\"",html);
+        var visibleHtml=WebUtility.HtmlDecode(html);
+        Assert.Contains("La contraseña debe incluir una letra minúscula.",visibleHtml);
+        Assert.DoesNotContain("<li>La contraseña debe incluir una letra minúscula.</li>",visibleHtml);
     }
     [Fact] public async Task PasswordResetUsesConfiguredOriginAndTokenWorks()
     {
@@ -126,6 +144,32 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         await AuditFactory.Post(client,"/Cart/UpdateQuantity",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="200"});
         Assert.Contains("\"count\":3",await client.GetStringAsync("/Cart/Count"));
         await AuditFactory.Post(client,"/Cart/Clear",new());Assert.Contains("\"count\":0",await client.GetStringAsync("/Cart/Count"));
+    }
+    [Fact] public async Task CartDoesNotChargeShippingBeforeDestinationAndShowsUsdUnitPrice()
+    {
+        using var scope=f.Services.CreateScope();
+        var settings=scope.ServiceProvider.GetRequiredService<ISettingService>();
+        var previous=await settings.GetAsync("ShippingCost");
+        await settings.SetAsync("ShippingCost","5");
+        try
+        {
+            using var client=f.Client();
+            await AuditFactory.Post(client,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
+            var html=WebUtility.HtmlDecode(await client.GetStringAsync("/Cart"));
+
+            Assert.Contains("Precio por unidad: $20.00 USD",html);
+            Assert.Contains("Se calcula al ingresar la dirección",html);
+            Assert.DoesNotContain("$5,00</strong>",html);
+
+            var checkoutHtml=WebUtility.HtmlDecode(await client.GetStringAsync("/Checkout"));
+            Assert.Contains("Por confirmar con la tienda",checkoutHtml);
+            Assert.Contains("Subtotal; falta confirmar envío",checkoutHtml);
+            Assert.DoesNotContain("5.00",checkoutHtml);
+        }
+        finally
+        {
+            await settings.SetAsync("ShippingCost",previous);
+        }
     }
     [Fact] public async Task CustomizedCartLinesAreIndependent()
     {
@@ -254,5 +298,5 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         visualDb.RemoveRange(samples); await visualDb.SaveChangesAsync();
         visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
     }
-    private static CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",City="Ciudad",Province="Provincia",PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
+    private static CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",City="Ciudad",Province="Manabí",PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
 }

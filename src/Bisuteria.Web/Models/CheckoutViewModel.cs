@@ -10,6 +10,9 @@ public class CheckoutViewModel
     public Guid? CheckoutToken { get; set; }
     public CartDto Cart { get; set; } = new();
 
+    /// <summary>El recargo todavía debe ser confirmado por la tienda según el destino.</summary>
+    public bool ShippingToConfirm { get; set; }
+
     [Required(ErrorMessage = "El nombre es obligatorio.")]
     [Display(Name = "Nombre completo")]
     public string CustomerName { get; set; } = string.Empty;

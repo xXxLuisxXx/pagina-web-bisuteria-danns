@@ -57,7 +57,13 @@
                     </div>
                     <div class="col-md-4">
                         <label asp-for="Province" class="form-label"></label>
-                        <input asp-for="Province" class="form-control" />
+                        <select asp-for="Province" class="form-select">
+                            <option value="">Selecciona una provincia</option>
+                            @foreach (var province in EcuadorProvinces.All)
+                            {
+                                <option value="@province">@province</option>
+                            }
+                        </select>
                         <span asp-validation-for="Province" class="text-danger small"></span>
                     </div>
                     <div class="col-md-3">
@@ -109,7 +115,7 @@
                         <i class="bi bi-geo-alt"></i>
                         <div>
                             <strong>Entrega local</strong>
-                            <div class="small text-muted">Coordinamos la entrega dentro de la ciudad, sin costo de envío.</div>
+                            <div class="small text-muted">La tienda confirma el recargo según el destino antes del pago.</div>
                         </div>
                     </label>
                     <label class="payment-option">
@@ -167,12 +173,12 @@
                     </div>
                 }
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Envío</span><strong id="shippingDisplay">@(Model.Cart.ShippingCost == 0 ? "Gratis" : Model.Cart.ShippingCost.ToString("C"))</strong>
+                    <span>Envío</span><strong id="shippingDisplay" class="text-muted">@(Model.ShippingToConfirm ? "Por confirmar con la tienda" : "No aplica")</strong>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fs-5">Total</span>
-                    <strong class="fs-4 text-gold" id="totalDisplay">@Model.Cart.Total.ToString("C")</strong>
+                    <strong class="fs-4 text-gold" id="totalDisplay">@(Model.ShippingToConfirm ? "Subtotal; falta confirmar envío" : Model.Cart.Total.ToString("C"))</strong>
                 </div>
                 <button class="btn btn-brand btn-lg w-100" type="submit" disabled="@(methods.Length == 0)">
                     <i class="bi bi-check2-circle me-2"></i>Confirmar pedido
@@ -196,14 +202,17 @@
             var radios = document.querySelectorAll('#deliveryOptions input[type="radio"]');
             var shipRow = document.getElementById('shippingDisplay');
             var subtotal = @((Model.Cart.Subtotal - Model.Cart.Discount).ToString(System.Globalization.CultureInfo.InvariantCulture));
-            var baseShipping = @Model.Cart.ShippingCost.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var totalRow = document.getElementById('totalDisplay');
 
             function update() {
                 var selected = document.querySelector('#deliveryOptions input[type="radio"]:checked');
                 if (!selected || !shipRow) return;
-                var free = selected.value !== 'Shipping';
-                document.getElementById('totalDisplay').textContent = (Math.max(0, subtotal) + (free ? 0 : baseShipping)).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
-                shipRow.textContent = free ? 'Gratis' : baseShipping.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+                var pending = selected.value !== 'Pickup' && @Model.ShippingToConfirm.ToString().ToLowerInvariant();
+                shipRow.textContent = pending ? 'Por confirmar con la tienda' : (selected.value === 'Pickup' ? 'No aplica' : 'Gratis');
+                shipRow.classList.toggle('text-muted', pending);
+                totalRow.textContent = pending
+                    ? 'Subtotal; falta confirmar envío'
+                    : Math.max(0, subtotal).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
             }
 
             radios.forEach(function (r) { r.addEventListener('change', update); });

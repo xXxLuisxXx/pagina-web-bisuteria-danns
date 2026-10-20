@@ -106,6 +106,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IPaymentProofService, PaymentProofService>();
 
         return services;
     }

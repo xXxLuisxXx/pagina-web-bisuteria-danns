@@ -5,7 +5,10 @@ using Bisuteria.Application.DTOs.Orders;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Bisuteria.Application.Services;
 
@@ -45,7 +48,13 @@ public class OrderService : IOrderService
         if (checkout.CheckoutToken.HasValue)
         {
             var existing = await LoadOrderQuery().SingleOrDefaultAsync(o => o.CheckoutToken == checkout.CheckoutToken, ct);
-            if (existing is not null) return EntityMappings.ToOrder(existing);
+            if (existing is not null)
+            {
+                var existingDto = EntityMappings.ToOrder(existing);
+                if (IsGuestTokenMatch(existing.GuestAccessTokenHash, checkout.GuestAccessToken))
+                    existingDto.GuestAccessToken = checkout.GuestAccessToken;
+                return existingDto;
+            }
         }
         var productRepo = _unitOfWork.Repository<Product>();
         var customizationRepo = _unitOfWork.Repository<Customization>();
@@ -102,8 +111,12 @@ public class OrderService : IOrderService
             discount = coupon.Discount;
         }
         var threshold = await _settings.GetFreeShippingThresholdAsync(ct);
-        var shippingCost = checkout.DeliveryMethod != DeliveryMethod.Shipping ||
-            (threshold.HasValue && subtotal >= threshold.Value) ? 0m : await _settings.GetShippingCostAsync(ct);
+        var shippingToConfirm = checkout.DeliveryMethod != DeliveryMethod.Pickup;
+        var shippingCost = 0m;
+        if (checkout.DeliveryMethod == DeliveryMethod.Shipping && threshold.HasValue && subtotal >= threshold.Value)
+            shippingToConfirm = false;
+
+        var guestTokenHash = string.IsNullOrWhiteSpace(userId) ? HashGuestToken(checkout.GuestAccessToken) : null;
 
         var order = new Order
         {
@@ -127,6 +140,9 @@ public class OrderService : IOrderService
             Discount = discount,
             ShippingCost = shippingCost,
             Total = Math.Max(0, subtotal - discount) + shippingCost,
+            ShippingToConfirm = shippingToConfirm,
+            GuestAccessTokenHash = guestTokenHash,
+            GuestAccessToken = guestTokenHash is null ? null : checkout.GuestAccessToken,
             DeliveryMethod = checkout.DeliveryMethod,
             IsGift = checkout.IsGift,
             GiftRecipientName = checkout.IsGift ? checkout.GiftRecipientName : null,
@@ -275,6 +291,7 @@ public class OrderService : IOrderService
             return false;
 
         if (!OrderTransitions.AllowsPayment(order.Status, order.PaymentStatus, status)) return false;
+        if (order.ShippingToConfirm && status == PaymentStatus.Paid) return false;
         order.PaymentStatus = status;
         foreach (var payment in order.Payments)
         {
@@ -286,6 +303,59 @@ public class OrderService : IOrderService
         repo.Update(order);
         await _unitOfWork.SaveChangesAsync(ct);
         return true;
+    }
+
+    public Task<bool> ConfirmShippingAsync(int orderId, decimal shippingCost, string actorId, string actorRole, CancellationToken ct = default)
+        => _unitOfWork.InTransactionAsync(async () =>
+        {
+            if (shippingCost is < 0 or > 10000 || string.IsNullOrWhiteSpace(actorId) || actorRole is not (StoreRoles.Owner or StoreRoles.Developer or StoreRoles.LegacyAdmin)) return false;
+            var order = await _unitOfWork.Repository<Order>().Query().Include(o => o.Payments).Include(o => o.PaymentProofs)
+                .FirstOrDefaultAsync(o => o.Id == orderId, ct);
+            if (order is null || order.DeliveryMethod == DeliveryMethod.Pickup || order.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Refunded ||
+                order.Status is OrderStatus.Cancelled or OrderStatus.Delivered ||
+                order.PaymentProofs.Any(proof => proof.Status is PaymentProofStatus.Pending or PaymentProofStatus.Approved))
+                return false;
+
+            var oldShipping = order.ShippingCost;
+            var oldTotal = order.Total;
+            order.ShippingCost = decimal.Round(shippingCost, 2, MidpointRounding.AwayFromZero);
+            order.Total = Math.Max(0m, order.Subtotal - order.Discount) + order.ShippingCost;
+            order.ShippingToConfirm = false;
+            order.UpdatedAt = DateTime.UtcNow;
+            foreach (var payment in order.Payments) payment.Amount = order.Total;
+            _unitOfWork.Repository<Order>().Update(order);
+            await _unitOfWork.Repository<AuditLog>().AddAsync(new AuditLog
+            {
+                ActorId = actorId,
+                ActorRole = actorRole,
+                Action = "Order.ShippingConfirmed",
+                EntityType = "Order",
+                EntityId = order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                Outcome = "Success",
+                BeforeJson = System.Text.Json.JsonSerializer.Serialize(new { ShippingCost = oldShipping, Total = oldTotal }),
+                AfterJson = System.Text.Json.JsonSerializer.Serialize(new { ShippingCost = order.ShippingCost, order.Total })
+            });
+            await _unitOfWork.SaveChangesAsync(ct);
+            return true;
+        }, ct);
+
+    public async Task<bool> CanViewGuestOrderAsync(string orderNumber, string accessToken, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken) || accessToken.Length > 128) return false;
+        var savedHash = await _unitOfWork.Repository<Order>().Query().Where(o => o.OrderNumber == orderNumber)
+            .Select(o => o.GuestAccessTokenHash).FirstOrDefaultAsync(ct);
+        return IsGuestTokenMatch(savedHash, accessToken);
+    }
+
+    private static string? HashGuestToken(string? token)
+        => string.IsNullOrWhiteSpace(token) ? null : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private static bool IsGuestTokenMatch(string? expectedHash, string? token)
+    {
+        if (string.IsNullOrWhiteSpace(expectedHash) || string.IsNullOrWhiteSpace(token)) return false;
+        var actualHash = HashGuestToken(token)!;
+        return expectedHash.Length == actualHash.Length && CryptographicOperations.FixedTimeEquals(
+            Encoding.ASCII.GetBytes(expectedHash), Encoding.ASCII.GetBytes(actualHash));
     }
 
     public async Task<int> CountByStatusAsync(OrderStatus status, CancellationToken ct = default)

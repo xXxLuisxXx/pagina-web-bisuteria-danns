@@ -8,6 +8,7 @@ using Bisuteria.Application.Interfaces;
 using Bisuteria.Application.Validators;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
 using Bisuteria.Web.Services;
@@ -31,7 +32,10 @@ public partial class AuditTests
         await settings.SetAsync("ShippingCost","7.50");
         var orders=sp.GetRequiredService<IOrderService>();
         var order=await orders.CreateAsync(Checkout(),new CartDto {ShippingCost=0,Items=[new CartItemDto {ProductId=f.ProductId,Name="Precio falsificado",Quantity=2,UnitPrice=0.01m}]},null);
-        Assert.Equal(40m,order.Subtotal);Assert.Equal(7.50m,order.ShippingCost);Assert.Equal(47.50m,order.Total);
+        Assert.Equal(40m,order.Subtotal);Assert.Equal(0m,order.ShippingCost);Assert.True(order.ShippingToConfirm);
+        Assert.True(await orders.ConfirmShippingAsync(order.Id, 7.50m, "test-owner", StoreRoles.Owner));
+        order = (await orders.GetByNumberAsync(order.OrderNumber))!;
+        Assert.Equal(7.50m,order.ShippingCost);Assert.Equal(47.50m,order.Total);
         Assert.Equal("Pieza de ensayo aislada",order.Items.Single().ProductName);
         await orders.UpdateStatusAsync(order.Id,OrderStatus.Cancelled);
         await settings.SetAsync("ShippingCost","0");
@@ -98,12 +102,49 @@ public partial class AuditTests
     }
 
     [Fact]
+    public async Task ShippingWaitsForOwnerQuoteAndRecalculatesPendingPayment()
+    {
+        using var scope = f.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var orders = services.GetRequiredService<IOrderService>();
+        var token = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        var checkout = Checkout();
+        checkout.CheckoutToken = Guid.NewGuid();
+        checkout.GuestAccessToken = token;
+        var order = await orders.CreateAsync(checkout, new CartDto
+        { Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1 }] }, null);
+
+        Assert.True(order.ShippingToConfirm);
+        Assert.Equal(0m, order.ShippingCost);
+        Assert.Equal(order.Subtotal - order.Discount, order.Total);
+        Assert.True(await orders.CanViewGuestOrderAsync(order.OrderNumber, token));
+        Assert.False(await orders.CanViewGuestOrderAsync(order.OrderNumber, token + "x"));
+        Assert.False(await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
+
+        var actor = await services.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync("owner@example.test");
+        Assert.NotNull(actor);
+        Assert.True(await orders.ConfirmShippingAsync(order.Id, 4.75m, actor!.Id, StoreRoles.Owner));
+
+        var db = services.GetRequiredService<AppDbContext>();
+        var saved = await db.Orders.AsNoTracking().SingleAsync(x => x.Id == order.Id);
+        var payment = await db.Payments.AsNoTracking().SingleAsync(x => x.OrderId == order.Id);
+        Assert.False(saved.ShippingToConfirm);
+        Assert.Equal(4.75m, saved.ShippingCost);
+        Assert.Equal(saved.Subtotal - saved.Discount + 4.75m, saved.Total);
+        Assert.Equal(saved.Total, payment.Amount);
+        Assert.True(await db.Set<AuditLog>().AnyAsync(x => x.Action == "Order.ShippingConfirmed" && x.EntityId == order.Id.ToString()));
+        Assert.True(await db.Set<EmailOutbox>().AnyAsync(x => x.Recipient == order.CustomerEmail && x.Subject == "Recargo de envío confirmado"));
+        Assert.True(await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
+    }
+
+    [Fact]
     public async Task NotesSaveWithoutStatusChangeAndPaymentsStaySynchronized()
     {
         using var scope=f.Services.CreateScope();var sp=scope.ServiceProvider;var service=sp.GetRequiredService<IOrderService>();
         var order=await service.CreateAsync(Checkout(),new CartDto{Items=[new CartItemDto{ProductId=f.ProductId,Quantity=1}]},null);
         Assert.True(await service.UpdateStatusAsync(order.Id,OrderStatus.Pending,"Nota privada"));
         Assert.Equal("Nota privada",await service.GetAdminNotesAsync(order.Id));
+        Assert.True(await service.ConfirmShippingAsync(order.Id, 0m, "test-owner", StoreRoles.Owner));
         Assert.True(await service.UpdatePaymentStatusAsync(order.Id,PaymentStatus.Paid));
         var db=sp.GetRequiredService<AppDbContext>();
         Assert.All(await db.Payments.Where(p=>p.OrderId==order.Id).ToListAsync(),p=>Assert.Equal(PaymentStatus.Paid,p.Status));
@@ -123,7 +164,11 @@ public partial class AuditTests
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync(result.Headers.Location)).StatusCode);
         var confirmation=await client.GetStringAsync(result.Headers.Location);
         Assert.Contains("Departamento 4B",confirmation);Assert.Contains("130802",confirmation);
-        Assert.NotEqual(HttpStatusCode.OK,(await f.Client().GetAsync(result.Headers.Location)).StatusCode);
+        var guestLink = result.Headers.Location!.OriginalString;
+        Assert.Contains("accessToken=", guestLink);
+        var publicLinkWithoutToken = System.Text.RegularExpressions.Regex.Replace(guestLink, "[&?]accessToken=[^&]+", "").TrimEnd('?');
+        Assert.NotEqual(HttpStatusCode.OK,(await f.Client().GetAsync(publicLinkWithoutToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK,(await f.Client().GetAsync(guestLink)).StatusCode);
         Assert.Contains("\"count\":0",await client.GetStringAsync("/Cart/Count"));
         using var scope=f.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var order=await db.Orders.Include(o=>o.Items).SingleAsync(o=>o.CustomerEmail=="http@example.test");

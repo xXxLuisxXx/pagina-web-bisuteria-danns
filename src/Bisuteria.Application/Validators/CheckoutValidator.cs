@@ -36,6 +36,8 @@ public class CheckoutValidator : AbstractValidator<CheckoutDto>
 
         RuleFor(x => x.Province)
             .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La provincia es obligatoria.")
+            .Must(Bisuteria.Domain.Enums.EcuadorProvinces.Contains).When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
+            .WithMessage("Selecciona una provincia del Ecuador.")
             .MaximumLength(120).WithMessage("La provincia no puede superar 120 caracteres.");
 
         RuleFor(x => x.PostalCode)

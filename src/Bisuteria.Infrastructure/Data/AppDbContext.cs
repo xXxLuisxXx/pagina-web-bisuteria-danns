@@ -24,6 +24,7 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<BlogPost> BlogPosts => Set<BlogPost>();
     public DbSet<Coupon> Coupons => Set<Coupon>();
@@ -127,6 +128,7 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
             e.HasIndex(x => x.CheckoutToken).IsUnique().HasFilter("[CheckoutToken] IS NOT NULL");
             e.Property(x => x.CouponCode).HasMaxLength(60);
             e.Property(x => x.OrderNumber).HasMaxLength(30).IsRequired();
+            e.Property(x => x.GuestAccessTokenHash).HasMaxLength(64);
             e.Property(x => x.CustomerName).HasMaxLength(160).IsRequired();
             e.Property(x => x.CustomerEmail).HasMaxLength(200).IsRequired();
             e.Property(x => x.CustomerPhone).HasMaxLength(40).IsRequired();
@@ -206,6 +208,17 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
              .WithMany(o => o.Payments)
              .HasForeignKey(x => x.OrderId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PaymentProof>(e =>
+        {
+            e.Property(x => x.StorageKey).HasMaxLength(80).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(80).IsRequired();
+            e.Property(x => x.ReviewedByUserId).HasMaxLength(450);
+            e.Property(x => x.ReviewNote).HasMaxLength(500);
+            e.HasIndex(x => new { x.OrderId, x.Status });
+            e.HasOne(x => x.Order).WithMany(x => x.PaymentProofs)
+                .HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Address>(e =>

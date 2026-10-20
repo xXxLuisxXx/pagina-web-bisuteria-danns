@@ -39,6 +39,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
 {
     public bool ProcessEmail { get; set; } = true;
     public string DatabaseName { get; } = "BisuteriaAudit_" + Guid.NewGuid().ToString("N");
+    public string ProofStoragePath { get; } = Path.Combine(Path.GetTempPath(), "BisuteriaAuditProofs_" + Guid.NewGuid().ToString("N"));
     public string TestConnection => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
         Environment.GetEnvironmentVariable("BISUTERIA_TEST_CONNECTION") ?? "Server=localhost;Trusted_Connection=True;TrustServerCertificate=True")
         { InitialCatalog = DatabaseName, AttachDBFilename = "" }.ConnectionString;
@@ -57,6 +58,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             ["Database:Initialize"] = "false",
             ["EmailOutbox:AutoProcess"] = ProcessEmail.ToString(),
             ["ConnectionStrings:DefaultConnection"] = TestConnection,
+            ["PaymentProofs:StoragePath"] = ProofStoragePath,
             ["PublicBaseUrl"] = "https://localhost",
             ["Payments:EnabledMethods:0"] = "CashOnDelivery"
         }));
@@ -110,7 +112,13 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             new SiteSetting { Key = "InstagramUrl", Value = "https://www.instagram.com/example/" },
             new SiteSetting { Key = "TikTokUrl", Value = "https://www.tiktok.com/@example" },
             new SiteSetting { Key = "FreeShippingThreshold", Value = "" },
-            new SiteSetting { Key = "ShippingCost", Value = "0" });
+            new SiteSetting { Key = "ShippingCost", Value = "0" },
+            new SiteSetting { Key = "PaymentBankTransferEnabled", Value = "false" },
+            new SiteSetting { Key = "BankName", Value = "" },
+            new SiteSetting { Key = "BankAccountType", Value = "" },
+            new SiteSetting { Key = "BankAccountNumber", Value = "" },
+            new SiteSetting { Key = "BankAccountHolder", Value = "" },
+            new SiteSetting { Key = "BankAccountId", Value = "" });
         await db.SaveChangesAsync();
         ProductId=product.Id; HiddenProductId=hidden.Id; CategoryId=category.Id;
     }
@@ -122,6 +130,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         if (db.Database.GetDbConnection().Database == DatabaseName && DatabaseName.StartsWith("BisuteriaAudit_"))
             await db.Database.EnsureDeletedAsync();
         await base.DisposeAsync();
+        if (Directory.Exists(ProofStoragePath)) Directory.Delete(ProofStoragePath, recursive: true);
     }
     public HttpClient Client() => CreateClient(new WebApplicationFactoryClientOptions { BaseAddress=new Uri("https://localhost"), AllowAutoRedirect=false });
     public static async Task<string> Token(HttpClient client, string path)

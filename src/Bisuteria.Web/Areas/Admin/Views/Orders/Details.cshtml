@@ -48,7 +48,7 @@
             {
                 <div class="d-flex justify-content-between mb-1 text-success"><span>Descuento</span><strong>-@Model.Discount.ToString("C")</strong></div>
             }
-            <div class="d-flex justify-content-between mb-1"><span>Envío</span><strong>@(Model.ShippingCost == 0 ? "Gratis" : Model.ShippingCost.ToString("C"))</strong></div>
+            <div class="d-flex justify-content-between mb-1"><span>Envío</span><strong>@(Model.ShippingToConfirm ? "Por confirmar" : Model.ShippingCost.ToString("C"))</strong></div>
             <hr>
             <div class="d-flex justify-content-between fs-5"><span>Total</span><strong class="text-gold">@Model.Total.ToString("C")</strong></div>
         </div>
@@ -115,6 +115,44 @@
         </div>
 
         <div class="card-admin p-3 mb-3">
+            @if (ViewBag.PaymentProofs is IReadOnlyList<PaymentProofDto> proofs && proofs.Count > 0)
+            {
+                <h6 class="fw-semibold mb-3"><i class="bi bi-receipt me-2 text-gold"></i>Comprobantes de transferencia</h6>
+                @foreach (var proof in proofs)
+                {
+                    <div class="border rounded p-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>@proof.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") · @(proof.ContentType == "application/pdf" ? "PDF" : "Imagen") · @((proof.Length / 1024.0).ToString("0")) KB</span>
+                            @if (ViewBag.CanViewProof is true) { <a class="btn btn-sm btn-outline-secondary" asp-action="Proof" asp-route-id="@proof.Id" target="_blank" rel="noopener">Ver archivo</a> }
+                        </div>
+                        <div class="small">Estado: @proof.Status</div>
+                        @if (proof.Status == PaymentProofStatus.Pending && ViewBag.CanReviewProof is true)
+                        {
+                            <form asp-action="ReviewProof" method="post" class="mt-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@proof.Id" />
+                                <label class="form-label small" for="proof-note-@proof.Id">Motivo si se rechaza</label>
+                                <input id="proof-note-@proof.Id" name="note" class="form-control form-control-sm mb-2" maxlength="500" />
+                                <button class="btn btn-sm btn-success" name="approve" value="true" type="submit">Aprobar y registrar pago</button>
+                                <button class="btn btn-sm btn-outline-danger" name="approve" value="false" type="submit">Rechazar</button>
+                            </form>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(proof.ReviewNote)) { <p class="small text-muted mb-0">@proof.ReviewNote</p> }
+                    </div>
+                }
+            }
+            @if (ViewBag.CanEditShipping is true)
+            {
+                <h6 class="fw-semibold mb-2"><i class="bi bi-truck me-2 text-gold"></i>@(Model.ShippingToConfirm ? "Confirmar recargo de envío" : "Actualizar recargo de envío")</h6>
+                <p class="small text-muted">Revisa ciudad y dirección; registra el monto acordado en USD. El cliente recibirá el total actualizado.</p>
+                <form asp-action="ConfirmShipping" method="post" class="d-flex flex-column gap-2 mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="orderNumber" value="@Model.OrderNumber" />
+                    <label for="shippingCost" class="form-label">Recargo (USD)</label>
+                    <input id="shippingCost" name="shippingCost" type="number" class="form-control" min="0" max="10000" step="0.01" required />
+                    <button class="btn btn-gold" type="submit">Confirmar envío y total</button>
+                </form>
+            }
             <h6 class="fw-semibold mb-3"><i class="bi bi-credit-card me-2 text-gold"></i>Pago</h6>
             <p class="mb-2"><strong>Método:</strong> @Model.PaymentMethodLabel</p>
             <p class="small text-muted">Marca «Reembolsado» únicamente después de devolver el dinero por el medio acordado. Esta acción no realiza una devolución bancaria.</p>
@@ -127,7 +165,7 @@
                         <option value="@status" selected="@(status == Model.PaymentStatus)">@status.GetLabel()</option>
                     }
                 </select>
-                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat me-2"></i>Actualizar pago</button>
+                <button class="btn btn-outline-secondary" type="submit" disabled="@Model.ShippingToConfirm"><i class="bi bi-arrow-repeat me-2"></i>Actualizar pago</button>
             </form>
         </div>
     </div>

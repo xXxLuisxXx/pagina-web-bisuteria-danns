@@ -38,7 +38,7 @@
                                 {
                                     <div class="small text-gold"><i class="bi bi-magic me-1"></i>@item.CustomizationSummary</div>
                                 }
-                                <span class="text-muted small">@item.UnitPrice.ToString("C") c/u</span>
+                                <span class="text-muted small">Precio por unidad: $@item.UnitPrice.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) USD</span>
                                 <div class="d-flex align-items-center gap-3 mt-2">
                                     <form asp-controller="Cart" asp-action="UpdateQuantity" method="post" class="d-inline-flex align-items-center gap-2">
                                         @Html.AntiForgeryToken()
@@ -108,7 +108,7 @@
 
                     <div class="d-flex justify-content-between mb-2">
                         <span>Envío</span>
-                        <strong>@(Model.ShippingCost == 0 ? "Gratis" : Model.ShippingCost.ToString("C"))</strong>
+                        <strong class="text-muted">Se calcula al ingresar la dirección</strong>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-center mb-4">
