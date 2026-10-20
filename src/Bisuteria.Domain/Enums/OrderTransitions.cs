@@ -5,7 +5,7 @@ public static class OrderTransitions
 {
     public static bool Allows(OrderStatus current, OrderStatus next, PaymentStatus payment)
     {
-        if (!Enum.IsDefined(current) || !Enum.IsDefined(next)) return false;
+        if (!Enum.IsDefined(current) || !Enum.IsDefined(next) || !Enum.IsDefined(payment)) return false;
         if (current == next) return true; // Permite actualizar notas sin mover inventario.
         if (next == OrderStatus.Cancelled)
             return current is OrderStatus.Pending or OrderStatus.Confirmed or OrderStatus.Preparing or OrderStatus.Ready
@@ -19,7 +19,7 @@ public static class OrderTransitions
     }
 
     public static bool AllowsPayment(OrderStatus order, PaymentStatus current, PaymentStatus next)
-        => order != OrderStatus.Cancelled && Enum.IsDefined(current) && Enum.IsDefined(next)
+        => Enum.IsDefined(order) && order != OrderStatus.Cancelled && Enum.IsDefined(current) && Enum.IsDefined(next)
         && (current == next || (current, next) is
             (PaymentStatus.Pending, PaymentStatus.Paid) or
             (PaymentStatus.Pending, PaymentStatus.Failed) or

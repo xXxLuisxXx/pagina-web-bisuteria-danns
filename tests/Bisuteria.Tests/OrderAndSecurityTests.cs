@@ -82,6 +82,22 @@ public partial class AuditTests
     }
 
     [Fact]
+    public async Task ProductEditIgnoresNullAndBlankImageEntries()
+    {
+        using var scope = f.Services.CreateScope();
+        var products = scope.ServiceProvider.GetRequiredService<IProductAdminService>();
+        var product = (await products.GetForEditAsync(f.ProductId))!;
+        var originalImageCount = product.Images.Count;
+        product.Description = "Descripción actualizada";
+
+        await products.SaveAsync(product, new string[] { null!, string.Empty, "  \r\n  " });
+
+        var updated = (await products.GetForEditAsync(f.ProductId))!;
+        Assert.Equal("Descripción actualizada", updated.Description);
+        Assert.Equal(originalImageCount, updated.Images.Count);
+    }
+
+    [Fact]
     public async Task NotesSaveWithoutStatusChangeAndPaymentsStaySynchronized()
     {
         using var scope=f.Services.CreateScope();var sp=scope.ServiceProvider;var service=sp.GetRequiredService<IOrderService>();

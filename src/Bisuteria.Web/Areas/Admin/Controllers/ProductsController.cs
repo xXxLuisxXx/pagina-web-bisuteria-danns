@@ -66,7 +66,10 @@ public class ProductsController : AdminBaseController
         try
         {
             uploadedUrls = await _imageUpload.SaveManyAsync(imageFiles ?? new List<IFormFile>(), "products", ct);
-            var allImages = (newImages ?? Array.Empty<string>()).Concat(uploadedUrls).ToArray();
+            var allImages = (newImages ?? Array.Empty<string>())
+                .Where(imageUrl => !string.IsNullOrWhiteSpace(imageUrl))
+                .Concat(uploadedUrls)
+                .ToArray();
 
             var id = await _products.SaveAsync(dto, allImages, ct);
             saved = true;

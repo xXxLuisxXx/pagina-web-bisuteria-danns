@@ -92,7 +92,12 @@ public class ProductAdminService : IProductAdminService
         if (product.Images.Count > 0 && !product.Images.Any(i => i.IsPrimary))
             product.Images.OrderBy(i => i.DisplayOrder).First().IsPrimary = true;
         // Agregar nuevas imágenes.
-        foreach (var url in newImageUrls.SelectMany(x => x.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)).Select(x => x.Trim()).Distinct())
+        foreach (var url in (newImageUrls ?? Array.Empty<string>())
+                     .Where(value => !string.IsNullOrWhiteSpace(value))
+                     .SelectMany(value => value!.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                     .Select(value => value.Trim())
+                     .Where(value => !string.IsNullOrWhiteSpace(value))
+                     .Distinct())
         {
             if (string.IsNullOrWhiteSpace(url))
                 continue;

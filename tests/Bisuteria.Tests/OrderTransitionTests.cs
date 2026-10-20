@@ -9,6 +9,21 @@ using Xunit;
 public partial class AuditTests
 {
     [Theory]
+    [InlineData((OrderStatus)999, OrderStatus.Pending, PaymentStatus.Pending)]
+    [InlineData(OrderStatus.Pending, (OrderStatus)999, PaymentStatus.Pending)]
+    [InlineData(OrderStatus.Pending, OrderStatus.Confirmed, (PaymentStatus)999)]
+    public void OrderTransitionRejectsUndefinedEnumValues(OrderStatus current, OrderStatus next, PaymentStatus payment)
+        => Assert.False(OrderTransitions.Allows(current, next, payment));
+
+    [Theory]
+    [InlineData((OrderStatus)999, PaymentStatus.Pending, PaymentStatus.Paid)]
+    [InlineData(OrderStatus.Cancelled, PaymentStatus.Pending, PaymentStatus.Paid)]
+    [InlineData(OrderStatus.Pending, (PaymentStatus)999, PaymentStatus.Paid)]
+    [InlineData(OrderStatus.Pending, PaymentStatus.Pending, (PaymentStatus)999)]
+    public void PaymentTransitionRejectsUndefinedEnumValues(OrderStatus order, PaymentStatus current, PaymentStatus next)
+        => Assert.False(OrderTransitions.AllowsPayment(order, current, next));
+
+    [Theory]
     [InlineData(OrderStatus.Pending)]
     [InlineData(OrderStatus.Confirmed)]
     [InlineData(OrderStatus.Preparing)]
