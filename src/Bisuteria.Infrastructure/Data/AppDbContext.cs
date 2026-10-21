@@ -10,8 +10,13 @@ namespace Bisuteria.Infrastructure.Data;
 /// </summary>
 public partial class AppDbContext : IdentityDbContext<ApplicationUser>
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    private readonly Uri? _publicBaseUri;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, Microsoft.Extensions.Configuration.IConfiguration? configuration = null) : base(options)
     {
+        if (Uri.TryCreate(configuration?["PublicBaseUrl"], UriKind.Absolute, out var origin) &&
+            origin.Scheme == Uri.UriSchemeHttps && string.IsNullOrEmpty(origin.UserInfo))
+            _publicBaseUri = origin;
     }
 
     public DbSet<Category> Categories => Set<Category>();
@@ -64,7 +69,7 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
         });
         builder.Entity<EmailOutbox>(e =>
         {
-            e.Property(x => x.Recipient).HasMaxLength(200);
+            e.Property(x => x.Recipient).HasMaxLength(254);
             e.Property(x => x.Kind).HasMaxLength(40);
             e.Property(x => x.Subject).HasMaxLength(200);
             e.Property(x => x.LastError).HasMaxLength(100);

@@ -473,8 +473,8 @@ namespace Bisuteria.Infrastructure.Migrations
 
                     b.Property<string>("Recipient")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("datetime2");

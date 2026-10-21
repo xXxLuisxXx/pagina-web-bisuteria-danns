@@ -80,12 +80,12 @@ public sealed class PasswordRecoveryQueue(IServiceScopeFactory scopes, IConfigur
 
     private static string GetSafeFailureMessage(Exception exception, string? host)
     {
-        if (exception is SmtpConfigurationException configurationException)
-            return configurationException.Message;
+        if (exception is SmtpConfigurationException)
+            return "Configuración SMTP inválida. Revisa host, puerto, TLS y contraseña de aplicación.";
 
         if (exception is SmtpException)
             return string.Equals(host, "smtp.gmail.com", StringComparison.OrdinalIgnoreCase)
-                ? "Gmail rechazó o no pudo completar el envío. Revisa Smtp:User y la contraseña de aplicación de 16 caracteres."
+                ? "Gmail rechazó el envío. Revisa el usuario y la contraseña de aplicación de 16 caracteres."
                 : "El servidor SMTP rechazó o no pudo completar el envío. Revisa host, puerto, TLS y credenciales.";
 
         return "Entrega fallida; revisar proveedor de correo.";
