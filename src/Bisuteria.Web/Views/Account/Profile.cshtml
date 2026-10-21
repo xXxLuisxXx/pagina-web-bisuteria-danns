@@ -46,7 +46,14 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Province" class="form-label"></label>
-                            <input asp-for="Province" class="form-control" />
+                            <select asp-for="Province" class="form-select">
+                                <option value="">Selecciona una provincia</option>
+                                @foreach (var province in (IReadOnlyList<string>)ViewBag.Provinces)
+                                {
+                                    <option value="@province">@province</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Province" class="text-danger small"></span>
                         </div>
                     </div>
                     <button class="btn btn-brand mt-4 w-100" type="submit"><i class="bi bi-check2 me-2"></i>Guardar cambios</button>

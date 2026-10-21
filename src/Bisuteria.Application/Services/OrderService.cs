@@ -308,7 +308,8 @@ public class OrderService : IOrderService
     public Task<bool> ConfirmShippingAsync(int orderId, decimal shippingCost, string actorId, string actorRole, CancellationToken ct = default)
         => _unitOfWork.InTransactionAsync(async () =>
         {
-            if (shippingCost is < 0 or > 10000 || string.IsNullOrWhiteSpace(actorId) || actorRole is not (StoreRoles.Owner or StoreRoles.Developer or StoreRoles.LegacyAdmin)) return false;
+            if (shippingCost is < 0 or > 10000 || decimal.Round(shippingCost, 2) != shippingCost ||
+                string.IsNullOrWhiteSpace(actorId) || actorRole is not (StoreRoles.Owner or StoreRoles.Developer or StoreRoles.LegacyAdmin)) return false;
             var order = await _unitOfWork.Repository<Order>().Query().Include(o => o.Payments).Include(o => o.PaymentProofs)
                 .FirstOrDefaultAsync(o => o.Id == orderId, ct);
             if (order is null || order.DeliveryMethod == DeliveryMethod.Pickup || order.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Refunded ||

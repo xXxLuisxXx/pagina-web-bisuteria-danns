@@ -18,6 +18,8 @@ public class CouponInputValidator : AbstractValidator<CouponInputDto>
         RuleFor(x => x.Value).LessThanOrEqualTo(100).When(x => x.Type == DiscountType.Percentage).WithMessage("El porcentaje no puede superar 100.");
         RuleFor(x => x.MinAmount).InclusiveBetween(0, 9999999).WithMessage("Importe mínimo inválido.");
         RuleFor(x => x.MaxUses).GreaterThan(0).When(x => x.MaxUses.HasValue).WithMessage("El límite de usos debe ser positivo.");
+        RuleFor(x => x.StartsAt).Must(x => !x.HasValue || x.Value.Year is >= 2000 and <= 2100).WithMessage("La fecha de inicio debe estar entre 2000 y 2100.");
+        RuleFor(x => x.ExpiresAt).Must(x => !x.HasValue || x.Value.Year is >= 2000 and <= 2100).WithMessage("La fecha de vencimiento debe estar entre 2000 y 2100.");
         RuleFor(x => x.ExpiresAt).GreaterThan(x => x.StartsAt).When(x => x.StartsAt.HasValue && x.ExpiresAt.HasValue).WithMessage("La fecha final debe ser posterior al inicio.");
         RuleFor(x => x.Description).MaximumLength(1000).WithMessage("La descripción no puede superar 1000 caracteres.");
     }

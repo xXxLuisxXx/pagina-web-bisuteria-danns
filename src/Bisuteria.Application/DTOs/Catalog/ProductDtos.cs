@@ -94,10 +94,10 @@ public class ProductInputDto
     [System.ComponentModel.DataAnnotations.StringLength(10000, ErrorMessage = "{0} admite hasta 10000 caracteres.")]
     public string? Description { get; set; }
 
-    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ParseLimitsInInvariantCulture = true, ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal Price { get; set; }
 
-    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ParseLimitsInInvariantCulture = true, ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal? ComparePrice { get; set; }
 
     [System.ComponentModel.DataAnnotations.StringLength(120, ErrorMessage = "{0} admite hasta 120 caracteres.")]

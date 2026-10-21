@@ -19,6 +19,7 @@
             <div class="col-md-6">
                 <label asp-for="Description" class="form-label">Descripción</label>
                 <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label asp-for="Type" class="form-label">Tipo</label>
@@ -26,6 +27,7 @@
                     <option value="Percentage">Porcentaje (%)</option>
                     <option value="FixedAmount">Monto fijo ($)</option>
                 </select>
+                <span asp-validation-for="Type" class="text-danger small"></span>
             </div>
             <div class="col-md-4">
                 <label asp-for="Value" class="form-label">Valor</label>
@@ -35,14 +37,22 @@
             <div class="col-md-4">
                 <label asp-for="MinAmount" class="form-label">Compra mínima ($)</label>
                 <input asp-for="MinAmount" class="form-control" type="number" step="0.01" min="0" />
+                <span asp-validation-for="MinAmount" class="text-danger small"></span>
             </div>
             <div class="col-md-6">
                 <label asp-for="MaxUses" class="form-label">Máximo de usos (vacío = ilimitado)</label>
                 <input asp-for="MaxUses" class="form-control" type="number" min="1" />
+                <span asp-validation-for="MaxUses" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="StartsAt" class="form-label">Fecha de inicio</label>
+                <input asp-for="StartsAt" class="form-control" type="date" min="2000-01-01" max="2100-12-31" />
+                <span asp-validation-for="StartsAt" class="text-danger small"></span>
             </div>
             <div class="col-md-6">
                 <label asp-for="ExpiresAt" class="form-label">Fecha de expiración</label>
-                <input asp-for="ExpiresAt" class="form-control" type="date" />
+                <input asp-for="ExpiresAt" class="form-control" type="date" min="2000-01-01" max="2100-12-31" />
+                <span asp-validation-for="ExpiresAt" class="text-danger small"></span>
             </div>
             <div class="col-12">
                 <div class="form-check form-switch">

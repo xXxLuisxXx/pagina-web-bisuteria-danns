@@ -287,6 +287,7 @@ public partial class AccountController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user is null)
             return RedirectToAction(nameof(Login));
+        ViewBag.Provinces = Bisuteria.Domain.Enums.EcuadorProvinces.All;
 
         var model = new ProfileViewModel
         {
@@ -312,6 +313,7 @@ public partial class AccountController : Controller
         ViewData["Title"] = "Mi perfil";
         var currentId = _userManager.GetUserId(User);
         ViewBag.Favorites = await _catalog.GetUserFavoritesAsync(currentId!);
+        ViewBag.Provinces = Bisuteria.Domain.Enums.EcuadorProvinces.All;
         if (!ModelState.IsValid)
             return View(model);
 

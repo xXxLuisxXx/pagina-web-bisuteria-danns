@@ -261,14 +261,15 @@ public class CouponInputDto
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "{0} es obligatorio.")]
     public string Code { get; set; } = string.Empty;
 
+    [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DiscountType), ErrorMessage = "Selecciona un tipo de descuento válido.")]
     public DiscountType Type { get; set; } = DiscountType.Percentage;
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Valor")]
-    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0.01", "9999999", ParseLimitsInInvariantCulture = true, ErrorMessage = "{0} debe estar entre 0.01 y 9999999.")]
     public decimal Value { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Importe mínimo")]
-    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0", "9999999", ErrorMessage = "{0} debe estar entre 0 y 9999999.")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0", "9999999", ParseLimitsInInvariantCulture = true, ErrorMessage = "{0} debe estar entre 0 y 9999999.")]
     public decimal MinAmount { get; set; }
 
     [System.ComponentModel.DataAnnotations.Display(Name = "Límite de usos")]

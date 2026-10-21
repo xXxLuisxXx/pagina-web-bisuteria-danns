@@ -26,10 +26,10 @@ public class ProductInputValidator : AbstractValidator<ProductInputDto>
             .WithMessage("El precio anterior admite hasta 2 decimales y debe estar dentro del rango permitido.");
 
         RuleFor(x => x.Stock)
-            .GreaterThanOrEqualTo(0).WithMessage("El stock no puede ser negativo.");
+            .InclusiveBetween(0, 1_000_000).WithMessage("El stock debe estar entre 0 y 1000000.");
 
         RuleFor(x => x.MinStock)
-            .GreaterThanOrEqualTo(0).WithMessage("El stock mínimo no puede ser negativo.");
+            .InclusiveBetween(0, 1_000_000).WithMessage("El stock mínimo debe estar entre 0 y 1000000.");
 
         RuleFor(x => x.CategoryId)
             .GreaterThan(0).WithMessage("Selecciona una categoría.");

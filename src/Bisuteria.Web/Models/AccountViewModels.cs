@@ -89,6 +89,7 @@ public class ProfileViewModel
 
     [Display(Name = "Provincia")]
     [StringLength(120, ErrorMessage = "El campo no puede superar 120 caracteres.")]
+    [EcuadorProvince]
     public string? Province { get; set; }
 }
 
