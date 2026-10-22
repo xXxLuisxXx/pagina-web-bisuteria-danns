@@ -76,6 +76,14 @@ async function inspect(context, name, route, allowedStatus = 200) {
         };
         const describe = element => ({ tag: element.tagName, target: element.id ? '#' + element.id : element.tagName.toLowerCase() + (element.classList.length ? '.' + [...element.classList].slice(0, 2).join('.') : ''), text: (element.getAttribute('aria-label') || element.textContent || '').trim().slice(0, 70) });
         const controls = [...document.querySelectorAll('button,input:not([type="hidden"]),select,textarea')].filter(visible);
+        const whatsapp = document.querySelector('.whatsapp-float');
+        const whatsappBox = whatsapp?.getBoundingClientRect();
+        const whatsappOverlaps = whatsappBox && visible(whatsapp) ? [...document.querySelectorAll('a[href],button,input:not([type="hidden"]),select,textarea')]
+          .filter(element => element !== whatsapp && !whatsapp.contains(element) && !element.contains(whatsapp) && visible(element))
+          .filter(element => {
+            const box = element.getBoundingClientRect();
+            return Math.min(whatsappBox.right, box.right) - Math.max(whatsappBox.left, box.left) > 3 && Math.min(whatsappBox.bottom, box.bottom) - Math.max(whatsappBox.top, box.top) > 3;
+          }).map(describe) : [];
         const overlapping = [];
         for (let first = 0; first < controls.length; first++) for (let second = first + 1; second < controls.length; second++) {
           const left = controls[first]; const right = controls[second];
@@ -99,6 +107,7 @@ async function inspect(context, name, route, allowedStatus = 200) {
           brokenImages: [...document.images].filter(image => !image.complete || image.naturalWidth === 0).map(image => new URL(image.src).pathname),
           overflowElements: [...document.querySelectorAll('body *')].filter(element => visible(element) && element.getBoundingClientRect().right > innerWidth + 2 && getComputedStyle(element).position !== 'fixed').slice(0, 12).map(describe),
           overlappingControls: overlapping.slice(0, 12),
+          whatsappOverlaps,
           touchTargetCandidates: [...document.querySelectorAll('button,input:not([type="hidden"]),select,textarea,a')].filter(visible).map(element => ({ ...describe(element), width: Math.round(element.getBoundingClientRect().width), height: Math.round(element.getBoundingClientRect().height) })).filter(element => element.width < 44 || element.height < 44).slice(0, 30),
           loaderVisible: [...document.querySelectorAll('#appLoader')].some(visible),
           inlineStyles: [...document.querySelectorAll('style')].map(style => ({ nonce: style.nonce, content: style.textContent.slice(0, 200) })),
@@ -242,7 +251,11 @@ async function main() {
     });
 
     if (process.env.BROWSER_AUDIT_QUICK === '1') {
-      // La compra ya dejó el carrito vacío; el checkout con artículos se inspeccionó antes de confirmar.
+      // Repoblar el carrito de prueba permite revisar su estado móvil después de completar la compra.
+      const cartPage = await anonymous.newPage();
+      await cartPage.goto(base + '/Catalog/Details?slug=audit-product', { waitUntil: 'domcontentloaded' });
+      await Promise.all([cartPage.waitForURL('**/Cart'), cartPage.locator('form[action*="Cart/Add"] button[type="submit"]').click()]);
+      await cartPage.close();
       for (const [name, route] of [['home', '/'], ['cart', '/Cart']]) await inspect(anonymous, name, route);
       await login(owner, 'Owner');
       if (orderNumber) await inspect(owner, 'order-details', '/Order/Details?orderNumber=' + encodeURIComponent(orderNumber));

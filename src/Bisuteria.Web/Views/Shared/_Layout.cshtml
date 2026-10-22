@@ -52,7 +52,12 @@
     <meta name="twitter:description" content="@pageDescription" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script nonce="@Context.Items["CspNonce"]">
+        document.addEventListener('load', function (event) {
+            if (event.target && event.target.id === 'brandFonts') event.target.media = 'all';
+        }, true);
+    </script>
+    <link id="brandFonts" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -170,6 +175,25 @@
         @RenderBody()
     </main>
 
+    <aside class="cookie-notice" id="cookieNotice" role="region" aria-label="Aviso de cookies">
+        <div>
+            <strong>Cookies necesarias</strong>
+            <p class="mb-0">Usamos cookies necesarias para la sesión, seguridad y carrito. Actualmente no activamos cookies opcionales de analítica o marketing. Revisa la <a asp-controller="Home" asp-action="Privacy">política de privacidad</a>.</p>
+        </div>
+        <button class="btn btn-outline-brand" id="cookieNoticeAccept" type="button">Entendido</button>
+    </aside>
+
+    @if (!string.IsNullOrWhiteSpace(whatsapp))
+    {
+        var wa = whatsapp.Replace("+", "").Replace(" ", "").Replace("-", "");
+        var waMessage = "Hola, estoy interesado/a en conocer sus productos de bisutería personalizada. Me gustaría recibir información sobre sus productos y precios.";
+        var waUrl = $"https://wa.me/{wa}?text={Uri.EscapeDataString(waMessage)}";
+        <a href="@waUrl" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Escríbenos por WhatsApp"
+           data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Contáctanos por WhatsApp">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i><span class="whatsapp-float-label">Escríbenos por WhatsApp</span>
+        </a>
+    }
+
     <!-- Footer -->
     <footer class="site-footer">
         <div class="container">
@@ -230,30 +254,11 @@
             </div>
             <div class="footer-bottom">
                 <span>&copy; @DateTime.UtcNow.Year @storeName. Todos los derechos reservados.</span>
+                <a class="footer-back-to-top" href="#contenido">Volver arriba</a>
                 <span>Hecho a mano, con <i class="bi bi-heart-fill text-danger"></i> y mucho brillo ✨</span>
             </div>
         </div>
     </footer>
-
-    <aside class="cookie-notice" id="cookieNotice" role="region" aria-label="Aviso de cookies">
-        <div>
-            <strong>Cookies necesarias</strong>
-            <p class="mb-0">Usamos cookies necesarias para la sesión, seguridad y carrito. Actualmente no activamos cookies opcionales de analítica o marketing. Revisa la <a asp-controller="Home" asp-action="Privacy">política de privacidad</a>.</p>
-        </div>
-        <button class="btn btn-outline-brand" id="cookieNoticeAccept" type="button">Entendido</button>
-    </aside>
-
-    <!-- WhatsApp flotante -->
-    @if (!string.IsNullOrWhiteSpace(whatsapp))
-    {
-        var wa = whatsapp.Replace("+", "").Replace(" ", "").Replace("-", "");
-        var waMessage = "Hola, estoy interesado/a en conocer sus productos de bisutería personalizada. Me gustaría recibir información sobre sus productos y precios.";
-        var waUrl = $"https://wa.me/{wa}?text={Uri.EscapeDataString(waMessage)}";
-        <a href="@waUrl" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Contáctanos por WhatsApp"
-           data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Contáctanos por WhatsApp">
-            <i class="bi bi-whatsapp"></i>
-        </a>
-    }
 
     <!-- Volver arriba -->
     <button class="back-to-top" id="backToTop" aria-label="Volver arriba">
@@ -263,9 +268,9 @@
     <!-- Toasts -->
     <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 
-    <script nonce="@Context.Items["CspNonce"]" src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script nonce="@Context.Items["CspNonce"]" src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script nonce="@Context.Items["CspNonce"]" src="~/js/site.js" asp-append-version="true"></script>
+    <script defer nonce="@Context.Items["CspNonce"]" src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script defer nonce="@Context.Items["CspNonce"]" src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer nonce="@Context.Items["CspNonce"]" src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
