@@ -83,7 +83,8 @@ public class OrdersController : AdminBaseController
             order.CustomerPhone = "Oculto";
             order.AddressLine1 = "Oculta";
             order.AddressLine2 = null;
-            order.PostalCode = null;
+            order.DeliverySector = "Datos reservados";
+            order.DeliveryZoneName = "Datos reservados";
             order.City = "Oculta";
             order.Province = "Oculta";
             order.Observations = null;

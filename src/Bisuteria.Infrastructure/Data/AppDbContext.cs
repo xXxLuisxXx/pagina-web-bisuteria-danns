@@ -23,6 +23,7 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<DeliveryZone> DeliveryZones => Set<DeliveryZone>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Customization> Customizations => Set<Customization>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
@@ -141,12 +142,26 @@ public partial class AppDbContext : IdentityDbContext<ApplicationUser>
             e.Property(x => x.CustomerPhone).HasMaxLength(40).IsRequired();
             e.Property(x => x.City).HasMaxLength(120);
             e.Property(x => x.Province).HasMaxLength(120);
+            e.Property(x => x.DeliverySector).HasMaxLength(120);
+            e.Property(x => x.DeliveryZoneName).HasMaxLength(160);
             e.Property(x => x.Subtotal).HasPrecision(18, 2);
             e.Property(x => x.Discount).HasPrecision(18, 2);
             e.Property(x => x.ShippingCost).HasPrecision(18, 2);
             e.Property(x => x.Total).HasPrecision(18, 2);
             e.HasIndex(x => x.OrderNumber).IsUnique();
             e.HasIndex(x => x.Status);
+            e.HasOne(x => x.DeliveryZone).WithMany(x => x.Orders).HasForeignKey(x => x.DeliveryZoneId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<DeliveryZone>(e =>
+        {
+            e.Property(x => x.Province).HasMaxLength(120).IsRequired();
+            e.Property(x => x.City).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Sector).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Cost).HasPrecision(18, 2);
+            e.Property(x => x.EstimatedTime).HasMaxLength(160);
+            e.HasIndex(x => new { x.Province, x.City, x.Sector }).IsUnique();
+            e.HasIndex(x => new { x.IsActive, x.SortOrder, x.City });
         });
 
         builder.Entity<OrderItem>(e =>

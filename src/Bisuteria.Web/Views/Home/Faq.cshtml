@@ -1,3 +1,11 @@
+@inject ISettingService SettingsService
+@{
+    ViewData["Description"] = "Preguntas frecuentes sobre pedidos, entregas en Manta y Jaramijó, pagos y cambios de Bisuterías Dann’s.";
+    var faqSettings = await SettingsService.GetAllAsync();
+    var productionTime = faqSettings.GetValueOrDefault("ProductionTimeText");
+    var returnsPolicy = faqSettings.GetValueOrDefault("ReturnsPolicyText");
+}
+
 <section class="page-hero">
     <div class="container">
         <h1>Preguntas frecuentes</h1>
@@ -16,8 +24,7 @@
                 </h2>
                 <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
                     <div class="accordion-body">
-                        Las piezas personalizadas se elaboran en un plazo de <strong>2 a 4 días hábiles</strong>.
-                        Las piezas de catálogo (sin personalizar) se despachan en 24 a 48 horas.
+                        @(string.IsNullOrWhiteSpace(productionTime) ? "La tienda confirmará el plazo de preparación antes de concretar el pedido." : productionTime)
                     </div>
                 </div>
             </div>
@@ -29,7 +36,7 @@
                 </h2>
                 <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                     <div class="accordion-body">
-                        Aceptamos <strong>pago contra entrega</strong> (efectivo) y <strong>transferencia bancaria</strong>.
+                        Al finalizar la compra verás los métodos de pago habilitados. Si eliges transferencia bancaria, espera a tener el total confirmado y sigue las instrucciones del pedido.
                     </div>
                 </div>
             </div>
@@ -41,8 +48,9 @@
                 </h2>
                 <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                     <div class="accordion-body">
-                        El envío tiene un costo fijo y es <strong>gratis en pedidos a partir de $30</strong>.
-                        Enviamos a todo el país con empaque seguro y de regalo.
+                        Hacemos <strong>envíos en Manta y Jaramijó, Manabí</strong>. El costo depende del sector y se muestra al finalizar la compra.
+                        Una zona puede estar marcada con envío gratis; si el sector requiere cotización, la tienda confirma el recargo y el total antes del pago.
+                        <a asp-controller="Home" asp-action="Shipping">Consulta la cobertura y las condiciones de entrega.</a>
                     </div>
                 </div>
             </div>
@@ -67,9 +75,8 @@
                 </h2>
                 <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                     <div class="accordion-body">
-                        Aceptamos cambios en <strong>piezas de catálogo</strong> dentro de los primeros
-                        <strong>7 días</strong>. Las piezas personalizadas no son sujetas a devolución, salvo
-                        defectos de fabricación. Consulta nuestra política de envíos y devoluciones.
+                        @(string.IsNullOrWhiteSpace(returnsPolicy) ? "Las condiciones de cambios y devoluciones están pendientes de confirmar por la tienda. Consúltalas antes de concretar tu compra." : returnsPolicy)
+                        <a asp-controller="Home" asp-action="Shipping">Consulta la política de envíos y devoluciones.</a>
                     </div>
                 </div>
             </div>

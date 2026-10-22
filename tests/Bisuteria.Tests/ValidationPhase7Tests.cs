@@ -26,8 +26,8 @@ public partial class AuditTests
         var checkout = new CheckoutDto
         {
             CustomerName = "Cliente de prueba", CustomerEmail = $"quote-{Guid.NewGuid():N}@example.test",
-            CustomerPhone = "+593 999 111 222", AddressLine1 = "Calle de prueba", City = "Manta",
-            Province = "Manabí", PaymentMethod = PaymentMethod.CashOnDelivery, DeliveryMethod = DeliveryMethod.Shipping,
+            CustomerPhone = "+593 999 111 222", AddressLine1 = "Calle de prueba",
+            DeliveryZoneId = f.DeliveryZoneId, PaymentMethod = PaymentMethod.CashOnDelivery, DeliveryMethod = DeliveryMethod.Shipping,
             CheckoutToken = Guid.NewGuid()
         };
         var order = await orders.CreateAsync(checkout,

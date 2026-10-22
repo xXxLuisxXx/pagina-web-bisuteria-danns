@@ -2,15 +2,18 @@ using System.ComponentModel.DataAnnotations;
 using Bisuteria.Application.DTOs.Cart;
 using Bisuteria.Application.DTOs.Orders;
 using Bisuteria.Domain.Enums;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Bisuteria.Web.Models;
 
 public class CheckoutViewModel
 {
     public Guid? CheckoutToken { get; set; }
+    [BindNever]
     public CartDto Cart { get; set; } = new();
 
     /// <summary>El recargo todavía debe ser confirmado por la tienda según el destino.</summary>
+    [BindNever]
     public bool ShippingToConfirm { get; set; }
 
     [Required(ErrorMessage = "El nombre es obligatorio.")]
@@ -34,16 +37,16 @@ public class CheckoutViewModel
     [Display(Name = "Referencia (opcional)")]
     public string? AddressLine2 { get; set; }
 
-    [Display(Name = "Ciudad")]
-    [DisplayFormat(ConvertEmptyStringToNull = false)]
     public string? City { get; set; }
 
-    [Display(Name = "Provincia")]
-    [DisplayFormat(ConvertEmptyStringToNull = false)]
-    public string? Province { get; set; }
+    [Display(Name = "Sector")]
+    public int? DeliveryZoneId { get; set; }
 
-    [Display(Name = "Código postal (opcional)")]
-    public string? PostalCode { get; set; }
+    [BindNever]
+    public IReadOnlyList<DeliveryZoneOption> DeliveryZones { get; set; } = Array.Empty<DeliveryZoneOption>();
+    [BindNever]
+    public decimal ShippingCost { get; set; }
+    public bool CheckoutIntentRefreshZones { get; set; }
 
     [Display(Name = "Observaciones (opcional)")]
     public string? Observations { get; set; }
@@ -73,9 +76,7 @@ public class CheckoutViewModel
         CustomerPhone = CustomerPhone,
         AddressLine1 = AddressLine1 ?? string.Empty,
         AddressLine2 = AddressLine2,
-        City = City ?? string.Empty,
-        Province = Province ?? string.Empty,
-        PostalCode = PostalCode,
+        DeliveryZoneId = DeliveryZoneId,
         Observations = Observations,
         PaymentMethod = PaymentMethod,
         CouponCode = CouponCode,
@@ -85,3 +86,6 @@ public class CheckoutViewModel
         GiftMessage = GiftMessage
     };
 }
+
+public sealed record DeliveryZoneOption(int Id, string Province, string City, string Sector, decimal Cost,
+    bool IsFree, bool RequiresConfirmation, string? EstimatedTime);

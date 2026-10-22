@@ -23,7 +23,7 @@ public partial class AuditTests
         {
             ["CustomerName"] = "Retiro de prueba", ["CustomerEmail"] = "pickup@example.test",
             ["CustomerPhone"] = "2025550100", ["DeliveryMethod"] = "Pickup", ["PaymentMethod"] = "CashOnDelivery",
-            ["AddressLine1"] = "", ["City"] = "", ["Province"] = ""
+            ["AddressLine1"] = ""
         });
         Assert.Equal(HttpStatusCode.Redirect, result.StatusCode);
         Assert.Contains("Confirmation", result.Headers.Location!.OriginalString);
@@ -127,14 +127,20 @@ public partial class AuditTests
         using var client = await f.Login("Admin");
         var result = await AuditFactory.Post(client, "/Admin/Settings/Save", new()
         {
-            ["values[WhatsApp]"] = "+1 202 555 0199", ["values[FreeShippingThreshold]"] = ""
+            ["values[WhatsApp]"] = "+1 202 555 0199", ["values[FreeShippingThreshold]"] = "",
+            ["values[PrivacyPolicyText]"] = "<script>alert('xss')</script>\nTexto ficticio editable"
         });
         Assert.Equal(HttpStatusCode.Redirect, result.StatusCode);
         using var scope = f.Services.CreateScope();
         var settings = scope.ServiceProvider.GetRequiredService<ISettingService>();
         Assert.Equal("+1 202 555 0199", (await settings.GetAllAsync())["WhatsApp"]);
         Assert.Null(await settings.GetFreeShippingThresholdAsync());
+        var privacy = await client.GetStringAsync("/Home/Privacy");
+        Assert.Contains("&lt;script&gt;", privacy);
+        Assert.Contains("Texto ficticio editable", privacy);
+        Assert.DoesNotContain("<script>alert('xss')</script>", privacy);
         await settings.SetAsync("WhatsApp", "+1 202 555 0100");
+        await settings.SetAsync("PrivacyPolicyText", "");
     }
 
     [Theory]
@@ -145,18 +151,18 @@ public partial class AuditTests
     {
         var checkout = Checkout();
         checkout.DeliveryMethod = method;
-        checkout.AddressLine1 = checkout.City = checkout.Province = "";
+        checkout.AddressLine1 = "";
+        checkout.DeliveryZoneId = null;
         Assert.Equal(valid, new CheckoutValidator().Validate(checkout).IsValid);
     }
 
-    [Theory]
-    [InlineData("Manabí", true)]
-    [InlineData("Provincia inventada", false)]
-    public void CheckoutAcceptsOnlyEcuadorianProvincesForDelivery(string province, bool valid)
+    [Fact]
+    public void CheckoutRequiresZoneOnlyWhenShipping()
     {
         var checkout = Checkout();
-        checkout.Province = province;
-        Assert.Equal(valid, new CheckoutValidator().Validate(checkout).IsValid);
+        Assert.True(new CheckoutValidator().Validate(checkout).IsValid);
+        checkout.DeliveryZoneId = null;
+        Assert.Contains(new CheckoutValidator().Validate(checkout).Errors, error => error.PropertyName == nameof(checkout.DeliveryZoneId));
     }
 
     [Fact]
@@ -189,7 +195,7 @@ public partial class AuditTests
         {
             ["CheckoutToken"] = token, ["__RequestVerificationToken"] = await AuditFactory.Token(client, "/Checkout"),
             ["CustomerName"] = "Ensayo concurrente", ["CustomerEmail"] = "concurrent@example.test",
-            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Manta", ["Province"] = "Manabí",
+            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Manta", ["DeliveryZoneId"] = f.DeliveryZoneId.ToString(),
             ["PaymentMethod"] = "CashOnDelivery", ["DeliveryMethod"] = "Shipping"
         };
         var responses = await Task.WhenAll(client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)), client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)));

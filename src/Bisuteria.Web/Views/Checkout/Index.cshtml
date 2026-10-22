@@ -38,8 +38,9 @@
             </div>
 
             <div class="card card-body shadow-sm mb-4">
-                <h5 class="mb-3"><i class="bi bi-geo-alt me-2 text-gold"></i>Dirección de envío</h5>
-                <div class="row g-3">
+                <h5 class="mb-3"><i class="bi bi-geo-alt me-2 text-gold"></i>Destino de entrega</h5>
+                <p class="small text-muted">Por ahora entregamos en Manta y Jaramijó, provincia de Manabí. El costo depende del sector.</p>
+                <div class="row g-3" id="deliveryAddress">
                     <div class="col-12">
                         <label asp-for="AddressLine1" class="form-label"></label>
                         <input asp-for="AddressLine1" class="form-control" />
@@ -50,26 +51,30 @@
                         <input asp-for="AddressLine2" class="form-control" />
                         <span asp-validation-for="AddressLine2" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-5">
-                        <label asp-for="City" class="form-label"></label>
-                        <input asp-for="City" class="form-control" />
-                        <span asp-validation-for="City" class="text-danger small"></span>
+                    <div class="col-md-6">
+                        <label asp-for="City" class="form-label">Ciudad</label>
+                        <select asp-for="City" class="form-select">
+                            <option value="Manta">Manta</option>
+                            <option value="Jaramijó">Jaramijó</option>
+                        </select>
                     </div>
-                    <div class="col-md-4">
-                        <label asp-for="Province" class="form-label"></label>
-                        <select asp-for="Province" class="form-select">
-                            <option value="">Selecciona una provincia</option>
-                            @foreach (var province in EcuadorProvinces.All)
+                    <div class="col-md-6">
+                        <label asp-for="DeliveryZoneId" class="form-label">Sector</label>
+                        <select asp-for="DeliveryZoneId" class="form-select" aria-describedby="deliveryZoneHelp">
+                            <option value="">Selecciona un sector</option>
+                            @foreach (var zone in Model.DeliveryZones.Where(zone => zone.City == Model.City))
                             {
-                                <option value="@province">@province</option>
+                                var shippingLabel = zone.RequiresConfirmation ? "costo por confirmar" : zone.IsFree ? "envío gratis" : zone.Cost.ToString("C");
+                                <option value="@zone.Id" data-city="@zone.City" data-cost="@(zone.IsFree || zone.RequiresConfirmation ? "0" : zone.Cost.ToString(System.Globalization.CultureInfo.InvariantCulture))" data-confirm="@zone.RequiresConfirmation.ToString().ToLowerInvariant()" data-free="@zone.IsFree.ToString().ToLowerInvariant()">@zone.Sector — @shippingLabel</option>
                             }
                         </select>
-                        <span asp-validation-for="Province" class="text-danger small"></span>
+                        <span id="deliveryZoneHelp" class="form-text">Si tu sector requiere cotización, el total final se confirma antes del pago.</span>
+                        <span asp-validation-for="DeliveryZoneId" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-3">
-                        <label asp-for="PostalCode" class="form-label"></label>
-                        <input asp-for="PostalCode" class="form-control" />
-                    </div>
+                    <noscript class="col-12">
+                        <p class="small">Al cambiar de ciudad, actualiza los sectores antes de elegir el destino. También puedes actualizar el total después de elegir el sector.</p>
+                        <button type="submit" class="btn btn-outline-brand cancel" name="CheckoutIntentRefreshZones" value="true" formnovalidate>Actualizar sectores y total</button>
+                    </noscript>
                     <div class="col-12">
                         <label asp-for="Observations" class="form-label"></label>
                         <textarea asp-for="Observations" class="form-control" rows="2" maxlength="500"></textarea>
@@ -107,7 +112,7 @@
                         <i class="bi bi-box-seam"></i>
                         <div>
                             <strong>Envío a domicilio</strong>
-                            <div class="small text-muted">Recíbelo en la puerta de tu casa u oficina.</div>
+                            <div class="small text-muted">Elige la ciudad y el sector para consultar el costo.</div>
                         </div>
                     </label>
                     <label class="payment-option">
@@ -115,7 +120,7 @@
                         <i class="bi bi-geo-alt"></i>
                         <div>
                             <strong>Entrega local</strong>
-                            <div class="small text-muted">La tienda confirma el recargo según el destino antes del pago.</div>
+                            <div class="small text-muted">El costo se consulta por sector y puede requerir confirmación.</div>
                         </div>
                     </label>
                     <label class="payment-option">
@@ -173,14 +178,14 @@
                     </div>
                 }
                 <div class="d-flex justify-content-between mb-2">
-                    <span>Envío</span><strong id="shippingDisplay" class="text-muted">@(Model.ShippingToConfirm ? "Por confirmar con la tienda" : "No aplica")</strong>
+                    <span>Envío</span><strong id="shippingDisplay" class="text-muted">@ShippingText(Model.DeliveryMethod, Model.DeliveryZones.SingleOrDefault(zone => zone.Id == Model.DeliveryZoneId))</strong>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fs-5">Total</span>
-                    <strong class="fs-4 text-gold" id="totalDisplay">@(Model.ShippingToConfirm ? "Subtotal; falta confirmar envío" : Model.Cart.Total.ToString("C"))</strong>
+                    <strong class="fs-4 text-gold" id="totalDisplay">@TotalText(Model.Cart, Model.DeliveryMethod, Model.ShippingCost, Model.ShippingToConfirm)</strong>
                 </div>
-                <button class="btn btn-brand btn-lg w-100" type="submit" disabled="@(methods.Length == 0)">
+                <button class="btn btn-brand btn-lg w-100" type="submit" data-confirm-order disabled="@(methods.Length == 0)">
                     <i class="bi bi-check2-circle me-2"></i>Confirmar pedido
                 </button>
                 <a class="btn btn-link w-100 mt-2" asp-controller="Cart" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Volver al carrito</a>
@@ -191,32 +196,80 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script id="deliveryZonesData" type="application/json" nonce="@Context.Items["CspNonce"]">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DeliveryZones))</script>
     <script nonce="@Context.Items["CspNonce"]">
         (function () {
             var form = document.querySelector('input[name="CheckoutToken"]').form;
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (event) {
+                if (event.submitter && event.submitter.name === 'CheckoutIntentRefreshZones') return;
                 if (window.jQuery && !window.jQuery(form).valid()) return;
                 if (!form.checkValidity()) return;
-                form.querySelector('button[type="submit"]').disabled = true;
+                form.querySelector('button[data-confirm-order]').disabled = true;
             });
             var radios = document.querySelectorAll('#deliveryOptions input[type="radio"]');
             var shipRow = document.getElementById('shippingDisplay');
+            var city = document.getElementById('City');
+            var zone = document.getElementById('DeliveryZoneId');
+            var address = document.getElementById('deliveryAddress');
+            var zones = JSON.parse(document.getElementById('deliveryZonesData').textContent);
             var subtotal = @((Model.Cart.Subtotal - Model.Cart.Discount).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var totalRow = document.getElementById('totalDisplay');
+
+            function filterZones() {
+                if (!city || !zone) return;
+                var previous = zone.value;
+                zone.replaceChildren(new Option('Selecciona un sector', ''));
+                zones.filter(function (item) { return item.City === city.value; }).forEach(function (item) {
+                    var label = item.RequiresConfirmation ? 'costo por confirmar' : item.IsFree ? 'envío gratis' : item.Cost.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+                    var option = new Option(item.Sector + ' — ' + label, String(item.Id));
+                    option.dataset.city = item.City;
+                    option.dataset.cost = String(item.RequiresConfirmation || item.IsFree ? 0 : item.Cost);
+                    option.dataset.confirm = String(item.RequiresConfirmation);
+                    option.dataset.free = String(item.IsFree);
+                    zone.add(option);
+                });
+                if (Array.from(zone.options).some(function (option) { return option.value === previous; })) zone.value = previous;
+            }
 
             function update() {
                 var selected = document.querySelector('#deliveryOptions input[type="radio"]:checked');
                 if (!selected || !shipRow) return;
-                var pending = selected.value !== 'Pickup' && @Model.ShippingToConfirm.ToString().ToLowerInvariant();
-                shipRow.textContent = pending ? 'Por confirmar con la tienda' : (selected.value === 'Pickup' ? 'No aplica' : 'Gratis');
+                var pickup = selected.value === 'Pickup';
+                var option = zone && zone.selectedOptions.length ? zone.selectedOptions[0] : null;
+                var pending = !pickup && (!option || !option.value || option.dataset.confirm === 'true');
+                var free = !pickup && option && option.dataset.free === 'true';
+                var cost = !pickup && option && option.dataset.cost ? Number(option.dataset.cost) : 0;
+                shipRow.textContent = pickup ? 'No aplica' : pending ? 'Se calcula según el lugar de entrega' : free ? 'Envío gratis' : cost.toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
                 shipRow.classList.toggle('text-muted', pending);
+                if (address) address.hidden = pickup;
+                form.querySelector('[name="AddressLine1"]').required = !pickup;
+                if (zone) zone.required = !pickup;
                 totalRow.textContent = pending
-                    ? 'Subtotal; falta confirmar envío'
-                    : Math.max(0, subtotal).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+                    ? 'Envío por confirmar'
+                    : Math.max(0, subtotal + cost).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
             }
 
             radios.forEach(function (r) { r.addEventListener('change', update); });
+            if (city) city.addEventListener('change', function () { filterZones(); update(); });
+            if (zone) zone.addEventListener('change', update);
+            filterZones();
             update();
         })();
     </script>
+}
+
+@functions {
+    private static string ShippingText(Bisuteria.Domain.Enums.DeliveryMethod method, DeliveryZoneOption? zone)
+    {
+        if (method == Bisuteria.Domain.Enums.DeliveryMethod.Pickup) return "No aplica";
+        if (zone is null || zone.RequiresConfirmation) return "Se calcula según el lugar de entrega";
+        return zone.IsFree ? "Envío gratis" : zone.Cost.ToString("C");
+    }
+
+    private static string TotalText(Bisuteria.Application.DTOs.Cart.CartDto cart, Bisuteria.Domain.Enums.DeliveryMethod method, decimal shippingCost, bool pending)
+    {
+        if (method != Bisuteria.Domain.Enums.DeliveryMethod.Pickup && pending) return "Envío por confirmar";
+        var total = Math.Max(0m, cart.Subtotal - cart.Discount) + (method == Bisuteria.Domain.Enums.DeliveryMethod.Pickup ? 0m : shippingCost);
+        return total.ToString("C");
+    }
 }

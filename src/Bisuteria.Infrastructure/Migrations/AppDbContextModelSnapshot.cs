@@ -418,6 +418,65 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.ToTable("Customizations");
                 });
 
+            modelBuilder.Entity("Bisuteria.Domain.Entities.DeliveryZone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EstimatedTime")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsFree")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<bool>("RequiresConfirmation")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Sector")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "SortOrder", "City");
+
+                    b.HasIndex("Province", "City", "Sector")
+                        .IsUnique();
+
+                    b.ToTable("DeliveryZones");
+                });
+
             modelBuilder.Entity("Bisuteria.Domain.Entities.DistributedCacheRecord", b =>
                 {
                     b.Property<string>("Id")
@@ -617,6 +676,17 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Property<int>("DeliveryMethod")
                         .HasColumnType("int");
 
+                    b.Property<string>("DeliverySector")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("DeliveryZoneId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DeliveryZoneName")
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
                     b.Property<decimal>("Discount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -691,6 +761,8 @@ namespace Bisuteria.Infrastructure.Migrations
                         .HasFilter("[CheckoutToken] IS NOT NULL");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("DeliveryZoneId");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
@@ -1452,6 +1524,16 @@ namespace Bisuteria.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Bisuteria.Domain.Entities.Order", b =>
+                {
+                    b.HasOne("Bisuteria.Domain.Entities.DeliveryZone", "DeliveryZone")
+                        .WithMany("Orders")
+                        .HasForeignKey("DeliveryZoneId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DeliveryZone");
+                });
+
             modelBuilder.Entity("Bisuteria.Domain.Entities.OrderItem", b =>
                 {
                     b.HasOne("Bisuteria.Domain.Entities.Customization", "Customization")
@@ -1597,6 +1679,11 @@ namespace Bisuteria.Infrastructure.Migrations
             modelBuilder.Entity("Bisuteria.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Bisuteria.Domain.Entities.DeliveryZone", b =>
+                {
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Bisuteria.Domain.Entities.Order", b =>

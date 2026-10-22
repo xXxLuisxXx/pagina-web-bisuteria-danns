@@ -21,6 +21,7 @@ public class SettingsController : AdminBaseController
         ViewData["Title"] = "Configuración";
         var settings = await _settings.GetAllAsync(ct);
         settings.TryAdd("MonthlySalesGoal", "0");
+        AddPolicyDefaults(settings);
         return View(settings);
     }
 
@@ -32,12 +33,16 @@ public class SettingsController : AdminBaseController
         {
             var existing = await _settings.GetAllAsync(ct);
             existing.TryAdd("MonthlySalesGoal", "0");
+            AddPolicyDefaults(existing);
+            // La promoción por umbral permanece desactivada hasta que el negocio confirme sus condiciones.
+            values.Remove("FreeShippingThresholdEnabled");
             foreach (var kv in values)
             {
                 var value = kv.Value ?? "";
                 var invalid = !existing.ContainsKey(kv.Key) || value.Length > 1000;
                 if (kv.Key == "CouponSingleUsePerCustomer") invalid |= !bool.TryParse(value, out _);
                 if (kv.Key == "PaymentBankTransferEnabled") invalid |= !bool.TryParse(value, out _);
+                if (kv.Key == "FreeShippingThresholdEnabled") invalid |= !bool.TryParse(value, out _);
                 if (kv.Key is "WhatsApp" or "ContactPhone" && value.Length > 0)
                     invalid |= !System.Text.RegularExpressions.Regex.IsMatch(value, @"^\+?[0-9 ()-]{7,25}$");
                 if (kv.Key == "ContactEmail" && value.Length > 0)
@@ -73,14 +78,24 @@ public class SettingsController : AdminBaseController
                     "WhatsApp" or "ContactEmail" or "ContactPhone" or "ContactAddress" => "Contacto",
                     "PaymentBankTransferEnabled" or "BankName" or "BankAccountType" or "BankAccountNumber" or "BankAccountHolder" or "BankAccountId" => "Pagos",
                     "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
-                    "ShippingCost" or "FreeShippingThreshold" => "Compras",
+                    "ShippingCost" or "FreeShippingThreshold" or "FreeShippingThresholdEnabled" => "Compras",
+                    "ProductionTimeText" or "ShippingEstimatedTime" or "ShippingConditions" => "Envíos",
+                    "ReturnsPolicyText" or "PrivacyPolicyText" => "Políticas",
                     _ => "General"
                 };
                 await _settings.SetAsync(kv.Key, kv.Value, group, ct);
             }
+            await _settings.SetAsync("FreeShippingThresholdEnabled", "false", "Compras", ct);
         }
 
         TempData["Success"] = "Configuración guardada.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static void AddPolicyDefaults(Dictionary<string, string> values)
+    {
+        values["FreeShippingThresholdEnabled"] = "false";
+        foreach (var key in new[] { "ProductionTimeText", "ShippingEstimatedTime", "ShippingConditions", "ReturnsPolicyText", "PrivacyPolicyText" })
+            values.TryAdd(key, "");
     }
 }

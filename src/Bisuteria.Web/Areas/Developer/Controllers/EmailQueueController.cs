@@ -9,11 +9,17 @@ using Microsoft.EntityFrameworkCore;
 namespace Bisuteria.Web.Areas.Developer.Controllers;
 
 [Area("Developer"), Authorize(Policy = StorePermissions.SystemView)]
-public sealed class EmailQueueController(AppDbContext db, SecurityAuditLogger audit) : Controller
+public sealed class EmailQueueController(AppDbContext db, SecurityAuditLogger audit,
+    IConfiguration configuration, IWebHostEnvironment environment) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
+        ViewBag.SmtpStatus = Bisuteria.Web.Services.SmtpConfigurationStatus.Describe(configuration, environment);
+        ViewBag.QueueStatus = SmtpConfigurationStatus.DescribeQueue(configuration);
+        var storeRecipient = await db.SiteSettings.AsNoTracking().Where(x => x.Key == "ContactEmail")
+            .Select(x => x.Value).SingleOrDefaultAsync(ct);
+        ViewBag.StoreNotificationStatus = SmtpConfigurationStatus.DescribeStoreNotifications(storeRecipient);
         var rows = await db.Set<EmailOutbox>().AsNoTracking()
             .Where(x => x.SentAt == null)
             .OrderByDescending(x => x.Attempts >= 8)

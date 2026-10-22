@@ -30,6 +30,17 @@ public class Order : BaseEntity
 
     public string Province { get; set; } = string.Empty;
 
+    /// <summary>Sector de entrega copiado al pedido como historial.</summary>
+    public string? DeliverySector { get; set; }
+
+    /// <summary>Zona que originó la tarifa, si todavía existe.</summary>
+    public int? DeliveryZoneId { get; set; }
+
+    /// <summary>Nombre de sector conservado aunque la zona cambie o se desactive.</summary>
+    public string? DeliveryZoneName { get; set; }
+
+    public virtual DeliveryZone? DeliveryZone { get; set; }
+
     public string? PostalCode { get; set; }
 
     public string? Observations { get; set; }

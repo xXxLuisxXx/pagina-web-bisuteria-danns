@@ -1,6 +1,6 @@
 # Funciones pendientes y alcance real
 
-Revisión del 5 de octubre de 2026. Esta lista distingue código faltante de configuración externa y de verificaciones. No se considera implementada una función solo porque la suite general pasa.
+Revisión histórica del 5 de octubre de 2026. Esta lista distingue código faltante de configuración externa y de verificaciones para esa fecha; revisa el informe actual antes de usarla como estado vigente. No se considera implementada una función solo porque la suite general pasa.
 
 ## Requisitos de la misión
 
@@ -11,7 +11,7 @@ Revisión del 5 de octubre de 2026. Esta lista distingue código faltante de con
 | Carrito, cantidades, variantes, personalización | Implementados; los precios se recalculan en servidor | No se identificó una función obligatoria ausente. La prueba de cantidad comprueba actualización válida y rechazo de exceso. |
 | Pedidos, cancelación, inventario y movimientos | Implementados; transacciones, concurrencia y reposición idempotente | Se corrigió durante el cierre la omisión de dirección complementaria/código postal en los detalles y confirmación. No se deja esa omisión pendiente. |
 | Métodos de pago habilitados | Solo se ofrecen CashOnDelivery/BankTransfer si se configuran; sin configuración se bloquea el checkout | Confirmar y habilitar los métodos reales del negocio. Registrar el estado de un pago no equivale a cobrarlo automáticamente. |
-| Contacto | Guarda mensajes y permite al administrador leerlos/eliminarlos | No se pidió ni existe una notificación automática por correo para cada contacto. No es un requisito incumplido. |
+| Contacto | Guarda mensajes, permite al administrador leerlos/eliminarlos y encola un aviso a la tienda | El aviso usa `ContactEmail` de `SiteSetting` y depende de que SMTP entregue el mensaje. La entrega al proveedor no está comprobada. |
 | Newsletter | Retirada según la misión | No falta implementar suscripción: se pidió eliminar la función ficticia. |
 
 ## Funciones parciales existentes, fuera del mínimo explícito de la misión

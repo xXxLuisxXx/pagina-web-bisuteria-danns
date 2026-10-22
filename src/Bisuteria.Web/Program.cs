@@ -3,6 +3,7 @@ using Bisuteria.Web.Security;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Bisuteria.Application;
+using Bisuteria.Application.Interfaces;
 using Bisuteria.Infrastructure;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
@@ -96,6 +97,7 @@ builder.Services.AddSession(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Bisuteria.Web.Services.SecurityAuditLogger>();
+builder.Services.AddScoped<IOrderNotificationChannel, Bisuteria.Web.Services.WhatsAppOrderNotificationChannel>();
 builder.Services.AddScoped<Bisuteria.Web.Cart.CartManager>();
 builder.Services.AddScoped<Bisuteria.Web.Services.IImageUploadService, Bisuteria.Web.Services.ImageUploadService>();
 builder.Services.AddSingleton<Bisuteria.Web.Services.IPaymentProofStorage, Bisuteria.Web.Services.PaymentProofStorage>();

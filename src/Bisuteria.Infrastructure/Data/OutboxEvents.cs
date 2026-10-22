@@ -39,11 +39,12 @@ public partial class AppDbContext
             return $"\nDatos para transferir:\nBanco: {settings["BankName"]}\nTipo de cuenta: {settings["BankAccountType"]}\nCuenta: {settings["BankAccountNumber"]}\nTitular: {settings["BankAccountHolder"]}" +
                 (order.ShippingToConfirm ? "\nEspera a que la tienda confirme el envío y el total antes de pagar." : "\nIncluye el número de pedido como referencia y carga el comprobante en la confirmación del pedido.");
         }
-        void Queue(string? recipient, string subject, string text)
+        bool Queue(string? recipient, string subject, string text)
         {
-            if (string.IsNullOrWhiteSpace(recipient) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(recipient)) return;
-            if (Set<EmailOutbox>().Local.Any(x => Entry(x).State == EntityState.Added && x.Recipient == recipient && x.Subject == subject && x.TextBody == text)) return;
+            if (string.IsNullOrWhiteSpace(recipient) || recipient.Length > 254 || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(recipient)) return false;
+            if (Set<EmailOutbox>().Local.Any(x => Entry(x).State == EntityState.Added && x.Recipient == recipient && x.Subject == subject && x.TextBody == text)) return true;
             Add(new EmailOutbox { Recipient = recipient, Subject = subject, TextBody = text });
+            return true;
         }
         foreach (var entry in ChangeTracker.Entries<Bisuteria.Infrastructure.Identity.ApplicationUser>().ToArray())
         {
@@ -59,7 +60,9 @@ public partial class AppDbContext
             {
                 var items = string.Join("\n", order.Items.Select(i => $"{i.ProductName} × {i.Quantity} — {Money(i.UnitPrice)} por unidad; {Money(i.LineTotal)}" +
                     (string.IsNullOrWhiteSpace(i.CustomizationSummary) ? "" : $"\nPersonalización: {i.CustomizationSummary}")));
-                var delivery = order.ShippingToConfirm ? "Envío: por confirmar según el destino." : $"Envío: {Money(order.ShippingCost)}.";
+                var delivery = order.DeliveryMethod == DeliveryMethod.Pickup
+                    ? "Envío: no aplica (retiro en tienda)."
+                    : order.ShippingToConfirm ? "Envío: por confirmar según el destino." : $"Envío: {Money(order.ShippingCost)}.";
                 var confirmationPath = $"/Checkout/Confirmation?orderNumber={Uri.EscapeDataString(order.OrderNumber)}";
                 if (order.GuestAccessToken is not null)
                     confirmationPath += $"&accessToken={Uri.EscapeDataString(order.GuestAccessToken)}";
@@ -68,7 +71,7 @@ public partial class AppDbContext
                 var text = summary + BankInstructions(order) + customerAccess;
                 Queue(order.CustomerEmail, "Confirmación de pedido", text);
                 var address = order.DeliveryMethod == DeliveryMethod.Pickup ? "Retiro en tienda" :
-                    string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.City, order.Province, order.PostalCode }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                    string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.DeliverySector, order.City, order.Province }.Where(x => !string.IsNullOrWhiteSpace(x)));
                 Queue(storeEmail, "Compra pendiente de aprobación · " + order.OrderNumber,
                     "Acción requerida: revisa y aprueba esta compra desde el panel administrativo antes de preparar el pedido o confirmar el pago.\n\n" +
                     summary + $"\nCliente: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}\nDestino: {address}" +
@@ -113,8 +116,7 @@ public partial class AppDbContext
             if (product.Stock > product.MinStock) product.LowStockNotified = false;
             else if (product.IsActive && !product.LowStockNotified && !string.IsNullOrWhiteSpace(storeEmail))
             {
-                Queue(storeEmail, "Alerta de stock bajo", $"El producto {product.Name} tiene {product.Stock} unidades disponibles. Revisa el inventario.");
-                product.LowStockNotified = true;
+                product.LowStockNotified = Queue(storeEmail, "Alerta de stock bajo", $"El producto {product.Name} tiene {product.Stock} unidades disponibles. Revisa el inventario.");
             }
         }
         return await base.SaveChangesAsync(cancellationToken);

@@ -30,18 +30,11 @@ public class CheckoutValidator : AbstractValidator<CheckoutDto>
 
         RuleFor(x => x.AddressLine2).MaximumLength(200).WithMessage("La dirección complementaria no puede superar 200 caracteres.");
 
-        RuleFor(x => x.City)
-            .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La ciudad es obligatoria.")
-            .MaximumLength(120).WithMessage("La ciudad no puede superar 120 caracteres.");
-
-        RuleFor(x => x.Province)
-            .NotEmpty().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup).WithMessage("La provincia es obligatoria.")
-            .Must(Bisuteria.Domain.Enums.EcuadorProvinces.Contains).When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
-            .WithMessage("Selecciona una provincia del Ecuador.")
-            .MaximumLength(120).WithMessage("La provincia no puede superar 120 caracteres.");
-
-        RuleFor(x => x.PostalCode)
-            .MaximumLength(20).WithMessage("El código postal no puede superar 20 caracteres.");
+        RuleFor(x => x.DeliveryZoneId)
+            .NotNull().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
+            .WithMessage("Selecciona un sector de entrega.")
+            .GreaterThan(0).When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
+            .WithMessage("Selecciona un sector de entrega válido.");
 
         RuleFor(x => x.Observations)
             .MaximumLength(1000).WithMessage("Las observaciones no pueden superar 1000 caracteres.");

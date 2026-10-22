@@ -5,7 +5,9 @@
 <h2 class="h3">Estado del sistema</h2>
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mt-2">
     <div class="col"><div class="card card-body h-100"><span class="text-secondary">Salud de la aplicación</span><strong class="h4">@Model.Health</strong><a href="/health" target="_blank" rel="noopener">Ver health check</a></div></div>
-    <div class="col"><div class="card card-body h-100"><span class="text-secondary">Cola de correo</span><strong class="h4">@Model.PendingEmails pendientes</strong><span>@Model.FailedEmails agotados tras reintentos</span></div></div>
+    <div class="col"><div class="card card-body h-100"><span class="text-secondary">Cola de correo</span><strong class="h4">@Model.PendingEmails pendientes</strong><span>@Model.FailedEmails agotados tras reintentos</span><span>@Model.QueueStatus</span><a asp-area="Developer" asp-controller="EmailQueue" asp-action="Index">Revisar cola de correo</a></div></div>
     <div class="col"><div class="card card-body h-100"><span class="text-secondary">Aplicación</span><strong>@Model.Version</strong><span>Entorno: @Model.Environment</span></div></div>
-    <div class="col"><div class="card card-body h-100"><span class="text-secondary">SMTP</span><strong>@(Model.SmtpConfigured ? "Configurado" : "No configurado")</strong><span>El secreto nunca se muestra aquí.</span></div></div>
+    <div class="col"><div class="card card-body h-100"><span class="text-secondary">SMTP</span><strong>@Model.SmtpStatus</strong><span>El secreto nunca se muestra aquí; el estado no sustituye una prueba de entrega.</span></div></div>
+    <div class="col"><div class="card card-body h-100"><span class="text-secondary">Avisos de pedidos a la tienda</span><strong>@Model.StoreNotificationStatus</strong></div></div>
 </div>
+<p class="text-secondary mt-3">Los correos capturados en archivos locales durante desarrollo cuentan como procesados, pero no se entregan al proveedor y no se reenvían al habilitar SMTP.</p>

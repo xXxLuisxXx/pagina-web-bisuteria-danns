@@ -1,0 +1,64 @@
+@model Bisuteria.Web.Models.ShippingZoneInputModel
+
+<div class="mb-4">
+    <a class="text-muted small text-decoration-none" asp-action="Index"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Volver a zonas y tarifas</a>
+    <h1 class="admin-title mt-2 mb-1">@(Model.Id == 0 ? "Nueva zona de entrega" : "Editar zona de entrega")</h1>
+    <p class="text-muted mb-0">Los cambios se aplican a pedidos nuevos. La provincia es Manabí.</p>
+</div>
+
+<div class="card-admin p-3 admin-form-width">
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" role="alert" class="text-danger mb-3"></div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="City" class="form-label"></label>
+                <select asp-for="City" class="form-select"><option value="Manta">Manta</option><option value="Jaramijó">Jaramijó</option></select>
+                <span asp-validation-for="City" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Sector" class="form-label"></label>
+                <input asp-for="Sector" class="form-control" maxlength="120" />
+                <span asp-validation-for="Sector" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Cost" class="form-label"></label>
+                <input asp-for="Cost" class="form-control" type="number" min="0" max="10000" step="0.01" aria-describedby="zone-cost-help" />
+                <span asp-validation-for="Cost" class="text-danger small"></span>
+                <div id="zone-cost-help" class="form-text">Usa 0 solamente si el envío es gratis o está por confirmar.</div>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="SortOrder" class="form-label"></label>
+                <input asp-for="SortOrder" class="form-control" type="number" min="0" max="10000" step="1" />
+                <span asp-validation-for="SortOrder" class="text-danger small"></span>
+                <div class="form-text">Los números menores aparecen primero.</div>
+            </div>
+            <div class="col-12">
+                <div class="form-check mb-2"><input asp-for="IsFree" class="form-check-input" /><label asp-for="IsFree" class="form-check-label"></label></div>
+                <span asp-validation-for="IsFree" class="text-danger small d-block"></span>
+                <div class="form-check"><input asp-for="RequiresConfirmation" class="form-check-input" /><label asp-for="RequiresConfirmation" class="form-check-label"></label></div>
+                <span asp-validation-for="RequiresConfirmation" class="text-danger small d-block"></span>
+                <div class="form-text">Elige solo una modalidad. Si ninguna está marcada, se cobra la tarifa indicada.</div>
+            </div>
+            <div class="col-12">
+                <label asp-for="EstimatedTime" class="form-label"></label>
+                <input asp-for="EstimatedTime" class="form-control" maxlength="160" />
+                <span asp-validation-for="EstimatedTime" class="text-danger small"></span>
+                <div class="form-text">Introduce únicamente un plazo que la tienda pueda cumplir.</div>
+            </div>
+            <div class="col-12">
+                <div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label"></label></div>
+                <span asp-validation-for="IsActive" class="text-danger small"></span>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button class="btn btn-gold" type="submit"><i class="bi bi-check2 me-2" aria-hidden="true"></i>Guardar zona</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -183,7 +183,12 @@ async function main() {
       await page.locator('#CustomerName').fill('Cliente navegador');
       await page.locator('#CustomerEmail').fill('browser-order@example.test');
       await page.locator('#CustomerPhone').fill('+1 202 555 0101');
-      await page.locator('input[name="DeliveryMethod"][value="Pickup"]').check();
+      await page.locator('input[name="DeliveryMethod"][value="Shipping"]').check();
+      await page.locator('#AddressLine1').fill('Dirección ficticia de auditoría');
+      const auditZone = await page.locator('#DeliveryZoneId option').filter({ hasText: 'Sector de prueba (auditoría)' }).getAttribute('value');
+      assert.ok(auditZone, 'La zona de tarifa ficticia no apareció en el checkout.');
+      await page.locator('#DeliveryZoneId').selectOption(auditZone);
+      assert.match(await page.locator('#shippingDisplay').innerText(), /2[.,]50/, 'El costo del sector no aparece antes de confirmar.');
       await page.locator('input[name="PaymentMethod"][value="BankTransfer"]').check();
       await page.getByRole('button', { name: /Confirmar pedido/ }).click();
       try { await page.waitForURL('**/Checkout/Confirmation**', { timeout: 8000 }); }

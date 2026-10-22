@@ -32,9 +32,13 @@
                 {
                     <div class="d-flex justify-content-between mb-1 text-success"><span>Descuento</span><strong>-@Model.Discount.ToString("C")</strong></div>
                 }
-                <div class="d-flex justify-content-between mb-1"><span>Envío</span><strong>@(Model.ShippingCost == 0 ? "Gratis" : Model.ShippingCost.ToString("C"))</strong></div>
+                <div class="d-flex justify-content-between mb-1"><span>Envío</span><strong>@ShippingLabel(Model)</strong></div>
                 <hr>
-                <div class="d-flex justify-content-between fs-5"><span>Total</span><strong class="text-gold">@Model.Total.ToString("C")</strong></div>
+                <div class="d-flex justify-content-between fs-5"><span>@(Model.ShippingToConfirm ? "Total parcial" : "Total")</span><strong class="text-gold">@Model.Total.ToString("C")</strong></div>
+                @if (Model.ShippingToConfirm)
+                {
+                    <p class="small text-muted mb-0 mt-2" role="status">La tienda confirmará el costo del envío y el total final antes de que realices el pago.</p>
+                }
             </div>
         </div>
 
@@ -48,16 +52,12 @@
                     <div class="mb-2"><strong>Entrega:</strong> @Model.DeliveryMethodLabel</div>
                     <div class="mb-2"><strong>Cliente:</strong> @Model.CustomerName</div>
                     <div class="mb-2"><strong>Contacto:</strong> @Model.CustomerEmail · @Model.CustomerPhone</div>
-                    @if (Model.DeliveryMethod == Bisuteria.Domain.Enums.DeliveryMethod.Shipping && !string.IsNullOrWhiteSpace(Model.AddressLine1))
+                    @if (Model.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup && !string.IsNullOrWhiteSpace(Model.AddressLine1))
                     {
-                        <div class="mb-2"><strong>Envío:</strong> @Model.AddressLine1, @Model.City, @Model.Province</div>
+                        <div class="mb-2"><strong>Envío:</strong> @Model.AddressLine1, @Model.DeliverySector, @Model.City, @Model.Province</div>
                         @if (!string.IsNullOrWhiteSpace(Model.AddressLine2))
                         {
                             <p class="mb-1"><strong>Dirección complementaria:</strong> @Model.AddressLine2</p>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(Model.PostalCode))
-                        {
-                            <p class="mb-1"><strong>Código postal:</strong> @Model.PostalCode</p>
                         }
                     }
                     @if (!string.IsNullOrWhiteSpace(Model.TrackingNumber))
@@ -82,3 +82,12 @@
         </div>
     </div>
 </div>
+
+@functions {
+    private static string ShippingLabel(OrderDto order)
+    {
+        if (order.DeliveryMethod == Bisuteria.Domain.Enums.DeliveryMethod.Pickup) return "No aplica";
+        if (order.ShippingToConfirm) return "Por confirmar con la tienda";
+        return order.ShippingCost.ToString("C");
+    }
+}

@@ -1962,6 +1962,7 @@ a:hover {
 .admin-content { min-width:0; }
 .admin-content .d-flex { flex-wrap:wrap; }
 .blog-content { white-space:pre-wrap; overflow-wrap:anywhere; }
+.privacy-policy-text { white-space:pre-line; overflow-wrap:anywhere; }
 @media(max-width:575.98px) {
     .admin-content { padding:1rem !important; }
     .admin-topbar { padding:0 .5rem !important; gap:.4rem !important; }
@@ -1975,6 +1976,9 @@ a:hover {
 
 .product-detail-img img { width:100%; max-height:600px; aspect-ratio:1; object-fit:contain; }
 .product-thumbs { flex-wrap:wrap; }
+.breadcrumb { min-width:0; flex-wrap:wrap; }
+.breadcrumb-item { min-width:0; overflow-wrap:anywhere; }
+.product-title { min-width:0; overflow-wrap:anywhere; }
 .qty-stepper { display:inline-flex; align-items:center; gap:.25rem; flex-shrink:0; }
 .btn-qty { border:1px solid #bba86b; background:transparent; color:inherit; border-radius:.35rem; min-width:32px; min-height:32px; }
 .product-actions { min-width:0; }

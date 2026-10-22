@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Bisuteria.Web.Cart;
 using Bisuteria.Web.Models;
 using Bisuteria.Web.Services;
+using Bisuteria.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -23,12 +25,15 @@ public class CheckoutController : Controller
     private readonly IAuthorizationService _authorization;
     private readonly IPaymentProofService _proofs;
     private readonly IPaymentProofStorage _proofStorage;
+    private readonly AppDbContext _db;
+    private readonly IOrderNotificationChannel _orderNotificationChannel;
     private PaymentMethod[] ConfiguredPayments => (_configuration.GetSection("Payments:EnabledMethods").Get<string[]>() ?? [])
         .Select(x => Enum.TryParse<PaymentMethod>(x, out var method) && method is PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer ? (PaymentMethod?)method : null)
         .Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToArray();
 
     public CheckoutController(CartManager cart, IOrderService orders, ISettingService settings, IConfiguration configuration,
-        IAuthorizationService authorization, IPaymentProofService proofs, IPaymentProofStorage proofStorage)
+        IAuthorizationService authorization, IPaymentProofService proofs, IPaymentProofStorage proofStorage, AppDbContext db,
+        IOrderNotificationChannel orderNotificationChannel)
     {
         _cart = cart;
         _orders = orders;
@@ -37,6 +42,8 @@ public class CheckoutController : Controller
         _authorization = authorization;
         _proofs = proofs;
         _proofStorage = proofStorage;
+        _db = db;
+        _orderNotificationChannel = orderNotificationChannel;
     }
 
     [HttpGet]
@@ -56,7 +63,9 @@ public class CheckoutController : Controller
             CouponCode = cart.CouponCode,
             PaymentMethod = availablePayments.FirstOrDefault()
         };
-        model.ShippingToConfirm = await NeedsShippingConfirmationAsync(model.DeliveryMethod, cart.Subtotal, ct);
+        await PopulateDeliveryOptionsAsync(model, ct);
+        model.City = "Manta";
+        await ApplyShippingSummaryAsync(model, ct);
         HttpContext.Session.SetString(TokenKey, model.CheckoutToken.Value.ToString());
         if (User.Identity?.IsAuthenticated != true && string.IsNullOrWhiteSpace(HttpContext.Session.GetString(GuestAccessTokenKey)))
             HttpContext.Session.SetString(GuestAccessTokenKey, Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
@@ -84,13 +93,30 @@ public class CheckoutController : Controller
             return BadRequest("La sesión de compra expiró. Recarga el formulario.");
         var cart = await _cart.GetCartAsync(ct);
         model.Cart = cart;
-        model.ShippingToConfirm = await NeedsShippingConfirmationAsync(model.DeliveryMethod, cart.Subtotal, ct);
+        await PopulateDeliveryOptionsAsync(model, ct);
+        if (model.CheckoutIntentRefreshZones)
+        {
+            if (!model.DeliveryZones.Any(zone => zone.Id == model.DeliveryZoneId && zone.City == model.City))
+                model.DeliveryZoneId = null;
+            ModelState.Clear();
+            await ApplyShippingSummaryAsync(model, ct);
+            return View(model);
+        }
+        await ApplyShippingSummaryAsync(model, ct);
 
         if (cart.IsEmpty)
             return RedirectToAction(nameof(CartController.Index), "Cart");
 
         var validation = new Bisuteria.Application.Validators.CheckoutValidator().Validate(model.ToDto());
         foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+        if (model.DeliveryMethod != DeliveryMethod.Pickup)
+        {
+            var selectedZone = model.DeliveryZones.SingleOrDefault(zone => zone.Id == model.DeliveryZoneId);
+            if (selectedZone is null)
+                ModelState.AddModelError(nameof(model.DeliveryZoneId), "Selecciona un sector activo de Manta o Jaramijó.");
+            else if (!string.Equals(model.City, selectedZone.City, StringComparison.Ordinal))
+                ModelState.AddModelError(nameof(model.DeliveryZoneId), "El sector no corresponde a la ciudad seleccionada.");
+        }
         if (!availablePayments.Contains(model.PaymentMethod))
             ModelState.AddModelError(string.Empty, "No hay un método de pago habilitado para esta solicitud. Contacta con la tienda.");
         if (!ModelState.IsValid)
@@ -154,10 +180,7 @@ public class CheckoutController : Controller
         };
 
         var whatsApp = await _settings.GetAsync("WhatsApp", "", ct);
-        var digits = new string((whatsApp ?? "").Where(char.IsDigit).ToArray());
-        ViewBag.WhatsAppUrl = digits.Length is >= 8 and <= 15
-            ? "https://wa.me/" + digits + "?text=" + Uri.EscapeDataString(BuildWhatsAppMessage(order))
-            : null;
+        ViewBag.WhatsAppUrl = _orderNotificationChannel.CreateWhatsAppUrl(order, whatsApp);
 
         return View(order);
     }
@@ -224,11 +247,35 @@ public class CheckoutController : Controller
             : File(stream, "image/jpeg");
     }
 
-    private async Task<bool> NeedsShippingConfirmationAsync(DeliveryMethod deliveryMethod, decimal subtotal, CancellationToken ct)
+    private async Task PopulateDeliveryOptionsAsync(CheckoutViewModel model, CancellationToken ct)
     {
-        if (deliveryMethod == DeliveryMethod.Pickup) return false;
-        var threshold = await _settings.GetFreeShippingThresholdAsync(ct);
-        return deliveryMethod != DeliveryMethod.Shipping || !threshold.HasValue || subtotal < threshold.Value;
+        model.DeliveryZones = await _db.DeliveryZones.AsNoTracking()
+            .Where(zone => zone.IsActive && zone.Province == "Manabí" && (zone.City == "Manta" || zone.City == "Jaramijó"))
+            .OrderBy(zone => zone.SortOrder).ThenBy(zone => zone.City).ThenBy(zone => zone.Sector)
+            .Select(zone => new DeliveryZoneOption(zone.Id, zone.Province, zone.City, zone.Sector, zone.Cost,
+                zone.IsFree, zone.RequiresConfirmation, zone.EstimatedTime))
+            .ToListAsync(ct);
+    }
+
+    private async Task ApplyShippingSummaryAsync(CheckoutViewModel model, CancellationToken ct)
+    {
+        model.ShippingCost = 0m;
+        model.ShippingToConfirm = false;
+        if (model.DeliveryMethod == DeliveryMethod.Pickup) return;
+        if (!model.DeliveryZoneId.HasValue)
+        {
+            model.ShippingToConfirm = true;
+            return;
+        }
+        var zone = await _db.DeliveryZones.AsNoTracking().SingleOrDefaultAsync(item =>
+            item.Id == model.DeliveryZoneId && item.IsActive && item.Province == "Manabí" &&
+            (item.City == "Manta" || item.City == "Jaramijó"), ct);
+        if (zone is null || zone.RequiresConfirmation || (!zone.IsFree && zone.Cost <= 0m))
+        {
+            model.ShippingToConfirm = true;
+            return;
+        }
+        model.ShippingCost = zone.IsFree ? 0m : zone.Cost;
     }
 
     private async Task<PaymentMethod[]> GetAvailablePaymentsAsync(CancellationToken ct)
@@ -239,25 +286,4 @@ public class CheckoutController : Controller
         return methods.Distinct().ToArray();
     }
 
-    private static string BuildWhatsAppMessage(OrderDto order)
-    {
-        static string Money(decimal value) => "$" + value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " USD";
-        var lines = order.Items.Select(item =>
-            $"• {item.ProductName} × {item.Quantity} — {Money(item.UnitPrice)} c/u; total {Money(item.LineTotal)}" +
-            (string.IsNullOrWhiteSpace(item.CustomizationSummary) ? "" : $"\n  Personalización: {item.CustomizationSummary}"));
-        var address = order.DeliveryMethod == DeliveryMethod.Pickup
-            ? "Retiro en tienda (coordinar lugar y hora)"
-            : string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.City, order.Province, order.PostalCode }
-                .Where(value => !string.IsNullOrWhiteSpace(value)));
-        var message = $"Hola, solicito revisar y aprobar esta compra:\nPedido: {order.OrderNumber}\n\nPRODUCTOS\n{string.Join("\n", lines)}" +
-            $"\n\nCLIENTE\nNombre: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}" +
-            $"\nEntrega: {order.DeliveryMethodLabel}\nDestino: {address}" +
-            (string.IsNullOrWhiteSpace(order.Observations) ? "" : $"\nIndicaciones: {order.Observations}") +
-            (order.IsGift ? $"\nRegalo para: {order.GiftRecipientName}\nMensaje de regalo: {order.GiftMessage}" : "") +
-            $"\n\nPAGO\nSubtotal: {Money(order.Subtotal)}\nDescuento: {Money(order.Discount)}\n" +
-            (order.ShippingToConfirm ? "Envío: pendiente de cotización según el destino.\nTotal: pendiente de confirmar por la tienda."
-                : $"Envío: {Money(order.ShippingCost)}\nTotal: {Money(order.Total)}") +
-            $"\nMétodo: {order.PaymentMethodLabel}\nEstado: pendiente de revisión y aprobación.";
-        return message;
-    }
 }

@@ -16,6 +16,7 @@ public static class StorePermissions
     public const string OrdersView = "Orders.View";
     public const string OrdersUpdateStatus = "Orders.UpdateStatus";
     public const string OrdersSetShipping = "Orders.SetShipping";
+    public const string ShippingManage = "Shipping.Manage";
     public const string PaymentsUpdate = "Payments.Update";
     public const string PaymentsViewProof = "Payments.ViewProof";
     public const string PaymentsReviewProof = "Payments.ReviewProof";
@@ -46,7 +47,7 @@ public static class StorePermissions
 
     public static IReadOnlyList<string> All { get; } =
     [
-        DashboardView, OrdersView, OrdersUpdateStatus, OrdersSetShipping, PaymentsUpdate, PaymentsViewProof, PaymentsReviewProof, ProductsManage,
+        DashboardView, OrdersView, OrdersUpdateStatus, OrdersSetShipping, ShippingManage, PaymentsUpdate, PaymentsViewProof, PaymentsReviewProof, ProductsManage,
         InventoryAdjust, CategoriesManage, CouponsManage, ReviewsModerate, MessagesView,
         BlogManage, GalleryManage, ReportsView, ReportsExport, StoreSettingsEdit,
         CustomersViewLimited, CustomersManage, CustomersReveal, UsersManageOwner, UsersManageStaff, RolesViewMatrix,
@@ -56,7 +57,7 @@ public static class StorePermissions
 
     public static IReadOnlySet<string> OwnerDefault { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
-        DashboardView, OrdersView, OrdersUpdateStatus, OrdersSetShipping, PaymentsUpdate, PaymentsViewProof, PaymentsReviewProof, ProductsManage,
+        DashboardView, OrdersView, OrdersUpdateStatus, OrdersSetShipping, ShippingManage, PaymentsUpdate, PaymentsViewProof, PaymentsReviewProof, ProductsManage,
         InventoryAdjust, CategoriesManage, CouponsManage, ReviewsModerate, MessagesView,
         BlogManage, GalleryManage, ReportsView, ReportsExport, StoreSettingsEdit,
         CustomersViewLimited, CustomersManage, UsersManageStaff, AdminSearch, AdminNotifications

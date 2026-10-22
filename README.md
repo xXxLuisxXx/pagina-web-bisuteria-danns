@@ -35,19 +35,23 @@ No se habilita ningún pago por defecto. Activa únicamente lo confirmado por la
 
 ```powershell
 dotnet user-secrets set "Payments:EnabledMethods:0" "CashOnDelivery" --project src/Bisuteria.Web
-# Solo si la tienda confirmó transferencia:
-# dotnet user-secrets set "Payments:EnabledMethods:1" "BankTransfer" --project src/Bisuteria.Web
 ```
+
+La transferencia se habilita desde **Admin > Configuración > Pagos** una vez cargados los datos bancarios. `Payments:EnabledMethods` solo configura los métodos técnicos disponibles, como pago contra entrega; `BankTransfer` no se habilita desde user-secrets.
 
 `Card` no está integrado y el checkout lo rechaza. Estos métodos crean un pago pendiente; **no procesan cobros bancarios**. El administrador actualiza su estado tras verificarlo. No se inventaron cuentas bancarias ni credenciales. Con la lista vacía el checkout informa que no hay un método disponible.
 
-`ShippingCost` y `FreeShippingThreshold` se administran en Configuración. Los importes utilizan punto decimal. Retiro/entrega local tienen envío cero. Antes de operar valida que las opciones ofrecidas coincidan con las condiciones reales del negocio.
+Las tarifas se configuran por ciudad y sector en **Admin > Envíos > Zonas y tarifas**. El checkout vuelve a consultar la zona activa en el servidor; el precio que mande el navegador se ignora. Mientras falte una cotización, el pedido queda con el envío pendiente y la tienda debe fijar el costo desde el pedido antes de que se acepte el pago. Retiro en tienda no cobra envío. `ShippingCost` y `PostalCode` se conservan para compatibilidad e historial; ya no fijan el precio de nuevos pedidos y el código postal no se muestra. La promoción `FreeShippingThresholdEnabled` permanece desactivada hasta que la propietaria confirme las condiciones comerciales.
 
-## Correo de recuperación
+La cobertura habilitada es Manta y Jaramijó, Manabí. La migración agrega una opción de sector por confirmar para cada ciudad, sin crear tarifas ni sectores ficticios. La propietaria debe agregar/editar zonas desde el panel antes de operar; cualquier zona con tarifa, gratuidad o plazo debe coincidir con la política real.
+
+## Correo y avisos de pedidos
 
 Configura privadamente `Smtp:Host`, `Smtp:Port` (587 por defecto), `Smtp:UseSsl` (true), `Smtp:From`, `Smtp:User` y `Smtp:Password`. Sus equivalentes de entorno usan doble guion bajo, por ejemplo `Smtp__Password`. Configura también `PublicBaseUrl` con el origen HTTPS real para los enlaces de recuperación.
 
-En `Development`, el transporte guarda correos ficticios de prueba como `.eml` en `src/Bisuteria.Web/App_Data/MailDrop`; el directorio no se publica ni se incluye en Git. El envío real requiere `Smtp:Enabled=true` en ese entorno, además de la configuración SMTP completa. Nunca imprimas enlaces ni tokens en la terminal. Las pruebas usan un doble de correo y verifican el token y su uso único. **El envío real SMTP está pendiente de configuración y prueba externa.**
+En `Development`, con el SMTP desactivado, el transporte guarda capturas locales `.eml` en `src/Bisuteria.Web/App_Data/MailDrop`; esas capturas cuentan como procesadas, no prueban entrega a Gmail y no se reenvían al habilitar SMTP. El envío real en desarrollo requiere `Smtp:Enabled=true` además de la configuración SMTP completa. Los avisos de compra usan el correo de contacto de `SiteSetting`; el remitente SMTP es una configuración independiente. El estado del Developer muestra si faltan claves y aclara que la entrega final aún debe comprobarse en la bandeja del proveedor. Nunca imprimas enlaces ni tokens en la terminal. Las pruebas usan un doble de correo y no envían mensajes reales.
+
+Después de cambiar user-secrets, reinicia el proceso local para recargar la configuración. Los pedidos anteriores que ya quedaron procesados en capturas locales no se reenvían automáticamente. El mensaje de WhatsApp es opcional: se abre preparado para revisión y el cliente debe pulsar Enviar.
 
 ## Arquitectura
 
@@ -87,6 +91,7 @@ dotnet build Bisuteria.slnx -c Release
 dotnet test Bisuteria.slnx --logger "trx;LogFileName=tests.trx" --results-directory audit/test-results
 dotnet list Bisuteria.slnx package --vulnerable --include-transitive
 node --check src/Bisuteria.Web/wwwroot/js/site.js
+node --check tests/visual/browser-audit.cjs
 ```
 
 Las pruebas requieren permiso para crear/eliminar una base **temporal** `BisuteriaAudit_<GUID>` en `localhost`. Verifican su nombre antes de migrar y antes de eliminarla; no usan `BisuteriaDb`. No son pruebas con EF InMemory. El doble SMTP no envía mensajes. Los correos `example.test` y contraseñas en la fixture son datos ficticios aislados.
@@ -113,9 +118,9 @@ Remove-Item Env:BROWSER_AUDIT, Env:BROWSER_AUDIT_PHASE
 
 La medición final usa `BROWSER_AUDIT_PHASE="after"`. Playwright recorre las rutas reales en 360, 768 y 1366 px, ejecuta axe, prueba flujos con datos ficticios y genera Lighthouse móvil; guarda capturas y JSON/HTML de Lighthouse en `audit/browser/before` y `audit/browser/after`. La fixture confirma que utiliza `BisuteriaAudit_<GUID>` y elimina esa base temporal. La prueba se omite en la suite normal salvo que `BROWSER_AUDIT=1`. axe y Lighthouse aportan diagnóstico, no certificación WCAG ni garantía de rendimiento en producción.
 
-## Estado de la revisión integral (21 de octubre de 2026)
+## Estado de la revisión integral (22 de octubre de 2026)
 
-El alcance ampliado se trabaja en la rama `mejoras/integral`. La matriz de permisos y el modelo de invitaciones están en [la documentación de roles y cuentas](docs/fase-2-3-roles-y-cuentas.md) y [la matriz de permisos](docs/matriz-permisos.md). Los resultados completos y los pendientes externos se registran en [el informe final](docs/revision-integral-final.md). Los informes de octubre 11–13 son históricos y corresponden a revisiones anteriores.
+El historial de revisiones anteriores conserva resultados de las ramas en que se generó. La matriz de permisos y el modelo de invitaciones están en [la documentación de roles y cuentas](docs/fase-2-3-roles-y-cuentas.md) y [la matriz de permisos](docs/matriz-permisos.md). Los resultados de la revisión de cobertura, avisos y cambios de octubre 22 están en [el informe de fases actual](docs/revision-fases-negocio-2026-10-22.md). [El informe integral anterior](docs/revision-integral-final.md) describe otra rama y fecha; no representa esta revisión.
 
 SMTP real, cobros bancarios y despliegue requieren configuración y comprobación externas. Consulta [la preparación del despliegue](docs/despliegue.md) y [las funciones parciales](docs/funciones-pendientes.md).
 

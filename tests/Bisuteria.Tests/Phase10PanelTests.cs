@@ -54,7 +54,14 @@ public partial class AuditTests
         using (var scope = f.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var order = new Order { OrderNumber = "P10-" + Guid.NewGuid().ToString("N")[..20], CustomerName = "Cliente de panel", CustomerEmail = "operator-panel@example.test", CustomerPhone = "2025550100" };
+            var order = new Order
+            {
+                OrderNumber = "P10-" + Guid.NewGuid().ToString("N")[..20], CustomerName = "Cliente de panel",
+                CustomerEmail = "operator-panel@example.test", CustomerPhone = "2025550100",
+                DeliveryMethod = Bisuteria.Domain.Enums.DeliveryMethod.Shipping, AddressLine1 = "Calle privada 123",
+                AddressLine2 = "Casa privada", City = "Manta", Province = "Manabí",
+                DeliverySector = "Sector privado del cliente", DeliveryZoneName = "Zona privada del cliente"
+            };
             order.Items.Add(new OrderItem { ProductId = f.ProductId, ProductName = "Pulsera de ensayo", Quantity = 1, UnitPrice = 5 });
             db.Add(order);
             await db.SaveChangesAsync();
@@ -65,7 +72,8 @@ public partial class AuditTests
         var dashboard = await client.GetStringAsync("/Admin/Dashboard");
         Assert.DoesNotContain("Exportar Excel", dashboard);
         Assert.DoesNotContain("Exportar CSV", dashboard);
-        Assert.DoesNotContain("attention=proofs", dashboard);
+        var proofLinkIndex = dashboard.IndexOf("attention=proofs", StringComparison.Ordinal);
+        Assert.True(proofLinkIndex < 0, proofLinkIndex < 0 ? "" : dashboard[Math.Max(0, proofLinkIndex - 200)..Math.Min(dashboard.Length, proofLinkIndex + 250)]);
         Assert.DoesNotContain("attention=shipping", dashboard);
         Assert.DoesNotContain("/Admin/Settings", dashboard);
         var detail = await client.GetStringAsync("/Admin/Orders/Details?orderNumber=" + number);
@@ -75,12 +83,46 @@ public partial class AuditTests
         Assert.Contains("Pedido recibido", detail);
         Assert.Contains("Datos reservados", detail);
         Assert.DoesNotContain("operator-panel@example.test", detail);
+        Assert.DoesNotContain("Calle privada 123", detail);
+        Assert.DoesNotContain("Casa privada", detail);
+        Assert.DoesNotContain("Sector privado del cliente", detail);
+        Assert.DoesNotContain("Zona privada del cliente", detail);
         Assert.Contains("Artículos del pedido", detail);
         Assert.Contains("for=\"orderStatus\"", detail);
         Assert.DoesNotContain("paymentStatus", detail);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/Admin/Orders?attention=proofs")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/Admin/Orders?attention=shipping")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/Admin/Orders?attention=unknown")).StatusCode);
+    }
+
+    [Fact]
+    public async Task OwnerCanSeeLocalDeliveryDestinationInAdminOrderDetails()
+    {
+        string number;
+        using (var scope = f.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var order = new Order
+            {
+                OrderNumber = "P10-" + Guid.NewGuid().ToString("N")[..20], CustomerName = "Cliente local",
+                CustomerEmail = "local-delivery@example.test", CustomerPhone = "2025550100",
+                DeliveryMethod = Bisuteria.Domain.Enums.DeliveryMethod.LocalDelivery,
+                AddressLine1 = "Dirección local de prueba", AddressLine2 = "Referencia ficticia",
+                City = "Manta", Province = "Manabí", DeliverySector = "Sector local de prueba",
+                DeliveryZoneName = "Zona local de prueba"
+            };
+            db.Add(order);
+            await db.SaveChangesAsync();
+            number = order.OrderNumber;
+        }
+
+        using var owner = await f.Login(StoreRoles.Owner);
+        var html = System.Net.WebUtility.HtmlDecode(await owner.GetStringAsync("/Admin/Orders/Details?orderNumber=" + number));
+        Assert.Contains("Lugar de entrega:", html);
+        Assert.Contains("Dirección local de prueba", html);
+        Assert.Contains("Referencia ficticia", html);
+        Assert.Contains("Sector local de prueba", html);
+        Assert.Contains("Manta, Manabí", html);
     }
 
     [Fact]

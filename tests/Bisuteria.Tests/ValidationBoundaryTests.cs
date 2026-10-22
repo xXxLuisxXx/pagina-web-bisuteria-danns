@@ -12,10 +12,10 @@ public partial class AuditTests
     public async Task InvalidSettingsKeepInputAndShowFieldErrors()
     {
         using var client = await f.Login("Admin");
-        var response = await AuditFactory.Post(client, "/Admin/Settings/Save", new() { ["values[ShippingCost]"] = "1.001" });
+        var response = await AuditFactory.Post(client, "/Admin/Settings/Save", new() { ["values[MonthlySalesGoal]"] = "1.001" });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("data-valmsg-for=\"values[ShippingCost]\"", html);
+        Assert.Contains("data-valmsg-for=\"values[MonthlySalesGoal]\"", html);
         Assert.Contains("value=\"1.001\"", html);
         Assert.Contains("field-validation-error", html);
     }

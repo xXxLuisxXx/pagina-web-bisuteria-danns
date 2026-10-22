@@ -110,11 +110,35 @@ public class OrderService : IOrderService
             if (!coupon.IsValid) throw new Bisuteria.Application.Services.BusinessRuleException(coupon.Message);
             discount = coupon.Discount;
         }
-        var threshold = await _settings.GetFreeShippingThresholdAsync(ct);
-        var shippingToConfirm = checkout.DeliveryMethod != DeliveryMethod.Pickup;
+        var shippingToConfirm = false;
         var shippingCost = 0m;
-        if (checkout.DeliveryMethod == DeliveryMethod.Shipping && threshold.HasValue && subtotal >= threshold.Value)
-            shippingToConfirm = false;
+        DeliveryZone? deliveryZone = null;
+        if (checkout.DeliveryMethod != DeliveryMethod.Pickup)
+        {
+            if (!checkout.DeliveryZoneId.HasValue)
+                throw new BusinessRuleException("Selecciona un sector de entrega.");
+            deliveryZone = await _unitOfWork.Repository<DeliveryZone>().FirstOrDefaultAsync(zone =>
+                zone.Id == checkout.DeliveryZoneId.Value && zone.IsActive && zone.Province == "Manabí" &&
+                (zone.City == "Manta" || zone.City == "Jaramijó"), ct);
+            if (deliveryZone is null)
+                throw new BusinessRuleException("El sector seleccionado ya no está disponible. Actualiza la página y elige otro.");
+            if (deliveryZone.RequiresConfirmation)
+            {
+                if (deliveryZone.IsFree || deliveryZone.Cost != 0m)
+                    throw new BusinessRuleException("La tarifa de este sector requiere revisión de la tienda.");
+                shippingToConfirm = true;
+            }
+            else if (deliveryZone.IsFree)
+            {
+                if (deliveryZone.Cost != 0m)
+                    throw new BusinessRuleException("La zona gratuita tiene una tarifa inválida.");
+            }
+            else if (deliveryZone.Cost <= 0m || deliveryZone.Cost > 10000m || decimal.Round(deliveryZone.Cost, 2) != deliveryZone.Cost)
+            {
+                throw new BusinessRuleException("La tarifa del sector no está configurada correctamente.");
+            }
+            else shippingCost = deliveryZone.Cost;
+        }
 
         var guestTokenHash = string.IsNullOrWhiteSpace(userId) ? HashGuestToken(checkout.GuestAccessToken) : null;
 
@@ -129,9 +153,11 @@ public class OrderService : IOrderService
             CustomerPhone = checkout.CustomerPhone,
             AddressLine1 = checkout.AddressLine1,
             AddressLine2 = checkout.AddressLine2,
-            City = checkout.City,
-            Province = checkout.Province,
-            PostalCode = checkout.PostalCode,
+            City = deliveryZone?.City ?? string.Empty,
+            Province = deliveryZone?.Province ?? string.Empty,
+            DeliverySector = deliveryZone?.Sector,
+            DeliveryZoneId = deliveryZone?.Id,
+            DeliveryZoneName = deliveryZone?.Sector,
             Observations = checkout.Observations,
             Status = OrderStatus.Pending,
             PaymentMethod = checkout.PaymentMethod,

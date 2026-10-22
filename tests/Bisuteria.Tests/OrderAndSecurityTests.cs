@@ -42,6 +42,61 @@ public partial class AuditTests
     }
 
     [Fact]
+    public async Task DeliveryZoneTariffAndFreeDeliveryComeOnlyFromActiveServerZone()
+    {
+        using var scope = f.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var db = services.GetRequiredService<AppDbContext>();
+        var priced = new DeliveryZone
+        {
+            Province = "Manabí", City = "Manta", Sector = "Prueba tarifa " + Guid.NewGuid().ToString("N"),
+            Cost = 2.75m, IsActive = true
+        };
+        var free = new DeliveryZone
+        {
+            Province = "Manabí", City = "Jaramijó", Sector = "Prueba gratis " + Guid.NewGuid().ToString("N"),
+            IsFree = true, Cost = 0m, IsActive = true
+        };
+        db.DeliveryZones.AddRange(priced, free);
+        await db.SaveChangesAsync();
+        var orders = services.GetRequiredService<IOrderService>();
+        var cart = new CartDto { ShippingCost = 999m, Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1, UnitPrice = 0.01m }] };
+
+        var shipping = await orders.CreateAsync(new CheckoutDto
+        {
+            CheckoutToken = Guid.NewGuid(), CustomerName = "Cliente de prueba", CustomerEmail = "shipping@example.test",
+            CustomerPhone = "2025550100", AddressLine1 = "Calle ficticia", DeliveryZoneId = priced.Id,
+            DeliveryMethod = DeliveryMethod.Shipping, PaymentMethod = PaymentMethod.CashOnDelivery
+        }, cart, null);
+        Assert.Equal(2.75m, shipping.ShippingCost);
+        Assert.Equal(shipping.Subtotal + 2.75m, shipping.Total);
+        Assert.Equal("Manta", shipping.City);
+        Assert.Equal(priced.Sector, shipping.DeliverySector);
+        Assert.Equal(priced.Sector, shipping.DeliveryZoneName);
+        Assert.False(shipping.ShippingToConfirm);
+
+        var freeOrder = await orders.CreateAsync(new CheckoutDto
+        {
+            CheckoutToken = Guid.NewGuid(), CustomerName = "Cliente de prueba", CustomerEmail = "free@example.test",
+            CustomerPhone = "2025550100", AddressLine1 = "Calle ficticia", DeliveryZoneId = free.Id,
+            DeliveryMethod = DeliveryMethod.Shipping, PaymentMethod = PaymentMethod.CashOnDelivery
+        }, cart, null);
+        Assert.Equal(0m, freeOrder.ShippingCost);
+        Assert.Equal(freeOrder.Subtotal, freeOrder.Total);
+        Assert.False(freeOrder.ShippingToConfirm);
+
+        var ordersBeforeForgery = await db.Orders.CountAsync();
+        var forged = new CheckoutDto
+        {
+            CheckoutToken = Guid.NewGuid(), CustomerName = "Cliente de prueba", CustomerEmail = "forged@example.test",
+            CustomerPhone = "2025550100", AddressLine1 = "Calle ficticia", DeliveryZoneId = int.MaxValue,
+            DeliveryMethod = DeliveryMethod.Shipping, PaymentMethod = PaymentMethod.CashOnDelivery
+        };
+        await Assert.ThrowsAsync<Bisuteria.Application.Services.BusinessRuleException>(() => orders.CreateAsync(forged, cart, null));
+        Assert.Equal(ordersBeforeForgery, await db.Orders.CountAsync());
+    }
+
+    [Fact]
     public async Task CustomizationPriceIsRecalculatedAndForeignCustomizationRejected()
     {
         using var scope=f.Services.CreateScope();var sp=scope.ServiceProvider;
@@ -158,12 +213,12 @@ public partial class AuditTests
     {
         using var client=f.Client();
         await AuditFactory.Post(client,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
-        var fields=new Dictionary<string,string>{["CustomerName"]="Compra HTTP",["CustomerEmail"]="http@example.test",["CustomerPhone"]="0982599801",["AddressLine1"]="Dirección de prueba",["AddressLine2"]="Departamento 4B",["PostalCode"]="130802",["City"]="Manta",["Province"]="Manabí",["PaymentMethod"]="CashOnDelivery",["DeliveryMethod"]="Shipping"};
+        var fields=new Dictionary<string,string>{["CustomerName"]="Compra HTTP",["CustomerEmail"]="http@example.test",["CustomerPhone"]="0982599801",["AddressLine1"]="Dirección de prueba",["AddressLine2"]="Departamento 4B",["PostalCode"]="130802",["City"]="Manta",["DeliveryZoneId"]=f.DeliveryZoneId.ToString(),["PaymentMethod"]="CashOnDelivery",["DeliveryMethod"]="Shipping"};
         var result=await AuditFactory.Post(client,"/Checkout",fields);
         Assert.Equal(HttpStatusCode.Redirect,result.StatusCode);Assert.Contains("Confirmation",result.Headers.Location!.OriginalString);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync(result.Headers.Location)).StatusCode);
         var confirmation=await client.GetStringAsync(result.Headers.Location);
-        Assert.Contains("Departamento 4B",confirmation);Assert.Contains("130802",confirmation);
+        Assert.Contains("Departamento 4B",confirmation);Assert.DoesNotContain("130802",confirmation);
         var guestLink = result.Headers.Location!.OriginalString;
         Assert.Contains("accessToken=", guestLink);
         var publicLinkWithoutToken = System.Text.RegularExpressions.Regex.Replace(guestLink, "[&?]accessToken=[^&]+", "").TrimEnd('?');
@@ -175,9 +230,10 @@ public partial class AuditTests
         Assert.Single(order.Items);Assert.Equal(20m,order.Subtotal);
         using var owner=await f.Login("Owner");
         var detail=await owner.GetStringAsync("/Admin/Orders/Details?orderNumber="+order.OrderNumber);
-        Assert.Contains("Departamento 4B",detail);Assert.Contains("130802",detail);
+        Assert.Contains("Departamento 4B",detail);Assert.DoesNotContain("130802",detail);
         var dto=await scope.ServiceProvider.GetRequiredService<IOrderService>().GetByNumberAsync(order.OrderNumber);
-        Assert.Equal("Departamento 4B",dto!.AddressLine2);Assert.Equal("130802",dto.PostalCode);
+        Assert.Equal("Departamento 4B",dto!.AddressLine2);Assert.Equal("Otro sector (por confirmar)",dto.DeliverySector);
+        Assert.Null(order.PostalCode);
     }
 
     [Fact]
@@ -185,7 +241,7 @@ public partial class AuditTests
     {
         using var client=f.Client();
         await AuditFactory.Post(client,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
-        var result=await AuditFactory.Post(client,"/Checkout",new(){["CustomerName"]="Pago rechazado",["CustomerEmail"]="card@example.test",["CustomerPhone"]="0982599801",["AddressLine1"]="Dirección de prueba",["City"]="Manta",["Province"]="Manabí",["PaymentMethod"]="Card",["DeliveryMethod"]="Shipping"});
+        var result=await AuditFactory.Post(client,"/Checkout",new(){["CustomerName"]="Pago rechazado",["CustomerEmail"]="card@example.test",["CustomerPhone"]="0982599801",["AddressLine1"]="Dirección de prueba",["City"]="Manta",["DeliveryZoneId"]=f.DeliveryZoneId.ToString(),["PaymentMethod"]="Card",["DeliveryMethod"]="Shipping"});
         Assert.Equal(HttpStatusCode.OK,result.StatusCode);
         Assert.Contains("método de pago habilitado",WebUtility.HtmlDecode(await result.Content.ReadAsStringAsync()));
         using var scope=f.Services.CreateScope();Assert.False(await scope.ServiceProvider.GetRequiredService<AppDbContext>().Orders.AnyAsync(o=>o.CustomerEmail=="card@example.test"));

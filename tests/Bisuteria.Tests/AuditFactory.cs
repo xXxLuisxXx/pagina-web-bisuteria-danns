@@ -48,6 +48,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
     public int ProductId { get; private set; }
     public int CategoryId { get; private set; }
     public int HiddenProductId { get; private set; }
+    public int DeliveryZoneId { get; private set; }
     public MailCapture Mail { get; } = new();
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -104,6 +105,7 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
         db.AddRange(category, product, hidden);
         db.SiteSettings.AddRange(
             new SiteSetting { Key = "WhatsApp", Value = "+1 202 555 0100" },
+            new SiteSetting { Key = "ContactEmail", Value = "store@example.test" },
             new SiteSetting { Key = "InstagramUrl", Value = "https://www.instagram.com/example/" },
             new SiteSetting { Key = "TikTokUrl", Value = "https://www.tiktok.com/@example" },
             new SiteSetting { Key = "FreeShippingThreshold", Value = "" },
@@ -115,7 +117,8 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             new SiteSetting { Key = "BankAccountHolder", Value = "" },
             new SiteSetting { Key = "BankAccountId", Value = "" });
         await db.SaveChangesAsync();
-        ProductId=product.Id; HiddenProductId=hidden.Id; CategoryId=category.Id;
+        var zone = await db.DeliveryZones.SingleAsync(item => item.City == "Manta" && item.RequiresConfirmation);
+        ProductId=product.Id; HiddenProductId=hidden.Id; CategoryId=category.Id; DeliveryZoneId=zone.Id;
     }
     async Task IAsyncLifetime.DisposeAsync()
     {

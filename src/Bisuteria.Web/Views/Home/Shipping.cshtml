@@ -1,3 +1,13 @@
+@inject ISettingService SettingsService
+@{
+    ViewData["Description"] = "Envíos en Manta y Jaramijó, Manabí. Consulta tarifas por sector, plazos de entrega y condiciones antes de concretar tu compra.";
+    var shippingSettings = await SettingsService.GetAllAsync();
+    var estimatedTime = shippingSettings.GetValueOrDefault("ShippingEstimatedTime");
+    var shippingConditions = shippingSettings.GetValueOrDefault("ShippingConditions");
+    var productionTime = shippingSettings.GetValueOrDefault("ProductionTimeText");
+    var returnsPolicy = shippingSettings.GetValueOrDefault("ReturnsPolicyText");
+}
+
 <section class="page-hero">
     <div class="container">
         <h1>Envíos y devoluciones</h1>
@@ -12,26 +22,23 @@
                 <div class="feature-icon mb-3"><i class="bi bi-truck"></i></div>
                 <h5>Envíos</h5>
                 <ul class="mb-0">
-                    <li>Envíos a todo el país con seguimiento.</li>
-                    <li>Costo fijo de envío; <strong>gratis en pedidos desde $30</strong>.</li>
-                    <li>Piezas de catálogo: despacho en 24-48 horas.</li>
-                    <li>Piezas personalizadas: producción de 2 a 4 días hábiles.</li>
-                    <li>Tiempo de entrega estimado: 2 a 5 días hábiles según destino.</li>
-                    <li>Cada pedido viaja con empaque elegante de regalo.</li>
+                    <li><strong>Envíos en Manta y Jaramijó, Manabí.</strong></li>
+                    <li>El costo depende del sector que elijas al finalizar la compra. Solo se indica envío gratis cuando la zona tiene esa condición.</li>
+                    <li>Si eliges un sector por confirmar, la tienda cotiza el envío y te comunica el total antes del pago.</li>
+                    <li>Retiro en tienda: coordina el lugar y la hora; no incluye un servicio de envío.</li>
                 </ul>
+                <h6 class="mt-3">Preparación y entrega</h6>
+                <p class="mb-2">@(string.IsNullOrWhiteSpace(productionTime) ? "Plazo de preparación pendiente de confirmar por la tienda." : productionTime)</p>
+                <p class="mb-2">@(string.IsNullOrWhiteSpace(estimatedTime) ? "Tiempo de entrega pendiente de confirmar según el sector." : estimatedTime)</p>
+                <p class="mb-0">@(string.IsNullOrWhiteSpace(shippingConditions) ? "Condiciones adicionales de entrega pendientes de confirmar por la tienda. Consúltalas antes de concretar tu compra." : shippingConditions)</p>
             </div>
         </div>
         <div class="col-md-6">
             <div class="card card-body shadow-sm h-100">
                 <div class="feature-icon mb-3"><i class="bi bi-arrow-repeat"></i></div>
                 <h5>Devoluciones y cambios</h5>
-                <ul class="mb-0">
-                    <li>Cambios en <strong>piezas de catálogo</strong> dentro de los primeros 7 días.</li>
-                    <li>La pieza debe estar sin uso y con su empaque original.</li>
-                    <li>Las <strong>piezas personalizadas no son sujetas a devolución</strong>, salvo defectos de fabricación.</li>
-                    <li>Para gestionar un cambio contáctanos por WhatsApp o desde la página de contacto.</li>
-                    <li>En caso de producto defectuoso, reemplazamos la pieza sin costo.</li>
-                </ul>
+                <p>@(string.IsNullOrWhiteSpace(returnsPolicy) ? "Política de cambios y devoluciones pendiente de confirmar por la tienda. Consulta las condiciones aplicables a tu pieza antes de concretar la compra." : returnsPolicy)</p>
+                <p class="mb-0">Para consultar un cambio o informar un problema, comunícate desde la página de contacto e indica tu número de pedido.</p>
             </div>
         </div>
         <div class="col-md-6">

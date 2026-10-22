@@ -1,7 +1,7 @@
 @model Dictionary<string, string>
 
 @{
-    var groups = new[] { "General", "Contacto", "Redes", "Compras", "Pagos" };
+    var groups = new[] { "General", "Contacto", "Redes", "Compras", "Envíos", "Pagos", "Políticas" };
 }
 
 <div class="mb-4">
@@ -15,7 +15,7 @@
 
     @foreach (var group in groups)
     {
-        var items = Model.Where(s => GetGroup(s.Key) == group).ToList();
+        var items = Model.Where(s => GetGroup(s.Key) == group && s.Key is not ("ShippingCost" or "FreeShippingThresholdEnabled")).ToList();
         if (items.Count == 0) continue;
 
         <div class="card-admin p-3 mb-3">
@@ -25,7 +25,7 @@
                 {
                     <div class="@(item.Key.Contains("Description") || item.Key.Contains("Text") ? "col-12" : "col-md-6")">
                         <label class="form-label" for="values_@item.Key">@Humanize(item.Key)</label>
-                        @if (item.Key.Contains("Description") || item.Key.Contains("HeroSubtitle"))
+                        @if (item.Key.Contains("Description") || item.Key.Contains("HeroSubtitle") || item.Key.EndsWith("Text") || item.Key == "ShippingConditions")
                         {
                             <textarea id="values_@item.Key" name="values[@item.Key]" class="form-control" rows="2" maxlength="1000">@item.Value</textarea>
                         }
@@ -33,11 +33,11 @@
                         {
                             <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" type="number" min="0" max="1000000" step="0.01" required="@(item.Key == "ShippingCost")" />
                         }
-                        else if (item.Key == "CouponSingleUsePerCustomer")
+                        else if (item.Key is "CouponSingleUsePerCustomer" or "FreeShippingThresholdEnabled")
                         {
                             <select id="values_@item.Key" name="values[@item.Key]" class="form-select">
-                                <option value="false" selected="@(!string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">No</option>
-                                <option value="true" selected="@(string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">Sí</option>
+                                <option value="false" selected="@(!string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">@(item.Key == "FreeShippingThresholdEnabled" ? "Desactivado" : "No")</option>
+                                <option value="true" selected="@(string.Equals(item.Value, "true", StringComparison.OrdinalIgnoreCase))">@(item.Key == "FreeShippingThresholdEnabled" ? "Activado" : "Sí")</option>
                             </select>
                         }
                         else if (item.Key == "PaymentBankTransferEnabled")
@@ -51,10 +51,18 @@
                         {
                             <input id="values_@item.Key" name="values[@item.Key]" class="form-control" value="@item.Value" maxlength="1000" type="@(item.Key == "ContactEmail" ? "email" : item.Key.EndsWith("Url") ? "url" : "text")" />
                         }
+                        @if (item.Key == "ContactEmail")
+                        {
+                            <div class="form-text">Este correo recibe los avisos de pedidos que la tienda debe revisar. El correo remitente de SMTP se configura por separado.</div>
+                        }
                         @Html.ValidationMessage($"values[{item.Key}]", null, new { @class = "text-danger small" })
                     </div>
                 }
             </div>
+            @if (group == "Compras")
+            {
+                <p class="small text-muted mb-0 mt-3">La promoción de envío gratis por monto está desactivada hasta confirmar sus condiciones comerciales.</p>
+            }
         </div>
     }
 
@@ -68,6 +76,8 @@
         "WhatsApp" or "ContactEmail" or "ContactPhone" or "ContactAddress" => "Contacto",
         "PaymentBankTransferEnabled" or "BankName" or "BankAccountType" or "BankAccountNumber" or "BankAccountHolder" or "BankAccountId" => "Pagos",
         "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
+        "ProductionTimeText" or "ShippingEstimatedTime" or "ShippingConditions" => "Envíos",
+        "ReturnsPolicyText" or "PrivacyPolicyText" => "Políticas",
         _ => "Compras"
     };
 
@@ -80,7 +90,7 @@
             "Store Slogan" => "Eslogan",
             "Store Description" => "Descripción de la tienda",
             "Whats App" => "WhatsApp",
-            "Contact Email" => "Correo de contacto",
+            "Contact Email" => "Correo de contacto y avisos de pedidos",
             "Contact Phone" => "Teléfono de contacto",
             "Contact Address" => "Dirección",
             "Facebook Url" => "Facebook",
@@ -95,6 +105,12 @@
             "Bank Account Holder" => "Titular de la cuenta",
             "Bank Account Id" => "Identificación del titular (opcional)",
             "Free Shipping Threshold" => "Envío gratis desde ($)",
+            "Free Shipping Threshold Enabled" => "Promoción de envío gratis por monto",
+            "Production Time Text" => "Plazo de preparación (por confirmar si queda vacío)",
+            "Shipping Estimated Time" => "Plazo estimado de entrega (por confirmar si queda vacío)",
+            "Shipping Conditions" => "Condiciones de entrega",
+            "Returns Policy Text" => "Política de cambios y devoluciones",
+            "Privacy Policy Text" => "Política de privacidad publicada (texto plano; revisar con asesoría legal)",
             "Coupon Single Use Per Customer" => "Limitar cupón a un uso por cliente",
             "Instagram Handle" => "Usuario de Instagram",
             "Tik Tok Handle" => "Usuario de TikTok",

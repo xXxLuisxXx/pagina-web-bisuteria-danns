@@ -66,6 +66,8 @@ public class SettingService : ISettingService
 
     public async Task<decimal?> GetFreeShippingThresholdAsync(CancellationToken ct = default)
     {
+        if (!bool.TryParse(await GetAsync("FreeShippingThresholdEnabled", "false", ct), out var enabled) || !enabled)
+            return null;
         var value = await GetAsync(FreeShippingKey, null, ct);
         return decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
     }

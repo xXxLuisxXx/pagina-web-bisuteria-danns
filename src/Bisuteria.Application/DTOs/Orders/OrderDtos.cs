@@ -19,11 +19,7 @@ public class CheckoutDto
 
     public string? AddressLine2 { get; set; }
 
-    public string City { get; set; } = string.Empty;
-
-    public string Province { get; set; } = string.Empty;
-
-    public string? PostalCode { get; set; }
+    public int? DeliveryZoneId { get; set; }
 
     public string? Observations { get; set; }
 
@@ -59,11 +55,15 @@ public class OrderDto
 
     public string? AddressLine2 { get; set; }
 
-    public string? PostalCode { get; set; }
-
     public string? City { get; set; }
 
     public string? Province { get; set; }
+
+    public string? DeliverySector { get; set; }
+
+    public int? DeliveryZoneId { get; set; }
+
+    public string? DeliveryZoneName { get; set; }
 
     public string? Observations { get; set; }
 

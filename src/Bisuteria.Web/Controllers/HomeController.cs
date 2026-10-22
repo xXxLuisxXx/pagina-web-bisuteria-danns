@@ -9,12 +9,14 @@ public class HomeController : Controller
 {
     private readonly ICatalogService _catalog;
     private readonly IBlogService _blog;
+    private readonly ISettingService _settings;
     private readonly ILogger<HomeController> _logger;
 
-    public HomeController(ICatalogService catalog, IBlogService blog, ILogger<HomeController> logger)
+    public HomeController(ICatalogService catalog, IBlogService blog, ISettingService settings, ILogger<HomeController> logger)
     {
         _catalog = catalog;
         _blog = blog;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -52,9 +54,10 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult Privacy()
+    public async Task<IActionResult> Privacy(CancellationToken ct)
     {
         ViewData["Title"] = "Política de privacidad";
+        ViewBag.PrivacyPolicyText = await _settings.GetAsync("PrivacyPolicyText", "", ct);
         return View();
     }
 

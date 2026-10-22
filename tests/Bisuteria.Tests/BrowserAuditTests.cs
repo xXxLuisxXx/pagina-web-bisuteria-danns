@@ -47,6 +47,11 @@ public sealed class BrowserAuditTests
                 }
                 var auditProduct = await db.Products.SingleAsync(product => product.Id == factory.ProductId);
                 auditProduct.Name = "Pieza de ensayo aislada con identificador de prueba extraordinariamente largo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                db.DeliveryZones.Add(new DeliveryZone
+                {
+                    Province = "Manabí", City = "Manta", Sector = "Sector de prueba (auditoría)",
+                    Cost = 2.50m, IsActive = true, SortOrder = 0
+                });
                 db.BlogPosts.Add(new BlogPost
                 {
                     Title = "Cómo cuidar tus accesorios", Slug = "browser-audit", Excerpt = "Consejos de ejemplo para la auditoría.",

@@ -158,13 +158,12 @@ public partial class AuditTests : IClassFixture<AuditFactory>
             var html=WebUtility.HtmlDecode(await client.GetStringAsync("/Cart"));
 
             Assert.Contains("Precio por unidad: $20.00 USD",html);
-            Assert.Contains("Se calcula al ingresar la dirección",html);
+            Assert.Contains("Se calcula al seleccionar el sector de entrega",html);
             Assert.DoesNotContain("$5,00</strong>",html);
 
             var checkoutHtml=WebUtility.HtmlDecode(await client.GetStringAsync("/Checkout"));
-            Assert.Contains("Por confirmar con la tienda",checkoutHtml);
-            Assert.Contains("Subtotal; falta confirmar envío",checkoutHtml);
-            Assert.DoesNotContain("5.00",checkoutHtml);
+            Assert.Contains("Se calcula según el lugar de entrega",checkoutHtml);
+            Assert.Contains("Envío por confirmar",checkoutHtml);
         }
         finally
         {
@@ -298,5 +297,5 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         visualDb.RemoveRange(samples); await visualDb.SaveChangesAsync();
         visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
     }
-    private static CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",City="Ciudad",Province="Manabí",PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
+    private CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",DeliveryZoneId=f.DeliveryZoneId,PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
 }

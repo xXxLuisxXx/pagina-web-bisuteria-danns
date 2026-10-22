@@ -59,7 +59,7 @@ public partial class AdminService
             .Select(g => new TopProductDto { ProductId = g.Key.ProductId ?? 0, Name = g.Key.ProductName, QuantitySold = g.Sum(i => i.Quantity), Revenue = g.Sum(i => i.UnitPrice * i.Quantity) })
             .OrderByDescending(p => p.QuantitySold).ThenBy(p => p.ProductId).Take(5).ToListAsync(ct);
         var inventory = await _context.Products.Where(p => p.IsActive).GroupBy(p => 1)
-            .Select(g => new { Total = g.Count(), Available = g.Count(p => p.Stock > 0), Empty = g.Count(p => p.Stock == 0), Low = g.Count(p => p.Stock <= p.MinStock) }).SingleOrDefaultAsync(ct);
+            .Select(g => new { Total = g.Count(), Available = g.Count(p => p.Stock > 0), Empty = g.Count(p => p.Stock == 0), Low = g.Count(p => p.Stock > 0 && p.Stock <= p.MinStock) }).SingleOrDefaultAsync(ct);
         var customerIds = from link in _context.UserRoles join role in _context.Roles on link.RoleId equals role.Id where role.Name == "Customer" select link.UserId;
         var clients = await _context.Users.Where(u => customerIds.Contains(u.Id)).GroupBy(u => 1)
             .Select(g => new { Total = g.Count(), New = g.Count(u => u.CreatedAt >= beginUtc && u.CreatedAt < endUtc), Previous = g.Count(u => u.CreatedAt >= previousUtc && u.CreatedAt < beginUtc) }).SingleOrDefaultAsync(ct);

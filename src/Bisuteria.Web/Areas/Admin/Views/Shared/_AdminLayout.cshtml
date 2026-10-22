@@ -1,10 +1,42 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<Bisuteria.Infrastructure.Identity.ApplicationUser> UserManager
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
+@inject Bisuteria.Application.Interfaces.IAdminService AdminService
+@inject Microsoft.Extensions.Caching.Memory.IMemoryCache AdminCache
+@using Microsoft.Extensions.Caching.Memory
 @{
     var currentUser = await UserManager.GetUserAsync(User);
     var displayName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}" : "Administrador";
     var currentRoles = currentUser is null ? Array.Empty<string>() : (await UserManager.GetRolesAsync(currentUser)).ToArray();
+    var currentController = Convert.ToString(ViewContext.RouteData.Values["controller"]);
+    var currentAction = Convert.ToString(ViewContext.RouteData.Values["action"]);
+    IReadOnlyList<Bisuteria.Application.DTOs.Admin.DashboardAlert> visibleAlerts = Array.Empty<Bisuteria.Application.DTOs.Admin.DashboardAlert>();
+    if (await Allowed(Bisuteria.Domain.Security.StorePermissions.AdminNotifications))
+    {
+        var dashboard = await AdminCache.GetOrCreateAsync("dashboard:::day:", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+            return await AdminService.GetDashboardAsync(Context.RequestAborted);
+        });
+        if (dashboard is not null)
+        {
+            var permittedAlerts = new List<Bisuteria.Application.DTOs.Admin.DashboardAlert>();
+            foreach (var alert in dashboard.Alerts)
+                if (alert.Count > 0 && await Allowed(alert.Permission)) permittedAlerts.Add(alert);
+            visibleAlerts = permittedAlerts;
+        }
+    }
     string RoleLabel(string role) => role switch { "Developer" => "Desarrollador", "Owner" => "Propietaria", "Operator" => "Operador", "Customer" => "Cliente", _ => "Administración" };
+    string Active(string controller, string? action = null) => string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase) && (action is null || string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+    string ActiveOrderQueue(string? attention = null, string? status = null)
+    {
+        if (!string.Equals(currentController, "Orders", StringComparison.OrdinalIgnoreCase)) return "";
+        var currentAttention = Context.Request.Query["attention"].ToString();
+        var currentStatus = Context.Request.Query["status"].ToString();
+        return string.Equals(currentAttention, attention ?? "", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(currentStatus, status ?? "", StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    }
+    bool IsActive(params string[] controllers) => controllers.Contains(currentController, StringComparer.OrdinalIgnoreCase);
+    int AlertCount(params string[] urls) => visibleAlerts.Where(alert => urls.Contains(alert.Url, StringComparer.OrdinalIgnoreCase)).Sum(alert => alert.Count);
     async Task<bool> Allowed(string permission) => (await Authorization.AuthorizeAsync(User, null, permission)).Succeeded;
 }
 <!DOCTYPE html>
@@ -45,22 +77,85 @@
 
     <nav class="admin-sidebar" id="adminSidebar" aria-label="Administración"><a href="/Admin" class="sidebar-brand"><img src="/img/logo-mark.svg" alt="" /><strong>DANN’S<small>Bisutería y accesorios</small></strong></a>
         <div class="nav flex-column gap-1">
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView)) { <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i>Panel de administración</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView)) { <a class="nav-link" asp-area="Admin" asp-controller="Activity" asp-action="Index"><i class="bi bi-clock-history"></i>Mi actividad</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ProductsManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i>Productos</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CategoriesManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i>Categorías</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.OrdersView)) { <a class="nav-link" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i>Pedidos</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CustomersViewLimited)) { <a class="nav-link" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i>Usuarios</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReviewsModerate)) { <a class="nav-link" asp-area="Admin" asp-controller="Reviews" asp-action="Index"><i class="bi bi-star"></i>Reseñas</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.MessagesView)) { <a class="nav-link" asp-area="Admin" asp-controller="Messages" asp-action="Index"><i class="bi bi-envelope"></i>Mensajes</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CouponsManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Coupons" asp-action="Index"><i class="bi bi-ticket-perforated"></i>Cupones</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.BlogManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Blog" asp-action="Index"><i class="bi bi-journal-text"></i>Blog</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.GalleryManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Gallery" asp-action="Index"><i class="bi bi-images"></i>Galería</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.InventoryAdjust)) { <a class="nav-link" asp-area="Admin" asp-controller="Inventory" asp-action="Index"><i class="bi bi-clipboard-data"></i>Inventario</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsView)) { <a class="nav-link" asp-area="Admin" asp-controller="Reports" asp-action="Index"><i class="bi bi-graph-up"></i>Reportes</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.StoreSettingsEdit)) { <a class="nav-link" asp-area="Admin" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear"></i>Configuración</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageStaff) || await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageOwner)) { <a class="nav-link" asp-area="" asp-controller="StaffInvitation" asp-action="Index"><i class="bi bi-person-plus"></i>Invitaciones de equipo</a> }
-            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.RolesViewMatrix)) { <a class="nav-link" asp-area="Developer" asp-controller="Roles" asp-action="Index"><i class="bi bi-shield-lock"></i>Modo desarrollador</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView))
+            {
+                <a class="nav-link @Active("Dashboard", "Index")" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2" aria-hidden="true"></i>Panel de administración</a>
+                <a class="nav-link @Active("Activity")" asp-area="Admin" asp-controller="Activity" asp-action="Index"><i class="bi bi-clock-history" aria-hidden="true"></i>Mi actividad</a>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.OrdersView) || await Allowed(Bisuteria.Domain.Security.StorePermissions.PaymentsReviewProof) || await Allowed(Bisuteria.Domain.Security.StorePermissions.CouponsManage))
+            {
+                <details class="sidebar-group" data-sidebar-group="ventas" open="@(IsActive("Orders", "Coupons"))">
+                    <summary aria-expanded="@(IsActive("Orders", "Coupons").ToString().ToLowerInvariant())">Ventas @if (AlertCount("/Admin/Orders?status=Pending", "/Admin/Orders?attention=proofs", "/Admin/Orders?attention=unpaid") > 0) { <span class="sidebar-count" aria-label="@AlertCount("/Admin/Orders?status=Pending", "/Admin/Orders?attention=proofs", "/Admin/Orders?attention=unpaid") pendientes">@AlertCount("/Admin/Orders?status=Pending", "/Admin/Orders?attention=proofs", "/Admin/Orders?attention=unpaid")</span> }</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.OrdersView)) { var count = AlertCount("/Admin/Orders?status=Pending"); <a class="nav-link @ActiveOrderQueue(status: "Pending")" asp-area="Admin" asp-controller="Orders" asp-action="Index" asp-route-status="Pending"><i class="bi bi-receipt" aria-hidden="true"></i>Pedidos @if (count > 0) { <span class="sidebar-count" aria-label="@count pendientes">@count</span> }</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.PaymentsReviewProof)) { var count = AlertCount("/Admin/Orders?attention=proofs"); <a class="nav-link @ActiveOrderQueue("proofs")" asp-area="Admin" asp-controller="Orders" asp-action="Index" asp-route-attention="proofs"><i class="bi bi-file-earmark-check" aria-hidden="true"></i>Comprobantes de pago @if (count > 0) { <span class="sidebar-count" aria-label="@count por revisar">@count</span> }</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CouponsManage)) { <a class="nav-link @Active("Coupons")" asp-area="Admin" asp-controller="Coupons" asp-action="Index"><i class="bi bi-ticket-perforated" aria-hidden="true"></i>Cupones</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ProductsManage) || await Allowed(Bisuteria.Domain.Security.StorePermissions.CategoriesManage) || await Allowed(Bisuteria.Domain.Security.StorePermissions.InventoryAdjust))
+            {
+                <details class="sidebar-group" data-sidebar-group="catalogo" open="@(IsActive("Products", "Categories", "Inventory"))">
+                    <summary aria-expanded="@(IsActive("Products", "Categories", "Inventory").ToString().ToLowerInvariant())">Catálogo @if (AlertCount("/Admin/Inventory") > 0) { <span class="sidebar-count" aria-label="@AlertCount("/Admin/Inventory") avisos de inventario">@AlertCount("/Admin/Inventory")</span> }</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ProductsManage)) { <a class="nav-link @Active("Products")" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam" aria-hidden="true"></i>Productos</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CategoriesManage)) { <a class="nav-link @Active("Categories")" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags" aria-hidden="true"></i>Categorías</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.InventoryAdjust)) { var count = AlertCount("/Admin/Inventory"); <a class="nav-link @Active("Inventory")" asp-area="Admin" asp-controller="Inventory" asp-action="Index"><i class="bi bi-clipboard-data" aria-hidden="true"></i>Inventario @if (count > 0) { <span class="sidebar-count" aria-label="@count avisos de inventario">@count</span> }</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ShippingManage))
+            {
+                <details class="sidebar-group" data-sidebar-group="envios" open="@(IsActive("ShippingZones"))">
+                    <summary aria-expanded="@(IsActive("ShippingZones").ToString().ToLowerInvariant())">Envíos</summary><div class="sidebar-group-links">
+                    <a class="nav-link @Active("ShippingZones")" asp-area="Admin" asp-controller="ShippingZones" asp-action="Index"><i class="bi bi-truck" aria-hidden="true"></i>Zonas y tarifas</a>
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReviewsModerate) || await Allowed(Bisuteria.Domain.Security.StorePermissions.MessagesView))
+            {
+                <details class="sidebar-group" data-sidebar-group="clientes" open="@(IsActive("Reviews", "Messages"))">
+                    <summary aria-expanded="@(IsActive("Reviews", "Messages").ToString().ToLowerInvariant())">Clientes @if (AlertCount("/Admin/Reviews?pendingOnly=true", "/Admin/Messages?unreadOnly=true") > 0) { <span class="sidebar-count" aria-label="@AlertCount("/Admin/Reviews?pendingOnly=true", "/Admin/Messages?unreadOnly=true") avisos de clientes">@AlertCount("/Admin/Reviews?pendingOnly=true", "/Admin/Messages?unreadOnly=true")</span> }</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReviewsModerate)) { var count = AlertCount("/Admin/Reviews?pendingOnly=true"); <a class="nav-link @Active("Reviews")" asp-area="Admin" asp-controller="Reviews" asp-action="Index"><i class="bi bi-star" aria-hidden="true"></i>Reseñas @if (count > 0) { <span class="sidebar-count" aria-label="@count por aprobar">@count</span> }</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.MessagesView)) { var count = AlertCount("/Admin/Messages?unreadOnly=true"); <a class="nav-link @Active("Messages")" asp-area="Admin" asp-controller="Messages" asp-action="Index"><i class="bi bi-envelope" aria-hidden="true"></i>Mensajes @if (count > 0) { <span class="sidebar-count" aria-label="@count sin leer">@count</span> }</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.BlogManage) || await Allowed(Bisuteria.Domain.Security.StorePermissions.GalleryManage))
+            {
+                <details class="sidebar-group" data-sidebar-group="contenido" open="@(IsActive("Blog", "Gallery"))">
+                    <summary aria-expanded="@(IsActive("Blog", "Gallery").ToString().ToLowerInvariant())">Contenido</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.BlogManage)) { <a class="nav-link @Active("Blog")" asp-area="Admin" asp-controller="Blog" asp-action="Index"><i class="bi bi-journal-text" aria-hidden="true"></i>Blog</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.GalleryManage)) { <a class="nav-link @Active("Gallery")" asp-area="Admin" asp-controller="Gallery" asp-action="Index"><i class="bi bi-images" aria-hidden="true"></i>Galería</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsView) || await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsExport))
+            {
+                <details class="sidebar-group" data-sidebar-group="reportes" open="@(IsActive("Reports") || currentController == "Dashboard" && currentAction == "Export")">
+                    <summary aria-expanded="@((IsActive("Reports") || currentController == "Dashboard" && currentAction == "Export").ToString().ToLowerInvariant())">Reportes</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsView)) { <a class="nav-link @Active("Reports")" asp-area="Admin" asp-controller="Reports" asp-action="Index"><i class="bi bi-graph-up" aria-hidden="true"></i>Ventas</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ReportsExport)) { <a class="nav-link @Active("Dashboard", "Export")" asp-area="Admin" asp-controller="Dashboard" asp-action="Export" asp-route-format="xlsx"><i class="bi bi-download" aria-hidden="true"></i>Exportaciones</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CustomersViewLimited) || await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageStaff) || await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageOwner))
+            {
+                <details class="sidebar-group" data-sidebar-group="equipo" open="@(IsActive("Users", "StaffInvitation"))">
+                    <summary aria-expanded="@(IsActive("Users", "StaffInvitation").ToString().ToLowerInvariant())">Equipo</summary><div class="sidebar-group-links">
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CustomersViewLimited)) { <a class="nav-link @Active("Users")" asp-area="Admin" asp-controller="Users" asp-action="Index"><i class="bi bi-people" aria-hidden="true"></i>Usuarios</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageStaff) || await Allowed(Bisuteria.Domain.Security.StorePermissions.UsersManageOwner)) { <a class="nav-link @Active("StaffInvitation")" asp-area="" asp-controller="StaffInvitation" asp-action="Index"><i class="bi bi-person-plus" aria-hidden="true"></i>Invitaciones de equipo</a> }
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.StoreSettingsEdit))
+            {
+                <details class="sidebar-group" data-sidebar-group="configuracion" open="@(IsActive("Settings"))">
+                    <summary aria-expanded="@(IsActive("Settings").ToString().ToLowerInvariant())">Configuración</summary><div class="sidebar-group-links">
+                    <a class="nav-link @Active("Settings")" asp-area="Admin" asp-controller="Settings" asp-action="Index"><i class="bi bi-gear" aria-hidden="true"></i>Datos de tienda, pagos y avisos</a>
+                </div></details>
+            }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.RolesViewMatrix))
+            {
+                <details class="sidebar-group" data-sidebar-group="desarrollador" open="@(IsActive("Roles", "Audit", "Home", "EmailQueue"))">
+                    <summary aria-expanded="@(IsActive("Roles", "Audit", "Home", "EmailQueue").ToString().ToLowerInvariant())"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Modo desarrollador</summary><div class="sidebar-group-links">
+                    <a class="nav-link @Active("Roles")" asp-area="Developer" asp-controller="Roles" asp-action="Index"><i class="bi bi-person-gear" aria-hidden="true"></i>Roles y permisos</a>
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.SystemView)) { <a class="nav-link @Active("Home")" asp-area="Developer" asp-controller="Home" asp-action="Index"><i class="bi bi-activity" aria-hidden="true"></i>Estado del sistema</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.AuditView)) { <a class="nav-link @Active("Audit")" asp-area="Developer" asp-controller="Audit" asp-action="Index"><i class="bi bi-journal-check" aria-hidden="true"></i>Auditoría</a> }
+                    @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.SystemView)) { <a class="nav-link @Active("EmailQueue")" asp-area="Developer" asp-controller="EmailQueue" asp-action="Index"><i class="bi bi-envelope-at" aria-hidden="true"></i>Cola de correo</a> }
+                </div></details>
+            }
         </div>
         <a href="/" class="sidebar-store"><i class="bi bi-shop" aria-hidden="true"></i><strong>Tu tienda, siempre cerca</strong><span>Ver tienda ↗</span></a>
         <form asp-area="" asp-controller="Account" asp-action="Logout" method="post"><button class="btn btn-outline-dark w-100" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión</button></form>

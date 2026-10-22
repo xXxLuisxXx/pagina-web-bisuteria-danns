@@ -165,7 +165,12 @@ public static class DbInitializer
             ["InstagramHandle"] = ("", "Redes"),
             ["TikTokUrl"] = ("", "Redes"),
             ["TikTokHandle"] = ("", "Redes"),
-            ["ShippingCost"] = ("5", "Compras"),
+            ["ShippingCost"] = ("0", "Compras"),
+            ["ProductionTimeText"] = ("", "Envíos"),
+            ["ShippingEstimatedTime"] = ("", "Envíos"),
+            ["ShippingConditions"] = ("", "Envíos"),
+            ["ReturnsPolicyText"] = ("", "Políticas"),
+            ["PrivacyPolicyText"] = ("", "Políticas"),
             ["PaymentBankTransferEnabled"] = ("false", "Pagos"),
             ["BankName"] = ("", "Pagos"),
             ["BankAccountType"] = ("", "Pagos"),
@@ -174,6 +179,7 @@ public static class DbInitializer
             ["BankAccountId"] = ("", "Pagos"),
             ["CouponSingleUsePerCustomer"] = ("false", "Compras"),
             ["FreeShippingThreshold"] = ("50", "Compras"),
+            ["FreeShippingThresholdEnabled"] = ("false", "Compras"),
             ["HeroTitle"] = ("Bisutería que cuenta tu historia", "Hero"),
             ["HeroSubtitle"] = ("Piezas únicas y personalizadas, hechas a mano con elegancia y pasión para los momentos que importan.", "Hero")
         };
@@ -183,6 +189,16 @@ public static class DbInitializer
             var existing = await context.SiteSettings.FirstOrDefaultAsync(s => s.Key == setting.Key);
             if (existing is null)
                 context.SiteSettings.Add(new SiteSetting { Key = setting.Key, Value = setting.Value.Value, Group = setting.Value.Group });
+        }
+
+        foreach (var (city, order) in new[] { ("Manta", 1), ("Jaramijó", 2) })
+        {
+            if (await context.DeliveryZones.AnyAsync(zone => zone.Province == "Manabí" && zone.City == city && zone.Sector == "Otro sector (por confirmar)")) continue;
+            context.DeliveryZones.Add(new DeliveryZone
+            {
+                Province = "Manabí", City = city, Sector = "Otro sector (por confirmar)",
+                Cost = 0m, IsFree = false, RequiresConfirmation = true, IsActive = true, SortOrder = order
+            });
         }
 
         await context.SaveChangesAsync();

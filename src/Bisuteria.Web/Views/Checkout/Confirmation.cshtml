@@ -7,7 +7,7 @@
     <div class="text-center mb-5">
         <div class="success-check"><i class="bi bi-check2"></i></div>
         <h1 class="mt-3">¡Gracias por tu compra!</h1>
-        <p class="lead text-muted">Tu pedido quedó registrado y se avisó al equipo por correo para que lo revise y apruebe. También puedes enviar el resumen completo por WhatsApp.</p>
+        <p class="lead text-muted">Tu pedido quedó registrado. La tienda revisará los datos y coordinará contigo el siguiente paso. También puedes enviar el resumen completo por WhatsApp.</p>
         <div class="order-number-badge">Número de pedido: <strong>@Model.OrderNumber</strong></div>
     </div>
 
@@ -40,15 +40,11 @@
                 }
                 else
                 {
-                    <p class="mb-1">@Model.AddressLine1, @Model.City, @Model.Province</p>
+                    <p class="mb-1">@Model.AddressLine1, @Model.DeliverySector, @Model.City, @Model.Province</p>
                 }
                         @if (!string.IsNullOrWhiteSpace(Model.AddressLine2))
                         {
                             <p class="mb-1"><strong>Dirección complementaria:</strong> @Model.AddressLine2</p>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(Model.PostalCode))
-                        {
-                            <p class="mb-1"><strong>Código postal:</strong> @Model.PostalCode</p>
                         }
                 <p class="small text-muted mb-0">@Model.PaymentMethodLabel</p>
             </div>
@@ -57,8 +53,8 @@
                 <h5 class="mb-3">Resumen de pago</h5>
                 <p class="mb-1">Subtotal: <strong>@Model.Subtotal.ToString("C")</strong></p>
                 @if (Model.Discount > 0) { <p class="mb-1">Descuento: <strong>-@Model.Discount.ToString("C")</strong></p> }
-                <p class="mb-1">Envío: <strong>@(Model.ShippingToConfirm ? "Por confirmar con la tienda" : Model.ShippingCost.ToString("C"))</strong></p>
-                <p class="mb-0">@(Model.ShippingToConfirm ? "Total parcial; falta confirmar el recargo." : "Total:") <strong>@(Model.ShippingToConfirm ? (Model.Subtotal - Model.Discount).ToString("C") : Model.Total.ToString("C"))</strong></p>
+                <p class="mb-1">Envío: <strong>@ShippingLabel(Model)</strong></p>
+                <p class="mb-0">@(Model.ShippingToConfirm ? "Total pendiente de confirmar el envío." : "Total:") <strong>@(Model.ShippingToConfirm ? (Model.Subtotal - Model.Discount).ToString("C") : Model.Total.ToString("C"))</strong></p>
             </div>
 
             @if (Model.PaymentMethod == PaymentMethod.BankTransfer)
@@ -125,3 +121,12 @@
         </div>
     </div>
 </section>
+
+@functions {
+    private static string ShippingLabel(OrderDto order)
+    {
+        if (order.DeliveryMethod == DeliveryMethod.Pickup) return "No aplica";
+        if (order.ShippingToConfirm) return "Se calcula según el lugar de entrega";
+        return order.ShippingCost.ToString("C");
+    }
+}

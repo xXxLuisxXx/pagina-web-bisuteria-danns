@@ -4,6 +4,12 @@
 }
 <h2 class="h3">Cola de correo</h2>
 <p class="text-secondary">Se muestran hasta 100 mensajes pendientes. Los destinatarios aparecen parcialmente ocultos.</p>
+<div class="alert alert-info" role="status">
+    <p class="mb-2"><strong>Transporte:</strong> @ViewBag.SmtpStatus</p>
+    <p class="mb-2"><strong>Cola:</strong> @ViewBag.QueueStatus</p>
+    <p class="mb-0"><strong>Avisos de la tienda:</strong> @ViewBag.StoreNotificationStatus</p>
+</div>
+<p class="text-secondary">Los correos capturados en archivos locales durante desarrollo cuentan como procesados y no aparecen entre los pendientes. Esos archivos no prueban entrega al proveedor y no se reenvían al habilitar SMTP.</p>
 <div class="table-responsive" role="region" aria-label="Mensajes de correo pendientes" tabindex="0">
     <table class="table align-middle">
         <thead><tr><th>Tipo</th><th>Destinatario</th><th>Intentos</th><th>Próximo intento (UTC)</th><th>Estado</th><th></th></tr></thead>

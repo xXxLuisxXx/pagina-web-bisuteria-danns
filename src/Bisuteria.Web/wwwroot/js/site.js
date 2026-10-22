@@ -26,6 +26,21 @@
         document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { setMenu(false); menu.focus(); } });
         window.addEventListener('resize', function () { setMenu(false); });
     }
+    document.querySelectorAll('.sidebar-group[data-sidebar-group]').forEach(function (group) {
+        var summary = group.querySelector('summary');
+        var hasCurrentPage = !!group.querySelector('.nav-link.active');
+        var key = 'danns-admin-group-' + group.dataset.sidebarGroup;
+        try {
+            var saved = sessionStorage.getItem(key);
+            if (hasCurrentPage) group.open = true;
+            else if (saved !== null) group.open = saved === 'open';
+        } catch (_) { if (hasCurrentPage) group.open = true; }
+        if (summary) summary.setAttribute('aria-expanded', String(group.open));
+        group.addEventListener('toggle', function () {
+            if (summary) summary.setAttribute('aria-expanded', String(group.open));
+            try { sessionStorage.setItem(key, group.open ? 'open' : 'closed'); } catch (_) { /* La sesión puede bloquear almacenamiento. */ }
+        });
+    });
     document.addEventListener('click', function (event) {
         var button = event.target.closest('.btn-qty[data-dir]');
         if (!button) return;

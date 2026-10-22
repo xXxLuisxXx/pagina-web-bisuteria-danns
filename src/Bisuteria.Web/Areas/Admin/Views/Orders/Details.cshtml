@@ -79,16 +79,16 @@
                     <p class="mb-1"><strong>Entrega:</strong> @Model.DeliveryMethodLabel</p>
                 </div>
                 <div class="col-md-6">
-                    @if (Model.DeliveryMethod == Bisuteria.Domain.Enums.DeliveryMethod.Shipping)
+                    @if (Model.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
                     {
-                        <p class="mb-1"><strong>Envío:</strong> @Model.AddressLine1</p>
+                        <p class="mb-1"><strong>@(Model.DeliveryMethod == Bisuteria.Domain.Enums.DeliveryMethod.LocalDelivery ? "Lugar de entrega:" : "Envío:")</strong> @Model.AddressLine1</p>
                         @if (!string.IsNullOrWhiteSpace(Model.AddressLine2))
                         {
                             <p class="mb-1"><strong>Dirección complementaria:</strong> @Model.AddressLine2</p>
                         }
-                        @if (!string.IsNullOrWhiteSpace(Model.PostalCode))
+                        @if (!string.IsNullOrWhiteSpace(Model.DeliverySector) || !string.IsNullOrWhiteSpace(Model.DeliveryZoneName))
                         {
-                            <p class="mb-1"><strong>Código postal:</strong> @Model.PostalCode</p>
+                            <p class="mb-1"><strong>Sector:</strong> @(string.IsNullOrWhiteSpace(Model.DeliverySector) ? Model.DeliveryZoneName : Model.DeliverySector)</p>
                         }
                         <p class="mb-1"><strong>Ciudad:</strong> @Model.City, @Model.Province</p>
                     }

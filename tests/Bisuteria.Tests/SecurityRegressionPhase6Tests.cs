@@ -51,8 +51,8 @@ public partial class AuditTests
             var checkout = new CheckoutDto
             {
                 CustomerName = "Invitado de prueba", CustomerEmail = $"guest-{Guid.NewGuid():N}@example.test",
-                CustomerPhone = "+593 999 111 222", AddressLine1 = "Calle de prueba", City = "Manta",
-                Province = "Manabí", PaymentMethod = PaymentMethod.CashOnDelivery, DeliveryMethod = DeliveryMethod.Pickup,
+                CustomerPhone = "+593 999 111 222", AddressLine1 = "Calle de prueba",
+                PaymentMethod = PaymentMethod.CashOnDelivery, DeliveryMethod = DeliveryMethod.Pickup,
                 CheckoutToken = Guid.NewGuid(), GuestAccessToken = token
             };
             var order = await orders.CreateAsync(checkout,
@@ -72,7 +72,7 @@ public partial class AuditTests
         var message = Uri.UnescapeDataString(match.Groups[1].Value);
         Assert.Contains(orderNumber, message);
         Assert.Contains("Invitado de prueba", message);
-        Assert.Contains("guest-", message);
+        Assert.DoesNotContain("guest-", message);
         Assert.Contains("+593 999 111 222", message);
     }
 
