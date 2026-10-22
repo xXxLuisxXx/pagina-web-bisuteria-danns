@@ -30,6 +30,23 @@ public sealed class SecurityAuditLogger(AppDbContext db, UserManager<Application
         await RecordAsync(action, "Customer", targetUserId, "200", cancellationToken: ct);
     }
 
+    public async Task RecordForUserAsync(ApplicationUser actor, string action, string? entityType, string? entityId,
+        string outcome, CancellationToken ct = default)
+    {
+        var roles = await users.GetRolesAsync(actor);
+        db.Add(new AuditLog
+        {
+            ActorId = actor.Id,
+            ActorRole = string.Join(",", roles.Take(4)),
+            Action = action,
+            EntityType = entityType,
+            EntityId = entityId is { Length: <= 450 } ? entityId : null,
+            Outcome = outcome,
+            RemoteIp = accessor.HttpContext?.Connection.RemoteIpAddress?.ToString()
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task RecordAsync(string action, string? entityType, string? entityId, string outcome,
         string? beforeJson = null, string? afterJson = null, CancellationToken cancellationToken = default)
     {

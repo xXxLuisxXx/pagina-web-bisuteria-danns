@@ -1,0 +1,36 @@
+@model Bisuteria.Web.Models.AdminUserDeleteViewModel
+
+@{
+    ViewData["Title"] = "Eliminar cuenta de cliente";
+}
+
+<div class="mb-4">
+    <h1 class="admin-title mb-1">Eliminar cuenta de cliente</h1>
+    <p class="text-muted mb-0">Esta acción elimina permanentemente la cuenta y no se puede deshacer.</p>
+</div>
+
+<div class="card-admin p-4 border-danger admin-user-form-card">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+    <p>Vas a eliminar la cuenta <strong>@Model.Email</strong>.</p>
+    <ul>
+        <li>Se borrarán sus direcciones guardadas y favoritos.</li>
+        <li>Los pedidos conservarán productos, estados y montos; sus datos personales y direcciones se anonimizarán.</li>
+        <li>Sus reseñas se conservarán sin vincular la cuenta y aparecerán como “Cliente eliminado”.</li>
+    </ul>
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <div class="mb-3">
+            <label asp-for="ConfirmationEmail" class="form-label"></label>
+            <input asp-for="ConfirmationEmail" class="form-control" autocomplete="off" />
+            <span asp-validation-for="ConfirmationEmail" class="text-danger"></span>
+        </div>
+        <button type="submit" class="btn btn-danger">Eliminar cuenta definitivamente</button>
+        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

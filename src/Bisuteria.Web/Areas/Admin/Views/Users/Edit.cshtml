@@ -1,0 +1,73 @@
+@model Bisuteria.Web.Models.AdminUserEditViewModel
+
+@{
+    ViewData["Title"] = "Editar cliente";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="admin-title mb-1">Editar cliente</h1>
+        <p class="text-muted mb-0">Actualiza sus datos de contacto. Sus pedidos e historial se conservarán.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Volver a usuarios</a>
+</div>
+
+<div class="card-admin p-4 admin-user-form-card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" type="email" autocomplete="email" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+            <div class="form-text">Este correo también se usa para iniciar sesión. Al cambiarlo, se enviará un enlace de confirmación al nuevo correo.</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="FirstName" class="form-label"></label>
+                <input asp-for="FirstName" class="form-control" autocomplete="given-name" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="LastName" class="form-label"></label>
+                <input asp-for="LastName" class="form-control" autocomplete="family-name" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" autocomplete="tel" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="City" class="form-label"></label>
+                <input asp-for="City" class="form-control" autocomplete="address-level2" />
+                <span asp-validation-for="City" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Province" class="form-label"></label>
+                <select asp-for="Province" class="form-select" autocomplete="address-level1">
+                    <option value="">Selecciona una provincia</option>
+                    @foreach (var province in (IReadOnlyList<string>)ViewBag.Provinces)
+                    {
+                        <option value="@province">@province</option>
+                    }
+                </select>
+                <span asp-validation-for="Province" class="text-danger"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a asp-action="Index" class="btn btn-link">Cancelar</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

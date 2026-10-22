@@ -173,8 +173,8 @@ public partial class AuditTests
         using var scope=f.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var order=await db.Orders.Include(o=>o.Items).SingleAsync(o=>o.CustomerEmail=="http@example.test");
         Assert.Single(order.Items);Assert.Equal(20m,order.Subtotal);
-        using var admin=await f.Login("Admin");
-        var detail=await admin.GetStringAsync("/Admin/Orders/Details?orderNumber="+order.OrderNumber);
+        using var owner=await f.Login("Owner");
+        var detail=await owner.GetStringAsync("/Admin/Orders/Details?orderNumber="+order.OrderNumber);
         Assert.Contains("Departamento 4B",detail);Assert.Contains("130802",detail);
         var dto=await scope.ServiceProvider.GetRequiredService<IOrderService>().GetByNumberAsync(order.OrderNumber);
         Assert.Equal("Departamento 4B",dto!.AddressLine2);Assert.Equal("130802",dto.PostalCode);

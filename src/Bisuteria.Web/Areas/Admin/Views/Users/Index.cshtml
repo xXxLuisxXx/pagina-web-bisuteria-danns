@@ -23,8 +23,10 @@
                 @foreach (var user in Model)
                 {
                     var canToggle = User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer)
-                        ? user.Roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner or Bisuteria.Domain.Security.StoreRoles.Operator)
-                        : User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Owner) && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Operator);
+                        ? user.Roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner or Bisuteria.Domain.Security.StoreRoles.Operator or Bisuteria.Domain.Security.StoreRoles.Customer)
+                        : User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Owner)
+                            && (user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Operator)
+                                || (user.Roles.Count == 1 && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Customer)));
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -56,7 +58,14 @@
                             }
                         </td>
                         <td class="text-end">
-                            @if (User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer) && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Customer))
+                            @if ((User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer) || User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Owner))
+                                && user.Roles.Count == 1 && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Customer))
+                            {
+                                <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+                                <a asp-action="Delete" asp-route-id="@user.Id" class="btn btn-sm btn-outline-danger">Eliminar</a>
+                            }
+                            @if (User.IsInRole(Bisuteria.Domain.Security.StoreRoles.Developer)
+                                && user.Roles.Count == 1 && user.Roles.Contains(Bisuteria.Domain.Security.StoreRoles.Customer))
                             {
                                 <form asp-action="Reveal" method="post" class="m-0 d-inline" data-confirm="Se registrará el acceso a los datos del cliente. ¿Continuar?">
                                     @Html.AntiForgeryToken()
@@ -66,9 +75,9 @@
                             }
                             @if (canToggle)
                             {
-                                <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0" data-confirm="¿Cambiar el estado de este usuario?">
+                                <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="m-0 d-inline" data-confirm="¿@(user.IsActive ? "Desactivar" : "Reactivar") esta cuenta? Los pedidos y el historial se conservarán.">
                                     @Html.AntiForgeryToken()
-                                    <button class="btn btn-sm btn-outline-secondary" type="submit" title="Cambiar estado"><i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit" title="@(user.IsActive ? "Desactivar" : "Reactivar") cuenta" aria-label="@(user.IsActive ? "Desactivar" : "Reactivar") cuenta"><i class="bi @(user.IsActive ? "bi-person-dash" : "bi-person-check")"></i></button>
                                 </form>
                             }
                         </td>
@@ -82,5 +91,5 @@
 <nav aria-label="Paginación de usuarios" class="d-flex gap-3 my-3">
     @if ((int)(ViewBag.Page ?? 1) > 1) { <a asp-action="Index" asp-route-page="@((int)ViewBag.Page - 1)">Anterior</a> }
     <span>Página @(ViewBag.Page ?? 1)</span>
-    @if (Model.Count == 25) { <a asp-action="Index" asp-route-page="@((int)(ViewBag.Page ?? 1) + 1)">Siguiente</a> }
+    @if (ViewBag.HasNext is true) { <a asp-action="Index" asp-route-page="@((int)(ViewBag.Page ?? 1) + 1)">Siguiente</a> }
 </nav>

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Bisuteria.Application.Services;
 using Bisuteria.Domain.Entities;
+using Bisuteria.Domain.Enums;
 using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
 using Bisuteria.Infrastructure.Identity;
@@ -33,6 +34,16 @@ public partial class AuditTests
         var login = await AuditFactory.Post(client, "/Account/Login", new()
         { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password });
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var developer = (await users.FindByEmailAsync("developer@example.test"))!;
+            var key = (await users.GetAuthenticatorKeyAsync(developer))!;
+            var verified = await AuditFactory.Post(client, "/Account/TwoFactor", new()
+            { ["Code"] = TestTotp.Generate(key), ["RememberClient"] = "true" }, "/Account/TwoFactor");
+            Assert.Equal(HttpStatusCode.Redirect, verified.StatusCode);
+        }
 
         clock.Advance(TimeSpan.FromMinutes(16));
         var response = await AuditFactory.Post(client, "/Developer/Roles/Save", new() { ["role"] = "Operator" }, "/Developer/Roles");
@@ -125,9 +136,7 @@ public partial class AuditTests
             outboxId = item.Id;
         }
 
-        using var developer = isolated.Client();
-        Assert.Equal(HttpStatusCode.Redirect, (await AuditFactory.Post(developer, "/Account/Login", new()
-        { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password })).StatusCode);
+        using var developer = await isolated.Login("Developer");
         var listing = await developer.GetAsync("/Developer/EmailQueue");
         Assert.Equal(HttpStatusCode.OK, listing.StatusCode);
         var html = await listing.Content.ReadAsStringAsync();
@@ -276,6 +285,182 @@ public partial class AuditTests
         using var owner = await f.Login("Owner");
         var denied = await AuditFactory.Post(owner, "/Admin/Users/Reveal", new() { ["id"] = user.Id });
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeveloperCanEditCustomerProfileAndChangeLoginEmailWithConfirmation()
+    {
+        var email = $"edit-customer-{Guid.NewGuid():N}@example.test";
+        var changedEmail = $"updated-customer-{Guid.NewGuid():N}@example.test";
+        var duplicateEmail = $"existing-customer-{Guid.NewGuid():N}@example.test";
+        string id;
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var customer = new ApplicationUser
+            {
+                UserName = email, Email = email, EmailConfirmed = true, IsActive = true,
+                FirstName = "Nombre", LastName = "Anterior", PhoneNumber = "+593 999 111 222", City = "Manta", Province = "Manabí"
+            };
+            Assert.True((await users.CreateAsync(customer, AuditFactory.Password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(customer, StoreRoles.Customer)).Succeeded);
+            var anotherCustomer = new ApplicationUser { UserName = duplicateEmail, Email = duplicateEmail, EmailConfirmed = true, IsActive = true };
+            Assert.True((await users.CreateAsync(anotherCustomer, AuditFactory.Password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(anotherCustomer, StoreRoles.Customer)).Succeeded);
+            id = customer.Id;
+        }
+
+        using var developer = await f.Login("Developer");
+        var page = await developer.GetAsync($"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}");
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        Assert.Contains(email, await page.Content.ReadAsStringAsync());
+        var duplicate = await AuditFactory.Post(developer, $"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}", new()
+        {
+            ["Id"] = id, ["Email"] = duplicateEmail, ["FirstName"] = "Nombre", ["LastName"] = "Anterior"
+        }, $"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}");
+        Assert.Equal(HttpStatusCode.OK, duplicate.StatusCode);
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            Assert.Equal(email, (await users.FindByIdAsync(id))!.Email);
+        }
+        var saved = await AuditFactory.Post(developer, $"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}", new()
+        {
+            ["Id"] = id, ["Email"] = changedEmail, ["FirstName"] = "Nombre nuevo", ["LastName"] = "Apellido nuevo",
+            ["Phone"] = "+593 987 654 321", ["City"] = "Portoviejo", ["Province"] = "Manabí"
+        }, $"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}");
+        Assert.Equal(HttpStatusCode.Redirect, saved.StatusCode);
+
+        using (var scope = f.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var updated = await users.FindByIdAsync(id);
+            Assert.NotNull(updated);
+            Assert.Equal(changedEmail, updated!.Email);
+            Assert.Equal(changedEmail, updated.UserName);
+            Assert.False(updated.EmailConfirmed);
+            Assert.Equal("Nombre nuevo", updated.FirstName);
+            Assert.Equal("Apellido nuevo", updated.LastName);
+            Assert.Equal("+593 987 654 321", updated.PhoneNumber);
+            Assert.Equal("Portoviejo", updated.City);
+            var audit = await services.GetRequiredService<AppDbContext>().Set<AuditLog>()
+                .SingleAsync(x => x.Action == "CustomerData.Updated" && x.EntityId == id);
+            Assert.Contains("FirstName", audit.AfterJson);
+            Assert.Contains("Email", audit.AfterJson);
+            Assert.DoesNotContain("Nombre nuevo", audit.AfterJson);
+            Assert.DoesNotContain(changedEmail, audit.AfterJson);
+            Assert.True(await services.GetRequiredService<AppDbContext>().Set<EmailOutbox>()
+                .AnyAsync(x => x.Recipient == changedEmail && x.Kind == "Confirmation"));
+        }
+
+        using var owner = await f.Login("Owner");
+        var ownerPage = await owner.GetAsync($"/Admin/Users/Edit?id={Uri.EscapeDataString(id)}");
+        Assert.Equal(HttpStatusCode.OK, ownerPage.StatusCode);
+    }
+
+    [Fact]
+    public async Task OwnerCanDeactivateAndDeveloperCanReactivateCustomerWithoutDeletingAccount()
+    {
+        var email = $"state-customer-{Guid.NewGuid():N}@example.test";
+        string id;
+        using (var scope = f.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var customer = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, IsActive = true, FirstName = "Prueba" };
+            Assert.True((await users.CreateAsync(customer, AuditFactory.Password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(customer, StoreRoles.Customer)).Succeeded);
+            id = customer.Id;
+        }
+
+        using var owner = await f.Login("Owner");
+        var deactivate = await AuditFactory.Post(owner, "/Admin/Users/ToggleActive", new() { ["id"] = id }, "/Admin/Users");
+        Assert.Equal(HttpStatusCode.Redirect, deactivate.StatusCode);
+        using (var scope = f.Services.CreateScope())
+        {
+            var customer = await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(id);
+            Assert.NotNull(customer);
+            Assert.False(customer!.IsActive);
+        }
+
+        using var developer = await f.Login("Developer");
+        var reactivate = await AuditFactory.Post(developer, "/Admin/Users/ToggleActive", new() { ["id"] = id }, "/Admin/Users");
+        Assert.Equal(HttpStatusCode.Redirect, reactivate.StatusCode);
+        using var verify = f.Services.CreateScope();
+        var restored = await verify.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(id);
+        Assert.NotNull(restored);
+        Assert.True(restored!.IsActive);
+        Assert.Equal(2, await verify.ServiceProvider.GetRequiredService<AppDbContext>().Set<AuditLog>()
+            .CountAsync(x => x.Action == "CustomerAccount.StateChanged" && x.EntityId == id));
+    }
+
+    [Fact]
+    public async Task OwnerCanPermanentlyDeleteCustomerAfterEmailConfirmationAndPreserveBusinessHistory()
+    {
+        var email = $"delete-customer-{Guid.NewGuid():N}@example.test";
+        string id;
+        using (var scope = f.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var customer = new ApplicationUser
+            {
+                UserName = email, Email = email, EmailConfirmed = true, IsActive = true,
+                FirstName = "Cliente", LastName = "Temporal"
+            };
+            Assert.True((await users.CreateAsync(customer, AuditFactory.Password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(customer, StoreRoles.Customer)).Succeeded);
+            id = customer.Id;
+
+            var db = services.GetRequiredService<AppDbContext>();
+            db.Addresses.Add(new Address { UserId = id, FullName = "Cliente Temporal", Phone = "+593 999 111 222", Line1 = "Calle 1", City = "Manta", Province = "Manabí" });
+            db.Favorites.Add(new Favorite { UserId = id, ProductId = f.ProductId });
+            db.Orders.Add(new Order
+            {
+                UserId = id, OrderNumber = $"TEST-{Guid.NewGuid():N}"[..20], CustomerName = "Cliente Temporal",
+                CustomerEmail = email, CustomerPhone = "+593 999 111 222", AddressLine1 = "Calle 1", City = "Manta", Province = "Manabí"
+            });
+            db.Reviews.Add(new Review
+            {
+                UserId = id, CustomerName = "Cliente Temporal", ProductId = f.ProductId,
+                Comment = "Reseña de prueba", Rating = 5, IsApproved = true
+            });
+            await db.SaveChangesAsync();
+        }
+
+        using var developer = await f.Login("Developer");
+        using var owner = await f.Login("Owner");
+        var deletePagePath = $"/Admin/Users/Delete?id={Uri.EscapeDataString(id)}";
+        Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync(deletePagePath)).StatusCode);
+        var page = await developer.GetAsync(deletePagePath);
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        Assert.Contains("pedidos conservarán productos", await page.Content.ReadAsStringAsync());
+
+        var wrongConfirmation = await AuditFactory.Post(developer, deletePagePath, new()
+        { ["Id"] = id, ["ConfirmationEmail"] = "wrong@example.test" }, deletePagePath);
+        Assert.Equal(HttpStatusCode.OK, wrongConfirmation.StatusCode);
+        using (var scope = f.Services.CreateScope())
+            Assert.NotNull(await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(id));
+
+        var deleted = await AuditFactory.Post(owner, deletePagePath, new()
+        { ["Id"] = id, ["ConfirmationEmail"] = email }, deletePagePath);
+        Assert.Equal(HttpStatusCode.Redirect, deleted.StatusCode);
+
+        using var verify = f.Services.CreateScope();
+        var servicesVerify = verify.ServiceProvider;
+        var dbVerify = servicesVerify.GetRequiredService<AppDbContext>();
+        Assert.Null(await servicesVerify.GetRequiredService<UserManager<ApplicationUser>>().FindByIdAsync(id));
+        Assert.False(await dbVerify.Addresses.AnyAsync(x => x.UserId == id));
+        Assert.False(await dbVerify.Favorites.AnyAsync(x => x.UserId == id));
+        var preservedOrder = await dbVerify.Orders.SingleAsync(x => x.OrderNumber.StartsWith("TEST-"));
+        Assert.Null(preservedOrder.UserId);
+        Assert.Equal("Cliente eliminado", preservedOrder.CustomerName);
+        Assert.Empty(preservedOrder.CustomerEmail);
+        Assert.Empty(preservedOrder.AddressLine1);
+        var anonymizedReview = await dbVerify.Reviews.SingleAsync(x => x.Comment == "Reseña de prueba");
+        Assert.Null(anonymizedReview.UserId);
+        Assert.Equal("Cliente eliminado", anonymizedReview.CustomerName);
+        Assert.True(await dbVerify.Set<AuditLog>().AnyAsync(x => x.Action == "CustomerAccount.Deleted" && x.EntityId == id));
     }
 
     [Fact]
