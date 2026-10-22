@@ -65,6 +65,15 @@ public partial class AuditTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("no-store", response.Headers.CacheControl!.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal("no-referrer", response.Headers.GetValues("Referrer-Policy").Single());
+        var html = System.Net.WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+        Assert.Contains("Enviar pedido a WhatsApp", html);
+        var match = System.Text.RegularExpressions.Regex.Match(html, "https://wa\\.me/[^?]+\\?text=([^\\\"]+)");
+        Assert.True(match.Success, "La confirmación debe preparar el resumen para WhatsApp.");
+        var message = Uri.UnescapeDataString(match.Groups[1].Value);
+        Assert.Contains(orderNumber, message);
+        Assert.Contains("Invitado de prueba", message);
+        Assert.Contains("guest-", message);
+        Assert.Contains("+593 999 111 222", message);
     }
 
     [Fact]

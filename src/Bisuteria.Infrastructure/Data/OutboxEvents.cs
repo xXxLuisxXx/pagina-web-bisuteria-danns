@@ -69,7 +69,9 @@ public partial class AppDbContext
                 Queue(order.CustomerEmail, "Confirmación de pedido", text);
                 var address = order.DeliveryMethod == DeliveryMethod.Pickup ? "Retiro en tienda" :
                     string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.City, order.Province, order.PostalCode }.Where(x => !string.IsNullOrWhiteSpace(x)));
-                Queue(storeEmail, "Pedido nuevo", summary + $"\nCliente: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}\nDestino: {address}" +
+                Queue(storeEmail, "Compra pendiente de aprobación · " + order.OrderNumber,
+                    "Acción requerida: revisa y aprueba esta compra desde el panel administrativo antes de preparar el pedido o confirmar el pago.\n\n" +
+                    summary + $"\nCliente: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}\nDestino: {address}" +
                     (string.IsNullOrWhiteSpace(order.Observations) ? "" : $"\nObservaciones: {order.Observations}") +
                     (order.IsGift ? $"\nRegalo para: {order.GiftRecipientName}\nMensaje: {order.GiftMessage}" : "") +
                     $"\nRevisa el pedido en el panel: {PublicUrl($"/Admin/Orders/Details?orderNumber={Uri.EscapeDataString(order.OrderNumber)}")}");

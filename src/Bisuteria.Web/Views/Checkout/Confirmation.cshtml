@@ -7,7 +7,7 @@
     <div class="text-center mb-5">
         <div class="success-check"><i class="bi bi-check2"></i></div>
         <h1 class="mt-3">¡Gracias por tu compra!</h1>
-        <p class="lead text-muted">Tu pedido fue recibido. La tienda revisará los datos y coordinará el siguiente paso contigo.</p>
+        <p class="lead text-muted">Tu pedido quedó registrado y se avisó al equipo por correo para que lo revise y apruebe. También puedes enviar el resumen completo por WhatsApp.</p>
         <div class="order-number-badge">Número de pedido: <strong>@Model.OrderNumber</strong></div>
     </div>
 
@@ -116,7 +116,8 @@
             <div class="text-center">
                 @if (ViewBag.WhatsAppUrl is string whatsAppUrl)
                 {
-                    <a class="btn btn-success" href="@whatsAppUrl" target="_blank" rel="noopener noreferrer">Coordinar por WhatsApp</a>
+                    <a class="btn btn-success" href="@whatsAppUrl" target="_blank" rel="noopener noreferrer">Enviar pedido a WhatsApp</a>
+                    <p class="small text-muted mt-2">WhatsApp abrirá el mensaje listo; pulsa Enviar para compartirlo con la tienda.</p>
                 }
                 <a class="btn btn-outline-brand" asp-controller="Order" asp-action="Index"><i class="bi bi-receipt me-2"></i>Ver mis pedidos</a>
                 <a class="btn btn-brand" asp-controller="Catalog" asp-action="Index">Seguir comprando</a>

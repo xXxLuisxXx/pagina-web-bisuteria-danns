@@ -240,7 +240,24 @@ public class CheckoutController : Controller
     }
 
     private static string BuildWhatsAppMessage(OrderDto order)
-        => order.ShippingToConfirm
-            ? $"Hola, quiero coordinar el pedido {order.OrderNumber}. El envío está pendiente de cotización."
-            : $"Hola, quiero coordinar el pedido {order.OrderNumber} por un total de ${order.Total:0.00} USD.";
+    {
+        static string Money(decimal value) => "$" + value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " USD";
+        var lines = order.Items.Select(item =>
+            $"• {item.ProductName} × {item.Quantity} — {Money(item.UnitPrice)} c/u; total {Money(item.LineTotal)}" +
+            (string.IsNullOrWhiteSpace(item.CustomizationSummary) ? "" : $"\n  Personalización: {item.CustomizationSummary}"));
+        var address = order.DeliveryMethod == DeliveryMethod.Pickup
+            ? "Retiro en tienda (coordinar lugar y hora)"
+            : string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.City, order.Province, order.PostalCode }
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
+        var message = $"Hola, solicito revisar y aprobar esta compra:\nPedido: {order.OrderNumber}\n\nPRODUCTOS\n{string.Join("\n", lines)}" +
+            $"\n\nCLIENTE\nNombre: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}" +
+            $"\nEntrega: {order.DeliveryMethodLabel}\nDestino: {address}" +
+            (string.IsNullOrWhiteSpace(order.Observations) ? "" : $"\nIndicaciones: {order.Observations}") +
+            (order.IsGift ? $"\nRegalo para: {order.GiftRecipientName}\nMensaje de regalo: {order.GiftMessage}" : "") +
+            $"\n\nPAGO\nSubtotal: {Money(order.Subtotal)}\nDescuento: {Money(order.Discount)}\n" +
+            (order.ShippingToConfirm ? "Envío: pendiente de cotización según el destino.\nTotal: pendiente de confirmar por la tienda."
+                : $"Envío: {Money(order.ShippingCost)}\nTotal: {Money(order.Total)}") +
+            $"\nMétodo: {order.PaymentMethodLabel}\nEstado: pendiente de revisión y aprobación.";
+        return message;
+    }
 }

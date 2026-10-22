@@ -166,7 +166,8 @@ public partial class AuditTests
             Assert.Contains("Total parcial, pendiente de confirmar envío:", client.TextBody);
             Assert.Contains("CUENTA-DE-PRUEBA", client.TextBody);
             Assert.Contains("https://localhost/Checkout/Confirmation?", client.TextBody);
-            var store = await db.Set<EmailOutbox>().SingleAsync(x => x.Recipient == values["ContactEmail"] && x.Subject == "Pedido nuevo");
+            var store = await db.Set<EmailOutbox>().SingleAsync(x => x.Recipient == values["ContactEmail"] && x.Subject.Contains("Compra pendiente de aprobación"));
+            Assert.Contains("Acción requerida: revisa y aprueba esta compra", store.TextBody);
             Assert.Contains(checkout.CustomerName, store.TextBody);
             Assert.Contains(checkout.AddressLine1, store.TextBody);
             Assert.Contains(checkout.CustomerPhone, store.TextBody);
