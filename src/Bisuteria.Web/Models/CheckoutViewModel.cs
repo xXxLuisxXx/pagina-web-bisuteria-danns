@@ -29,18 +29,18 @@ public class CheckoutViewModel
 
     [Display(Name = "Dirección")]
     [DisplayFormat(ConvertEmptyStringToNull = false)]
-    public string AddressLine1 { get; set; } = string.Empty;
+    public string? AddressLine1 { get; set; }
 
     [Display(Name = "Referencia (opcional)")]
     public string? AddressLine2 { get; set; }
 
     [Display(Name = "Ciudad")]
     [DisplayFormat(ConvertEmptyStringToNull = false)]
-    public string City { get; set; } = string.Empty;
+    public string? City { get; set; }
 
     [Display(Name = "Provincia")]
     [DisplayFormat(ConvertEmptyStringToNull = false)]
-    public string Province { get; set; } = string.Empty;
+    public string? Province { get; set; }
 
     [Display(Name = "Código postal (opcional)")]
     public string? PostalCode { get; set; }
@@ -71,10 +71,10 @@ public class CheckoutViewModel
         CustomerName = CustomerName,
         CustomerEmail = CustomerEmail,
         CustomerPhone = CustomerPhone,
-        AddressLine1 = AddressLine1,
+        AddressLine1 = AddressLine1 ?? string.Empty,
         AddressLine2 = AddressLine2,
-        City = City,
-        Province = Province,
+        City = City ?? string.Empty,
+        Province = Province ?? string.Empty,
         PostalCode = PostalCode,
         Observations = Observations,
         PaymentMethod = PaymentMethod,

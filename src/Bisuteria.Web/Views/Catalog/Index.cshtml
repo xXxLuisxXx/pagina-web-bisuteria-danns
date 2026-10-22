@@ -20,7 +20,8 @@
                     </div>
                 </div>
                 <div class="col-4 col-md-3">
-                    <select name="sort" class="form-select">
+                    <label class="visually-hidden" for="catalog-sort">Ordenar productos</label>
+                    <select id="catalog-sort" name="sort" class="form-select">
                         <option value="relevance" selected="@(Model.Query.Sort == "relevance")">Relevancia</option>
                         <option value="newest" selected="@(Model.Query.Sort == "newest")">Más nuevos</option>
                         <option value="price_asc" selected="@(Model.Query.Sort == "price_asc")">Precio: menor</option>

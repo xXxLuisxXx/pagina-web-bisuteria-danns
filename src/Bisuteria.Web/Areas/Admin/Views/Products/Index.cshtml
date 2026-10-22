@@ -8,7 +8,7 @@
 <form asp-action="Index" method="get" class="mb-3">
     <div class="input-group product-search-width">
         <input type="search" name="search" class="form-control" placeholder="Buscar por nombre o SKU..." value="@ViewBag.Search" />
-        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+        <button class="btn btn-outline-secondary" type="submit" aria-label="Buscar productos"><i class="bi bi-search" aria-hidden="true"></i></button>
     </div>
 </form>
 

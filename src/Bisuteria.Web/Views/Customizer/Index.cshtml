@@ -41,7 +41,7 @@
                         @foreach (var opt in new[] { ("#8B6914", "Oro", "swatch-gold"), ("#C0C0C0", "Plata", "swatch-silver"), ("#E8A0B4", "Rosa", "swatch-pink"), ("#111", "Negro", "swatch-black"), ("#fff", "Blanco", "swatch-white") })
                         {
                             <label class="color-swatch" title="@opt.Item2">
-                                <input type="radio" name="Customization.Color" value="@opt.Item1" @(opt.Item2 == "Oro" ? "checked" : "") />
+                                <input type="radio" name="Customization.Color" value="@opt.Item1" aria-label="@opt.Item2" @(opt.Item2 == "Oro" ? "checked" : "") />
                                 <span class="@opt.Item3"></span>
                             </label>
                         }
@@ -86,7 +86,7 @@
                             <input type="text" class="form-control" name="Customization.Initials" id="cInitials" maxlength="3" placeholder="Ej: MGA" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Fecha importante</label>
+                            <label class="form-label" for="cDate">Fecha importante</label>
                             <input type="date" class="form-control" name="Customization.Date" id="cDate" />
                         </div>
                         <div class="col-md-6">
@@ -96,7 +96,7 @@
                     </div>
                     <div class="row g-3 mt-2">
                         <div class="col-md-6">
-                            <label class="form-label">Fuente</label>
+                            <label class="form-label" for="cFont">Fuente</label>
                             <select class="form-select" name="Customization.Font" id="cFont">
                                 <option value="serif" selected>Elegante (serif)</option>
                                 <option value="script">Caligráfica</option>
@@ -104,7 +104,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Dije adicional</label>
+                            <label class="form-label" for="cCharm">Dije adicional</label>
                             <select class="form-select" name="Customization.Charm" id="cCharm">
                                 <option value="">Sin dije</option>
                                 <option value="heart">Corazón</option>
@@ -121,7 +121,7 @@
                     <h5 class="mb-3"><i class="bi bi-sliders me-2 text-gold"></i>3. Acabados</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Material</label>
+                            <label class="form-label" for="cMaterial">Material</label>
                             <select class="form-select" name="Customization.Material" id="cMaterial">
                                 <option value="Acero inoxidable dorado">Acero inoxidable dorado</option>
                                 <option value="Acero inoxidable plateado">Acero inoxidable plateado</option>
@@ -129,7 +129,7 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Tamaño / ajuste</label>
+                            <label class="form-label" for="cSize">Tamaño / ajuste</label>
                             <select class="form-select" name="Customization.Size" id="cSize">
                                 <option value="Ajustable">Ajustable</option>
                                 <option value="Pequeño">Pequeño</option>
@@ -138,10 +138,10 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Cantidad</label>
+                            <label class="form-label" for="cQtyInput">Cantidad</label>
                             <div class="qty-stepper">
                                 <button type="button" class="btn-qty" aria-label="Disminuir cantidad" data-cqty="-1"><i class="bi bi-dash"></i></button>
-                                <input type="number" id="cQtyInput" value="1" min="1" max="50" class="qty-input" readonly />
+                            <input type="number" id="cQtyInput" value="1" min="1" max="50" class="qty-input" readonly aria-label="Cantidad de piezas personalizadas" />
                                 <button type="button" class="btn-qty" aria-label="Aumentar cantidad" data-cqty="1"><i class="bi bi-plus"></i></button>
                             </div>
                         </div>
@@ -195,7 +195,7 @@
             }
             function render() {
                 const total = getPrice();
-                const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+                const fmt = new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' });
                 document.getElementById('previewPrice').textContent = fmt.format(total);
                 document.getElementById('submitPrice').textContent = fmt.format(total);
             }

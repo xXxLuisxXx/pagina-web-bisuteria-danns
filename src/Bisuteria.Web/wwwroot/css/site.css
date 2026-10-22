@@ -1947,6 +1947,20 @@ a:hover {
 .font-serif { font-family:var(--font-display); }
 .font-sans { font-family:var(--font-body); }
 .font-script { font-family:cursive; }
+.mb-0 > a { text-decoration:underline; text-underline-offset:.15em; }
+
+/* Objetivos táctiles y contenido adaptable, sin alterar paleta ni tipografías. */
+.btn-qty { min-width:44px; min-height:44px; }
+.icon-btn { min-width:44px; min-height:44px; }
+.product-thumb { min-width:44px; min-height:44px; }
+.search-form .btn-link { min-width:44px; min-height:44px; }
+.about-intro { --bs-gutter-x:1.5rem; }
+@media (max-width:575.98px) {
+    .container > .about-intro { margin-left:0; margin-right:0; }
+}
+@media (max-width:991.98px) {
+    .main-navbar .nav-link { min-height:44px; display:flex; align-items:center; }
+}
 
 .sales-chart { position:relative; height:300px; }
 .content-width { max-width:820px; }
@@ -1974,3 +1988,4 @@ a:hover {
 .dashboard-bars:focus-visible { outline: 3px solid #806020; outline-offset: 2px; }
 /* Mantiene las etiquetas accesibles absolutas dentro del área desplazable de la tabla. */
 .admin-content .table-responsive { position: relative; }
+.admin-user-form-card { max-width: 760px; }

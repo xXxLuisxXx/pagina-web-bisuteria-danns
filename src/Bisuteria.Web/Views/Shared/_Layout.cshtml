@@ -43,7 +43,7 @@
 <body>
     <a class="visually-hidden-focusable" href="#contenido">Saltar al contenido</a>
     @Html.AntiForgeryToken()
-    <noscript><style>.loader-overlay{display:none}.animate-on-scroll{opacity:1;transform:none}</style></noscript>
+    <noscript><link rel="stylesheet" href="~/css/site-noscript.css" /></noscript>
 
     <!-- Loader -->
     <div class="loader-overlay" id="appLoader">
@@ -60,7 +60,7 @@
             <div class="topbar-right small">
                 @if (!string.IsNullOrWhiteSpace(instagram))
                 {
-                    <a href="@instagram" target="_blank" rel="noopener noreferrer" class="topbar-link" aria-label="Visitar Instagram de Bisuterias Dann's"><i class="bi bi-instagram me-1"></i>@(settings.GetValueOrDefault("InstagramHandle") ?? "")</a>
+                    <a href="@instagram" target="_blank" rel="noopener noreferrer" class="topbar-link"><i class="bi bi-instagram me-1" aria-hidden="true"></i>@(settings.GetValueOrDefault("InstagramHandle") ?? "Instagram")</a>
                 }
                 @if (!string.IsNullOrWhiteSpace(facebook))
                 {
@@ -116,7 +116,7 @@
                     <button class="icon-btn" id="themeToggle" type="button" aria-label="Cambiar tema">
                         <i class="bi bi-moon-stars"></i>
                     </button>
-                    <a class="icon-btn position-relative" asp-area="" asp-controller="Cart" asp-action="Index" aria-label="Carrito">
+                <a class="icon-btn position-relative" asp-area="" asp-controller="Cart" asp-action="Index" aria-label="Carrito, @cartCount artículo(s)">
                         <i class="bi bi-bag-heart"></i>
                         <span class="cart-badge" id="cartCount">@cartCount</span>
                     </a>
