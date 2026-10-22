@@ -11,7 +11,7 @@
     --brand-pink-soft: #f7f1e3;     /* antes rosa suave → crema */
     --brand-beige: #f7f1e3;         /* crema */
     --brand-gold: #c9a227;
-    --brand-gold-dark: #a8861d;
+    --brand-gold-dark: #755a00;
     --brand-black: #0b0b0b;
     --brand-black-soft: #171717;
     --text-muted: #6b6b6b;
@@ -30,6 +30,7 @@
     --brand-white: #0b0b0b;
     --brand-pink-soft: #171717;
     --brand-beige: #171717;
+    --brand-gold-dark: #e6c766;
     --brand-black: #f7f1e3;
     --brand-black-soft: #e6c766;
     --text-muted: #a5a5a5;
@@ -61,12 +62,14 @@ a {
 }
 
 a:hover {
-    color: var(--brand-gold);
+    color: var(--brand-gold-dark);
+    text-decoration: underline;
+    text-underline-offset: 0.16em;
 }
 
 ::selection {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
 }
 
 /* ---------- Loader ---------- */
@@ -248,7 +251,7 @@ a:hover {
 .icon-btn:hover {
     background: var(--brand-gold);
     border-color: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     transform: translateY(-2px);
 }
 
@@ -272,7 +275,7 @@ a:hover {
 /* ---------- Botones ---------- */
 .btn-brand {
     background: linear-gradient(135deg, var(--brand-pink), var(--brand-gold));
-    color: var(--brand-black);
+    color: #0b0b0b;
     font-weight: 600;
     border: none;
     border-radius: 50rem;
@@ -301,7 +304,7 @@ a:hover {
 .btn-outline-brand:hover {
     background: var(--brand-gold);
     border-color: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     transform: translateY(-2px);
 }
 
@@ -323,7 +326,7 @@ a:hover {
 
 .btn-gold {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     border-radius: 50rem;
     font-weight: 500;
     border: none;
@@ -1004,7 +1007,7 @@ a:hover {
 
 .badge-sale {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
 }
 
 .badge-new {
@@ -1038,7 +1041,7 @@ a:hover {
 .fav-btn:hover,
 .fav-btn.active {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     transform: scale(1.1);
 }
 
@@ -1118,7 +1121,7 @@ a:hover {
 
 .add-cart-btn:hover {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     transform: rotate(360deg);
 }
 
@@ -1375,7 +1378,7 @@ a:hover {
 
 .footer-social a:hover {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
     transform: translateY(-3px);
 }
 
@@ -1511,7 +1514,7 @@ a:hover {
 
 .back-to-top:hover {
     background: var(--brand-gold);
-    color: #fff;
+    color: #0b0b0b;
 }
 
 /* ---------- Encabezados de página ---------- */

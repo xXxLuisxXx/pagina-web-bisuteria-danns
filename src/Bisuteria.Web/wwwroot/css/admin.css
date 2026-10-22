@@ -1,6 +1,8 @@
 :root { --admin-bg:#eeedef; --admin-surface:#fff; --admin-text:#242426; --admin-muted:#626269; --admin-border:#dedee2; --admin-accent:#826818; --admin-radius:20px; --admin-shadow:0 3px 14px #18182006; }
 html[data-admin-theme=dark] { --admin-bg:#17171a; --admin-surface:#25252a; --admin-text:#f4f4f5; --admin-muted:#b9b9c1; --admin-border:#45454d; --admin-accent:#e3c767; color-scheme:dark; }
 body.admin-body { background:var(--admin-bg); color:var(--admin-text); font-family:'Poppins',sans-serif; padding-top:90px; }
+.admin-body .btn-outline-secondary { --bs-btn-color:#55555b; --bs-btn-border-color:#55555b; --bs-btn-hover-color:#fff; --bs-btn-hover-bg:#55555b; --bs-btn-hover-border-color:#55555b; --bs-btn-active-color:#fff; --bs-btn-active-bg:#55555b; --bs-btn-active-border-color:#55555b; }
+html[data-admin-theme=dark] .admin-body .btn-outline-secondary { --bs-btn-color:#d4d4d8; --bs-btn-border-color:#d4d4d8; --bs-btn-hover-color:#17171a; --bs-btn-hover-bg:#d4d4d8; --bs-btn-hover-border-color:#d4d4d8; --bs-btn-active-color:#17171a; --bs-btn-active-bg:#d4d4d8; --bs-btn-active-border-color:#d4d4d8; }
 .admin-sidebar { position:fixed; inset:0 auto 0 0; width:232px; background:var(--admin-surface); padding:22px 16px; overflow-y:auto; z-index:1040; display:flex; flex-direction:column; gap:20px; border-right:1px solid var(--admin-border); }
 .sidebar-brand img { width:150px; height:64px; object-fit:contain; }
 .admin-body h1,.admin-body h2,.admin-body h3,.admin-body h4,.admin-body h5,.admin-body h6 { font-family:inherit; }
