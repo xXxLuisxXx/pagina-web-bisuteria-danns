@@ -207,6 +207,12 @@ async function main() {
       await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.getByRole('button', { name: 'Enviar comprobante' }).click()]);
       assert.ok((await page.locator('body').innerText()).includes('Comprobantes enviados'));
       await inspect(anonymous, 'confirmation', guestOrderRoute);
+      await page.goto(base + '/Order/Track', { waitUntil: 'domcontentloaded' });
+      await page.locator('#OrderNumber').fill(orderNumber);
+      await page.locator('#Email').fill('browser-order@example.test');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.getByRole('button', { name: 'Consultar pedido' }).click()]);
+      assert.ok((await page.locator('body').innerText()).includes(orderNumber), 'El seguimiento de invitado no mostró el pedido autorizado.');
+      assert.ok(!(await page.locator('body').innerText()).includes('Dirección ficticia de auditoría'), 'El seguimiento público expuso la dirección.');
       await page.close();
     });
 
@@ -236,9 +242,20 @@ async function main() {
       ['product', '/Catalog/Details?slug=audit-product'], ['customizer', `/Customizer?productId=${process.env.AUDIT_PRODUCT_ID}`],
       ['login', '/Account/Login'], ['register', '/Account/Register'], ['forgot', '/Account/ForgotPassword'],
       ['blog', '/Blog'], ['blog-detail', '/Blog/Details?slug=browser-audit'], ['gallery', '/Gallery'], ['contact', '/Contact'], ['about', '/Home/About'],
-      ['shipping', '/Home/Shipping'], ['privacy', '/Home/Privacy'], ['faq', '/Home/Faq'], ['access-denied', '/Account/AccessDenied'], ['error-template', '/Home/Error'], ['not-found', '/auditoria-ruta-inexistente', 404]
+      ['shipping', '/Home/Shipping'], ['privacy', '/Home/Privacy'], ['terms', '/Home/Terms'], ['guest-order-tracking', '/Order/Track'], ['faq', '/Home/Faq'], ['access-denied', '/Account/AccessDenied'], ['error-template', '/Home/Error'], ['not-found', '/auditoria-ruta-inexistente', 404]
     ];
     for (const [name, route, status = 200] of publicPages) await inspect(anonymous, name, route, status);
+    await runFlow('aviso-cookies-solo-necesarias', async () => {
+      const page = await anonymous.newPage();
+      await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
+      const notice = page.locator('#cookieNotice');
+      assert.ok(await notice.isVisible(), 'El aviso de cookies no se mostró por primera vez.');
+      await page.getByRole('button', { name: 'Entendido' }).click();
+      assert.ok(await notice.isHidden(), 'El aviso de cookies no se pudo cerrar.');
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      assert.ok(await notice.isHidden(), 'La preferencia del aviso no se conservó.');
+      await page.close();
+    });
     await runFlow('sesion-cliente-perfil-pedidos', async () => {
       await login(customer, 'Customer');
       await inspect(customer, 'profile', '/Account/Profile');

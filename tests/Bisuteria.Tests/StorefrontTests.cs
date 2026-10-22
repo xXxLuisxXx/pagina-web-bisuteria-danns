@@ -30,6 +30,23 @@ public partial class AuditTests : IClassFixture<AuditFactory>
     [InlineData("/Account/Login")][InlineData("/Account/Register")][InlineData("/Account/ForgotPassword")][InlineData("/Cart")]
     public async Task PublicPages(string path) => Assert.Equal(HttpStatusCode.OK,(await f.Client().GetAsync(path)).StatusCode);
 
+    [Fact]
+    public async Task EditableTermsAreRenderedAsPlainTextAndCookieNoticeIsPresent()
+    {
+        using var scope = f.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<ISettingService>()
+            .SetAsync("TermsAndConditionsText", "<script>alert('prueba')</script>");
+
+        using var client = f.Client();
+        var terms = await client.GetStringAsync("/Home/Terms");
+        Assert.Contains("&lt;script&gt;alert(&#x27;prueba&#x27;)&lt;/script&gt;", terms);
+        Assert.DoesNotContain("<script>alert('prueba')</script>", terms);
+        var home = await client.GetStringAsync("/");
+        Assert.Contains("id=\"cookieNotice\"", home);
+        Assert.Contains("id=\"cookieNoticeAccept\"", home);
+        Assert.Contains("no activamos cookies opcionales", home);
+    }
+
     [Fact] public async Task InactiveProductsRemainPrivate()
     {
         using var client=f.Client();

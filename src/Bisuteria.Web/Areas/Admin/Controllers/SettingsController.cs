@@ -80,7 +80,7 @@ public class SettingsController : AdminBaseController
                     "FacebookUrl" or "InstagramUrl" or "TikTokUrl" => "Redes",
                     "ShippingCost" or "FreeShippingThreshold" or "FreeShippingThresholdEnabled" => "Compras",
                     "ProductionTimeText" or "ShippingEstimatedTime" or "ShippingConditions" => "Envíos",
-                    "ReturnsPolicyText" or "PrivacyPolicyText" => "Políticas",
+                    "ReturnsPolicyText" or "PrivacyPolicyText" or "TermsAndConditionsText" => "Políticas",
                     _ => "General"
                 };
                 await _settings.SetAsync(kv.Key, kv.Value, group, ct);
@@ -95,7 +95,7 @@ public class SettingsController : AdminBaseController
     private static void AddPolicyDefaults(Dictionary<string, string> values)
     {
         values["FreeShippingThresholdEnabled"] = "false";
-        foreach (var key in new[] { "ProductionTimeText", "ShippingEstimatedTime", "ShippingConditions", "ReturnsPolicyText", "PrivacyPolicyText" })
+        foreach (var key in new[] { "ProductionTimeText", "ShippingEstimatedTime", "ShippingConditions", "ReturnsPolicyText", "PrivacyPolicyText", "TermsAndConditionsText" })
             values.TryAdd(key, "");
     }
 }

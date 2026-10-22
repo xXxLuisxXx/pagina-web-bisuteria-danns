@@ -12,6 +12,18 @@
             link.classList.add('active'); link.setAttribute('aria-current', 'page');
         }
     });
+    (function initCookieNotice() {
+        var notice = document.getElementById('cookieNotice');
+        var accept = document.getElementById('cookieNoticeAccept');
+        if (!notice || !accept) return;
+        try {
+            if (localStorage.getItem('bisuteria-cookie-notice-v1') === 'dismissed') notice.hidden = true;
+        } catch (_) { /* El aviso permanece visible si el almacenamiento está bloqueado. */ }
+        accept.addEventListener('click', function () {
+            try { localStorage.setItem('bisuteria-cookie-notice-v1', 'dismissed'); } catch (_) { /* El aviso se oculta aunque el almacenamiento esté bloqueado. */ }
+            notice.hidden = true;
+        });
+    })();
     var menu = document.getElementById('adminMenuToggle');
     var sidebar = document.getElementById('adminSidebar');
     function setMenu(open) {

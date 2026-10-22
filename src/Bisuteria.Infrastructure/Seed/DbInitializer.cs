@@ -171,6 +171,7 @@ public static class DbInitializer
             ["ShippingConditions"] = ("", "Envíos"),
             ["ReturnsPolicyText"] = ("", "Políticas"),
             ["PrivacyPolicyText"] = ("", "Políticas"),
+            ["TermsAndConditionsText"] = ("", "Políticas"),
             ["PaymentBankTransferEnabled"] = ("false", "Pagos"),
             ["BankName"] = ("", "Pagos"),
             ["BankAccountType"] = ("", "Pagos"),

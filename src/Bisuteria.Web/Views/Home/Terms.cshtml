@@ -1,0 +1,19 @@
+@{
+    var terms = ViewBag.TermsAndConditionsText as string;
+    ViewData["Description"] = "Términos y condiciones de compra de Bisuterías Dann's.";
+}
+
+<section class="page-hero">
+    <div class="container"><h1>Términos y condiciones</h1><p>Información sobre el uso de la tienda y las compras.</p></div>
+</section>
+<div class="container content-width py-5">
+    @if (string.IsNullOrWhiteSpace(terms))
+    {
+        <div class="alert alert-warning" role="status">La tienda todavía debe publicar sus términos y condiciones desde Administración → Configuración → Políticas.</div>
+    }
+    else
+    {
+        <div class="privacy-policy-text">@terms</div>
+    }
+    <p class="small text-muted mt-4">La propietaria debe revisar este texto con asesoría profesional y conforme a las normas aplicables en Ecuador antes de publicarlo.</p>
+</div>

@@ -15,6 +15,7 @@
     var cartCount = await Cart.CountAsync();
     var pageTitle = ViewData["Title"] is string t && t.Length > 0 ? t + " · " + storeName : storeName + " | Bisutería personalizada hecha a mano";
     var pageDescription = ViewData["Description"] is string description && description.Length > 0 ? description : storeDescription;
+    var robots = ViewData["Robots"] as string;
 }
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="light">
@@ -24,6 +25,7 @@
     <title>@pageTitle</title>
     <meta name="description" content="@pageDescription" />
     <meta name="author" content="@storeName" />
+    @if (!string.IsNullOrWhiteSpace(robots)) { <meta name="robots" content="@robots" /> }
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="@storeName" />
@@ -202,6 +204,7 @@
                         <li><a asp-area="" asp-controller="Gallery" asp-action="Index">Galería</a></li>
                         <li><a asp-area="" asp-controller="Home" asp-action="Shipping">Envíos y políticas</a></li>
                         <li><a asp-area="" asp-controller="Home" asp-action="Faq">Preguntas frecuentes</a></li>
+                        <li><a asp-area="" asp-controller="Order" asp-action="Track">Seguir pedido de invitado</a></li>
                     </ul>
                 </div>
                 <div class="col-6 col-lg-3">
@@ -211,6 +214,7 @@
                         <li><a asp-area="" asp-controller="Blog" asp-action="Index">Blog</a></li>
                         <li><a asp-area="" asp-controller="Contact" asp-action="Index">Contacto</a></li>
                         <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Privacidad</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Terms">Términos y condiciones</a></li>
                     </ul>
                 </div>
             </div>
@@ -220,6 +224,14 @@
             </div>
         </div>
     </footer>
+
+    <aside class="cookie-notice" id="cookieNotice" role="region" aria-label="Aviso de cookies">
+        <div>
+            <strong>Cookies necesarias</strong>
+            <p class="mb-0">Usamos cookies necesarias para la sesión, seguridad y carrito. Actualmente no activamos cookies opcionales de analítica o marketing. Revisa la <a asp-controller="Home" asp-action="Privacy">política de privacidad</a>.</p>
+        </div>
+        <button class="btn btn-outline-brand" id="cookieNoticeAccept" type="button">Entendido</button>
+    </aside>
 
     <!-- WhatsApp flotante -->
     @if (!string.IsNullOrWhiteSpace(whatsapp))

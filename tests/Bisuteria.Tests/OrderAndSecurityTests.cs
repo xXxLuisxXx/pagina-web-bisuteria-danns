@@ -237,6 +237,45 @@ public partial class AuditTests
     }
 
     [Fact]
+    public async Task GuestOrderTrackingRequiresMatchingEmailAndDoesNotExposeContactDetails()
+    {
+        using var scope = f.Services.CreateScope();
+        var orders = scope.ServiceProvider.GetRequiredService<IOrderService>();
+        var checkout = Checkout();
+        checkout.CustomerName = "Cliente privado";
+        checkout.CustomerEmail = "tracking@example.test";
+        checkout.AddressLine1 = "Calle reservada 123";
+        checkout.CustomerPhone = "0982000000";
+        var order = await orders.CreateAsync(checkout,
+            new CartDto { Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1 }] }, null);
+
+        using var client = f.Client();
+        var rejected = await AuditFactory.Post(client, "/Order/Track", new()
+        {
+            ["OrderNumber"] = order.OrderNumber,
+            ["Email"] = "wrong@example.test"
+        }, "/Order/Track");
+        Assert.Equal(HttpStatusCode.OK, rejected.StatusCode);
+        var rejectedHtml = await rejected.Content.ReadAsStringAsync();
+        Assert.Contains("No encontramos un pedido de invitado", rejectedHtml);
+        Assert.DoesNotContain("Pieza de ensayo aislada", rejectedHtml);
+
+        var accepted = await AuditFactory.Post(client, "/Order/Track", new()
+        {
+            ["OrderNumber"] = order.OrderNumber,
+            ["Email"] = "TRACKING@example.test"
+        }, "/Order/Track");
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        var html = await accepted.Content.ReadAsStringAsync();
+        Assert.Contains(order.OrderNumber, html);
+        Assert.Contains("Pieza de ensayo aislada", html);
+        Assert.DoesNotContain("Calle reservada 123", html);
+        Assert.DoesNotContain("0982000000", html);
+        Assert.DoesNotContain("tracking@example.test", html);
+        Assert.Contains("noindex, nofollow", html);
+    }
+
+    [Fact]
     public async Task UnconfiguredCardPaymentCannotCreateOrder()
     {
         using var client=f.Client();

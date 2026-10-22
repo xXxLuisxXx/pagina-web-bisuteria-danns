@@ -61,6 +61,13 @@ public class HomeController : Controller
         return View();
     }
 
+    public async Task<IActionResult> Terms(CancellationToken ct)
+    {
+        ViewData["Title"] = "Términos y condiciones";
+        ViewBag.TermsAndConditionsText = await _settings.GetAsync("TermsAndConditionsText", "", ct);
+        return View();
+    }
+
     [Microsoft.AspNetCore.Mvc.IgnoreAntiforgeryToken]
     public IActionResult StatusCodePage(int code)
     {

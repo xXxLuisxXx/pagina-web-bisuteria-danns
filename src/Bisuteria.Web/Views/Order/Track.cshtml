@@ -1,0 +1,58 @@
+@model OrderTrackingViewModel
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Seguimiento de pedido</h1>
+        <p>Consulta el estado de una compra realizada como invitado.</p>
+    </div>
+</section>
+
+<div class="container content-width py-4">
+    @if (Model.Result is null)
+    {
+        <form asp-action="Track" method="post" class="card card-body shadow-sm" autocomplete="on">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger mb-3" role="alert"></div>
+            <div class="mb-3">
+                <label asp-for="OrderNumber" class="form-label">Número de pedido</label>
+                <input asp-for="OrderNumber" class="form-control" autocomplete="off" maxlength="40" required />
+                <span asp-validation-for="OrderNumber" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label">Correo usado en la compra</label>
+                <input asp-for="Email" class="form-control" type="email" autocomplete="email" maxlength="254" required />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+            <p class="form-text">Por privacidad, solo mostramos el estado y los productos. La dirección y los datos de contacto no aparecen en esta consulta.</p>
+            <button class="btn btn-brand align-self-start" type="submit">Consultar pedido</button>
+        </form>
+    }
+    else
+    {
+        var result = Model.Result;
+        <section class="card card-body shadow-sm" aria-live="polite" aria-labelledby="tracking-title">
+            <h2 id="tracking-title" class="h4">Pedido @result.OrderNumber</h2>
+            <p>Registrado el @result.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</p>
+            <p><strong>Estado:</strong> @result.StatusLabel</p>
+            <p><strong>Entrega:</strong> @result.DeliveryMethodLabel@if (!string.IsNullOrWhiteSpace(result.DeliverySector)) { <text> · @result.DeliverySector, @result.City</text> }</p>
+            <h3 class="h6 mt-2">Productos</h3>
+            <ul>
+                @foreach (var item in result.Items)
+                {
+                    <li>@item.ProductName × @item.Quantity</li>
+                }
+            </ul>
+            <p class="mb-1">Subtotal: @result.Subtotal.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-EC"))</p>
+            @if (result.Discount > 0) { <p class="mb-1">Descuento: -@result.Discount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-EC"))</p> }
+            @if (result.ShippingToConfirm)
+            {
+                <p class="mb-0"><strong>Envío y total:</strong> pendientes de confirmación por la tienda.</p>
+            }
+            else
+            {
+                <p class="mb-0">Envío: @result.ShippingCost.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-EC")) · <strong>Total: @result.Total.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-EC"))</strong></p>
+            }
+        </section>
+        <a class="btn btn-outline-brand mt-3" asp-action="Track">Consultar otro pedido</a>
+    }
+</div>
