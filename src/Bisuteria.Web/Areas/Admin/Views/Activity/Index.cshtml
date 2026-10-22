@@ -1,0 +1,12 @@
+@model IReadOnlyList<Bisuteria.Web.Areas.Admin.Controllers.OwnActivityRow>
+<h1 class="admin-title">Mi actividad</h1>
+<p class="text-muted">Tus últimas 100 acciones registradas, en hora de Ecuador. Esta pantalla solo consulta tu propia actividad.</p>
+<div class="card-admin table-responsive">
+    <table class="table table-admin mb-0"><thead><tr><th>Fecha local</th><th>Acción</th><th>Sección</th><th>Resultado</th></tr></thead><tbody>
+    @foreach (var row in Model)
+    {
+        <tr><td>@row.AtLocal.ToString("dd/MM/yyyy HH:mm")</td><td class="text-break">@row.Action</td><td>@row.EntityType</td><td>@row.Outcome</td></tr>
+    }
+    @if (Model.Count == 0) { <tr><td colspan="4" class="text-center py-4">Aún no tienes acciones registradas.</td></tr> }
+    </tbody></table>
+</div>

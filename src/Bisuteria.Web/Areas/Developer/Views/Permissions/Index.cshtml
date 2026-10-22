@@ -1,0 +1,26 @@
+@model Bisuteria.Web.Areas.Developer.Controllers.EffectivePermissionsViewModel
+@{ ViewData["Title"] = "Permisos efectivos por cuenta"; }
+<h2 class="h3">Permisos efectivos por cuenta</h2>
+<p>La lista combina los permisos vigentes de cada rol y respeta su límite de funciones. Una cuenta desactivada no tiene acceso. Se muestran identificadores, sin correos ni datos de contacto.</p>
+<form method="get" class="d-flex flex-wrap gap-2 mb-3">
+    <label for="permission-user" class="visually-hidden">Identificador de cuenta</label>
+    <input class="form-control w-auto" id="permission-user" name="userId" maxlength="450" value="@Model.UserId" placeholder="Identificador de cuenta" />
+    <button class="btn btn-outline-dark" type="submit">Filtrar</button>
+</form>
+@foreach (var row in Model.Rows)
+{
+    <section class="card mb-3"><div class="card-body">
+        <h3 class="h6 text-break">Cuenta @row.UserId</h3>
+        <p>Estado: @(row.Active ? "Activa" : "Desactivada") · Roles: @(row.Roles.Count == 0 ? "Sin rol" : string.Join(", ", row.Roles))</p>
+        <details><summary>@row.Permissions.Count permisos efectivos</summary>
+            <ul class="mt-2">@foreach (var permission in row.Permissions) { <li>@permission</li> }</ul>
+            @if (row.Permissions.Count == 0) { <p class="mb-0">Esta cuenta no tiene permisos administrativos.</p> }
+        </details>
+    </div></section>
+}
+@if (Model.Rows.Count == 0) { <p>No hay cuentas para este filtro.</p> }
+<nav aria-label="Páginas de permisos" class="d-flex gap-3">
+    @if (Model.Page > 1) { <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-userId="@Model.UserId">Anterior</a> }
+    <span>Página @Model.Page</span>
+    @if (Model.HasNext) { <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-userId="@Model.UserId">Siguiente</a> }
+</nav>

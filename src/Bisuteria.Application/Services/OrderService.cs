@@ -206,9 +206,23 @@ public class OrderService : IOrderService
         return orders.Select(EntityMappings.ToOrder).ToList();
     }
 
-    public async Task<PaginatedOrdersResult> GetPagedAsync(int page, int pageSize, OrderStatus? status = null, string? search = null, CancellationToken ct = default)
+    public async Task<PaginatedOrdersResult> GetPagedAsync(int page, int pageSize, OrderStatus? status = null, string? search = null, CancellationToken ct = default, string? attention = null)
     {
         var q = LoadOrderQuery();
+
+        if (attention is not (null or "" or "proofs" or "shipping" or "unpaid" or "old"))
+            throw new BusinessRuleException("Filtro de atención no válido.");
+        if (attention == "proofs")
+            q = q.Where(o => o.Status != OrderStatus.Cancelled && o.PaymentProofs.Any(proof => proof.Status == PaymentProofStatus.Pending));
+        else if (attention == "shipping")
+            q = q.Where(o => o.ShippingToConfirm && o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered);
+        else if (attention == "unpaid")
+            q = q.Where(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus == PaymentStatus.Pending);
+        else if (attention == "old")
+        {
+            var oldLimit = DateTime.UtcNow.AddDays(-2);
+            q = q.Where(o => o.Status == OrderStatus.Pending && o.CreatedAt < oldLimit);
+        }
 
         if (status.HasValue)
             q = q.Where(o => o.Status == status.Value);

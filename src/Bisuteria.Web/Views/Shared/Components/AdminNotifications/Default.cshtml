@@ -1,4 +1,7 @@
-@model DashboardStats
-@{ var total = Model.PendingOrders + Model.UnreadMessages + Model.LowStockCount + Model.PendingReviews; }
+@model AdminNotificationSummary
+@{ var total = Model.Total; }
 <details class="admin-notifications"><summary aria-label="Notificaciones: @total pendientes"><i class="bi bi-bell" aria-hidden="true"></i><span class="notification-count">@total</span></summary>
-<div class="admin-popover"><strong>Requieren atención</strong><a href="/Admin/Orders?status=Pending">Pedidos pendientes: @Model.PendingOrders</a><a href="/Admin/Messages?unreadOnly=true">Mensajes sin leer: @Model.UnreadMessages</a><a href="/Admin/Inventory">Stock bajo: @Model.LowStockCount</a><a href="/Admin/Reviews?pendingOnly=true">Reseñas por aprobar: @Model.PendingReviews</a><small>Se actualiza al navegar, con caché de 30 segundos.</small></div></details>
+<div class="admin-popover"><strong>Requieren atención</strong>
+@foreach (var alert in Model.Alerts) { <a href="@alert.Url">@alert.Label: @alert.Count</a> }
+@if (Model.Alerts.Count == 0) { <p class="small mb-0">No hay avisos pendientes para tus permisos.</p> }
+<small>Se actualiza al navegar, con caché de 30 segundos.</small></div></details>

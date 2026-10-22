@@ -1,6 +1,10 @@
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Domain.Enums;
 using Bisuteria.Domain.Security;
+using Bisuteria.Domain.Entities;
+using Bisuteria.Infrastructure.Data;
+using Bisuteria.Web.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,32 +17,49 @@ public class OrdersController : AdminBaseController
     private readonly IPaymentProofService _proofs;
     private readonly Bisuteria.Web.Services.IPaymentProofStorage _proofStorage;
     private readonly IAuthorizationService _authorization;
+    private readonly AppDbContext _db;
+    private readonly Bisuteria.Web.Services.SecurityAuditLogger _audit;
 
     public OrdersController(IOrderService orders, IPaymentProofService proofs, Bisuteria.Web.Services.IPaymentProofStorage proofStorage,
-        IAuthorizationService authorization)
+        IAuthorizationService authorization, AppDbContext db, Bisuteria.Web.Services.SecurityAuditLogger audit)
     {
         _orders = orders;
         _proofs = proofs;
         _proofStorage = proofStorage;
         _authorization = authorization;
+        _db = db;
+        _audit = audit;
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(OrderStatus? status = null, string? search = null, int page = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Index(OrderStatus? status = null, string? search = null, int page = 1, CancellationToken ct = default, string? attention = null)
     {
+        var requiredPermission = attention switch
+        {
+            null or "" or "old" => StorePermissions.OrdersView,
+            "proofs" => StorePermissions.PaymentsReviewProof,
+            "shipping" => StorePermissions.OrdersSetShipping,
+            "unpaid" => StorePermissions.PaymentsUpdate,
+            _ => null
+        };
+        if (requiredPermission is null) return BadRequest("Filtro de atención no válido.");
+        if (!(await _authorization.AuthorizeAsync(User, null, requiredPermission)).Succeeded) return Forbid();
         ViewData["Title"] = "Pedidos";
-        var result = await _orders.GetPagedAsync(page, 15, status, search, ct);
+        var result = await _orders.GetPagedAsync(page, 15, status, search, ct, attention);
         ViewBag.Search = search;
         ViewBag.Status = status;
-        ViewBag.Statuses = Enum.GetValues<OrderStatus>();
-        ViewBag.StatusCounts = new Dictionary<OrderStatus, int>
+        ViewBag.Attention = attention;
+        ViewBag.AttentionLabel = attention switch
         {
-            [OrderStatus.Pending] = await _orders.CountByStatusAsync(OrderStatus.Pending, ct),
-            [OrderStatus.Preparing] = await _orders.CountByStatusAsync(OrderStatus.Preparing, ct),
-            [OrderStatus.Shipped] = await _orders.CountByStatusAsync(OrderStatus.Shipped, ct),
-            [OrderStatus.Delivered] = await _orders.CountByStatusAsync(OrderStatus.Delivered, ct),
-            [OrderStatus.Cancelled] = await _orders.CountByStatusAsync(OrderStatus.Cancelled, ct)
+            "proofs" => "Comprobantes por revisar",
+            "shipping" => "Envíos por confirmar",
+            "unpaid" => "Pagos pendientes",
+            "old" => "Pedidos pendientes hace más de 48 horas",
+            _ => null
         };
+        ViewBag.Statuses = Enum.GetValues<OrderStatus>();
+        ViewBag.StatusCounts = await _db.Orders.AsNoTracking().GroupBy(order => order.Status)
+            .ToDictionaryAsync(group => group.Key, group => group.Count(), ct);
         return View(result);
     }
 
@@ -50,6 +71,26 @@ public class OrdersController : AdminBaseController
         if (order is null)
             return NotFound();
 
+        if (User.IsInRole(StoreRoles.Developer) || User.IsInRole(StoreRoles.Owner))
+        {
+            Response.Headers.CacheControl = "no-store";
+            await _audit.CustomerDataAccessAsync(order.UserId, "CustomerData.OrderDetailsViewed", ct);
+        }
+        else
+        {
+            order.CustomerName = "Datos reservados";
+            order.CustomerEmail = "Oculto";
+            order.CustomerPhone = "Oculto";
+            order.AddressLine1 = "Oculta";
+            order.AddressLine2 = null;
+            order.PostalCode = null;
+            order.City = "Oculta";
+            order.Province = "Oculta";
+            order.Observations = null;
+            order.GiftRecipientName = null;
+            order.GiftMessage = null;
+        }
+
         ViewBag.Statuses = Enum.GetValues<OrderStatus>().Where(s => OrderTransitions.Allows(order.Status, s, order.PaymentStatus)).ToArray();
         ViewBag.AdminNotes = await _orders.GetAdminNotesAsync(order.Id, ct);
         ViewBag.PaymentStatuses = Enum.GetValues<PaymentStatus>().Where(s => OrderTransitions.AllowsPayment(order.Status, order.PaymentStatus, s)).ToArray();
@@ -60,6 +101,35 @@ public class OrdersController : AdminBaseController
             (await _authorization.AuthorizeAsync(User, null, StorePermissions.OrdersSetShipping)).Succeeded;
         ViewBag.CanViewProof = (await _authorization.AuthorizeAsync(User, null, StorePermissions.PaymentsViewProof)).Succeeded;
         ViewBag.CanReviewProof = (await _authorization.AuthorizeAsync(User, null, StorePermissions.PaymentsReviewProof)).Succeeded;
+        ViewBag.CanUpdatePayment = (await _authorization.AuthorizeAsync(User, null, StorePermissions.PaymentsUpdate)).Succeeded;
+        ViewBag.CanUpdateStatus = (await _authorization.AuthorizeAsync(User, null, StorePermissions.OrdersUpdateStatus)).Succeeded;
+
+        var timeline = new List<OrderTimelineEntry> { new(order.CreatedAt, "Pedido recibido") };
+        if (ViewBag.CanUpdatePayment is true)
+            timeline.AddRange(await _db.Payments.AsNoTracking().Where(payment => payment.OrderId == order.Id && payment.PaidAt != null)
+                .Select(payment => new OrderTimelineEntry(payment.PaidAt!.Value, "Pago registrado")).ToListAsync(ct));
+        if (ViewBag.CanViewProof is true)
+        {
+            var proofEvents = await _db.PaymentProofs.AsNoTracking().Where(proof => proof.OrderId == order.Id)
+                .Select(proof => new { proof.CreatedAt, proof.ReviewedAtUtc, proof.Status }).ToListAsync(ct);
+            foreach (var proof in proofEvents)
+            {
+                timeline.Add(new(proof.CreatedAt, "Comprobante recibido"));
+                if (proof.ReviewedAtUtc.HasValue)
+                    timeline.Add(new(proof.ReviewedAtUtc.Value, proof.Status == PaymentProofStatus.Approved ? "Comprobante aprobado" : "Comprobante rechazado"));
+            }
+        }
+        var entityId = order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var recordedEvents = await _db.Set<AuditLog>().AsNoTracking().Where(entry => entry.EntityType == "Order" &&
+            entry.EntityId == entityId && (entry.Action == "Order.ShippingConfirmed" || entry.Action == "Order.StatusChanged" || entry.Action == "Payment.StatusChanged"))
+            .Select(entry => new { entry.CreatedAt, entry.Action }).ToListAsync(ct);
+        timeline.AddRange(recordedEvents.Select(entry => new OrderTimelineEntry(entry.CreatedAt, entry.Action switch
+        {
+            "Order.ShippingConfirmed" => "Recargo de envío confirmado",
+            "Payment.StatusChanged" => "Estado del pago registrado",
+            _ => "Estado del pedido registrado"
+        })));
+        ViewBag.Timeline = timeline.OrderBy(entry => entry.AtUtc).ToArray();
         return View(order);
     }
 
@@ -69,11 +139,16 @@ public class OrdersController : AdminBaseController
     public async Task<IActionResult> UpdateStatus(string orderNumber, OrderStatus status, string? adminNotes, CancellationToken ct)
     {
         var order = await _orders.GetByNumberAsync(orderNumber, ct);
+        var beforeStatus = order?.Status;
         if (!ModelState.IsValid || order is null || !await _orders.UpdateStatusAsync(order.Id, status, adminNotes, ct))
         {
             TempData["Error"] = "Transición no permitida. No se puede cancelar un pedido enviado o entregado; si está pagado, confirma primero su reembolso real.";
             return RedirectToAction(nameof(Index));
         }
+
+        await _audit.RecordAsync("Order.StatusChanged", "Order", order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), "200",
+            beforeJson: System.Text.Json.JsonSerializer.Serialize(new { Status = beforeStatus!.Value.ToString() }),
+            afterJson: System.Text.Json.JsonSerializer.Serialize(new { Status = status.ToString() }), cancellationToken: ct);
 
         TempData["Success"] = "Estado del pedido actualizado.";
         return RedirectToAction(nameof(Details), new { orderNumber });
@@ -85,11 +160,16 @@ public class OrdersController : AdminBaseController
     public async Task<IActionResult> UpdatePayment(string orderNumber, PaymentStatus status, CancellationToken ct)
     {
         var order = await _orders.GetByNumberAsync(orderNumber, ct);
+        var beforeStatus = order?.PaymentStatus;
         if (!ModelState.IsValid || order is null || !await _orders.UpdatePaymentStatusAsync(order.Id, status, ct))
         {
             TempData["Error"] = "El estado solicitado no es válido o el pedido está cancelado.";
             return RedirectToAction(nameof(Index));
         }
+
+        await _audit.RecordAsync("Payment.StatusChanged", "Order", order.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), "200",
+            beforeJson: System.Text.Json.JsonSerializer.Serialize(new { Status = beforeStatus!.Value.ToString() }),
+            afterJson: System.Text.Json.JsonSerializer.Serialize(new { Status = status.ToString() }), cancellationToken: ct);
 
         TempData["Success"] = "Estado del pago actualizado.";
         return RedirectToAction(nameof(Details), new { orderNumber });
@@ -120,6 +200,9 @@ public class OrdersController : AdminBaseController
         var proof = await _proofs.GetAsync(id, ct);
         var key = await _proofs.GetStorageKeyAsync(id, ct);
         if (proof is null || key is null) return NotFound();
+        var orderId = await _db.PaymentProofs.AsNoTracking().Where(item => item.Id == id).Select(item => item.OrderId).SingleOrDefaultAsync(ct);
+        var userId = await _db.Orders.AsNoTracking().Where(item => item.Id == orderId).Select(item => item.UserId).SingleOrDefaultAsync(ct);
+        await _audit.CustomerDataAccessAsync(userId, "CustomerData.ProofAccessed", ct);
         var stream = await _proofStorage.OpenReadAsync(key, ct);
         if (stream is null) return NotFound();
         Response.Headers.CacheControl = "no-store";

@@ -1,15 +1,30 @@
 @model OrderDto
+@using Bisuteria.Application.Services
+@using Bisuteria.Web.Models
 
 <div class="mb-4">
     <a class="text-muted small text-decoration-none" asp-action="Index"><i class="bi bi-arrow-left me-1"></i>Volver a pedidos</a>
-    <h1 class="admin-title mt-2 mb-0">Pedido @Model.OrderNumber</h1>
-    <p class="text-muted mb-0">Realizado el @Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</p>
+    <h1 class="admin-title text-break mt-2 mb-0">Pedido @Model.OrderNumber</h1>
+    <p class="text-muted mb-0">Realizado el @SalesCriteria.Local(Model.CreatedAt).ToString("dd MMM yyyy HH:mm")</p>
 </div>
+
+<section class="card-admin p-3 mb-3" aria-labelledby="timeline-title">
+    <h2 id="timeline-title" class="h6">Historial del pedido</h2>
+    <p>Estado actual: <span class="badge @Model.Status.GetBadgeClass()">@Model.StatusLabel</span></p>
+    <ol class="mb-0">
+        @foreach (var entry in (IReadOnlyList<OrderTimelineEntry>)ViewBag.Timeline)
+        {
+            <li><time datetime="@entry.AtUtc.ToString("O")">@SalesCriteria.Local(entry.AtUtc).ToString("dd MMM yyyy HH:mm")</time> · @entry.Label</li>
+        }
+    </ol>
+    <p class="small text-muted mb-0 mt-2">Solo se muestran sucesos con fecha registrada. Los estados históricos sin registro no se reconstruyen.</p>
+</section>
 
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card-admin p-3 mb-3">
             <h6 class="fw-semibold mb-3"><i class="bi bi-box-seam me-2 text-gold"></i>Artículos</h6>
+            <div class="table-responsive" role="region" aria-label="Artículos del pedido" tabindex="0">
             <table class="table table-admin mb-0">
                 <thead>
                     <tr>
@@ -42,6 +57,7 @@
                     }
                 </tbody>
             </table>
+            </div>
             <hr>
             <div class="d-flex justify-content-between mb-1"><span>Subtotal</span><strong>@Model.Subtotal.ToString("C")</strong></div>
             @if (Model.Discount > 0)
@@ -100,10 +116,13 @@
     <div class="col-lg-4">
         <div class="card-admin p-3 mb-3">
             <h6 class="fw-semibold mb-3"><i class="bi bi-arrow-repeat me-2 text-gold"></i>Estado del pedido</h6>
+            @if (ViewBag.CanUpdateStatus is true)
+            {
             <form asp-action="UpdateStatus" method="post" class="d-flex flex-column gap-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="orderNumber" value="@Model.OrderNumber" />
-                <select name="status" class="form-select">
+                <label class="form-label" for="orderStatus">Nuevo estado</label>
+                <select id="orderStatus" name="status" class="form-select">
                     @foreach (var status in (OrderStatus[])ViewBag.Statuses)
                     {
                         <option value="@status" selected="@(status == Model.Status)">@status.GetLabel()</option>
@@ -112,20 +131,22 @@
                 <input type="text" name="adminNotes" class="form-control" placeholder="Nota interna (opcional)" maxlength="2000" value="@ViewBag.AdminNotes" />
                 <button class="btn btn-gold" type="submit"><i class="bi bi-check2 me-2"></i>Actualizar estado</button>
             </form>
+            }
+            else { <p class="mb-0">@Model.StatusLabel</p> }
         </div>
 
         <div class="card-admin p-3 mb-3">
-            @if (ViewBag.PaymentProofs is IReadOnlyList<PaymentProofDto> proofs && proofs.Count > 0)
+            @if (ViewBag.CanViewProof is true && ViewBag.PaymentProofs is IReadOnlyList<PaymentProofDto> proofs && proofs.Count > 0)
             {
                 <h6 class="fw-semibold mb-3"><i class="bi bi-receipt me-2 text-gold"></i>Comprobantes de transferencia</h6>
                 @foreach (var proof in proofs)
                 {
                     <div class="border rounded p-2 mb-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span>@proof.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm") · @(proof.ContentType == "application/pdf" ? "PDF" : "Imagen") · @((proof.Length / 1024.0).ToString("0")) KB</span>
+                            <span>@SalesCriteria.Local(proof.CreatedAt).ToString("dd MMM yyyy HH:mm") · @(proof.ContentType == "application/pdf" ? "PDF" : "Imagen") · @((proof.Length / 1024.0).ToString("0")) KB</span>
                             @if (ViewBag.CanViewProof is true) { <a class="btn btn-sm btn-outline-secondary" asp-action="Proof" asp-route-id="@proof.Id" target="_blank" rel="noopener">Ver archivo</a> }
                         </div>
-                        <div class="small">Estado: @proof.Status</div>
+                        <div class="small">Estado: @(proof.Status == PaymentProofStatus.Pending ? "Pendiente de revisión" : proof.Status == PaymentProofStatus.Approved ? "Aprobado" : "Rechazado")</div>
                         @if (proof.Status == PaymentProofStatus.Pending && ViewBag.CanReviewProof is true)
                         {
                             <form asp-action="ReviewProof" method="post" class="mt-2">
@@ -155,11 +176,15 @@
             }
             <h6 class="fw-semibold mb-3"><i class="bi bi-credit-card me-2 text-gold"></i>Pago</h6>
             <p class="mb-2"><strong>Método:</strong> @Model.PaymentMethodLabel</p>
+            <p class="mb-2"><strong>Estado:</strong> @Model.PaymentStatus.GetLabel()</p>
+            @if (ViewBag.CanUpdatePayment is true)
+            {
             <p class="small text-muted">Marca «Reembolsado» únicamente después de devolver el dinero por el medio acordado. Esta acción no realiza una devolución bancaria.</p>
             <form asp-action="UpdatePayment" method="post" class="d-flex flex-column gap-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="orderNumber" value="@Model.OrderNumber" />
-                <select name="status" class="form-select">
+                <label class="form-label" for="paymentStatus">Estado del pago</label>
+                <select id="paymentStatus" name="status" class="form-select">
                     @foreach (var status in (PaymentStatus[])ViewBag.PaymentStatuses)
                     {
                         <option value="@status" selected="@(status == Model.PaymentStatus)">@status.GetLabel()</option>
@@ -167,6 +192,7 @@
                 </select>
                 <button class="btn btn-outline-secondary" type="submit" disabled="@Model.ShippingToConfirm"><i class="bi bi-arrow-repeat me-2"></i>Actualizar pago</button>
             </form>
+            }
         </div>
     </div>
 </div>

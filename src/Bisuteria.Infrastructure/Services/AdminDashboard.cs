@@ -2,6 +2,7 @@ using Bisuteria.Application.DTOs.Admin;
 using Bisuteria.Application.DTOs.Orders;
 using Bisuteria.Application.Services;
 using Bisuteria.Domain.Enums;
+using Bisuteria.Domain.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bisuteria.Infrastructure.Services;
@@ -66,8 +67,11 @@ public partial class AdminService
         var pending = await _context.Orders.GroupBy(o => 1).Select(g => new {
             Total = g.Count(), Pending = g.Count(o => o.Status == OrderStatus.Pending),
             Old = g.Count(o => o.Status == OrderStatus.Pending && o.CreatedAt < oldLimit),
-            Unpaid = g.Count(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus == PaymentStatus.Pending)
+            Unpaid = g.Count(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus == PaymentStatus.Pending),
+            Shipping = g.Count(o => o.ShippingToConfirm && o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered)
         }).SingleOrDefaultAsync(ct);
+        var pendingProofs = await _context.PaymentProofs.CountAsync(proof => proof.Status == PaymentProofStatus.Pending &&
+            proof.Order!.Status != OrderStatus.Cancelled, ct);
         var reviews = await _context.Reviews.CountAsync(r => !r.IsApproved, ct);
         var messages = await _context.ContactMessages.CountAsync(m => !m.IsRead, ct);
         var expiry = DateTime.UtcNow.AddDays(7);
@@ -93,7 +97,18 @@ public partial class AdminService
             TotalOrders = pending?.Total ?? 0, PendingOrders = pending?.Pending ?? 0, PendingReviews = reviews, UnreadMessages = messages,
             SalesByMonth = chart, SalesByCategory = categories, SalesByPayment = payments.Select(p => new ChartPoint { Label = p.Method == PaymentMethod.BankTransfer ? "Transferencia" : p.Method == PaymentMethod.Card ? "Tarjeta" : "Contra entrega", Value = p.Total }).ToList(),
             OrdersByStatus = states.Select(s => new ChartPoint { Label = s.Status.GetLabel(), Value = s.Count }).ToList(), TopProducts = top, RecentOrders = recent,
-            Alerts = [new("Stock bajo", inventory?.Low ?? 0, "/Admin/Inventory"), new("Agotados", inventory?.Empty ?? 0, "/Admin/Inventory"), new("Pendientes hace más de 48 h", pending?.Old ?? 0, "/Admin/Orders?status=Pending"), new("Pagos pendientes", pending?.Unpaid ?? 0, "/Admin/Reports/Sales?payment=Pending"), new("Reseñas por aprobar", reviews, "/Admin/Reviews?pendingOnly=true"), new("Mensajes sin leer", messages, "/Admin/Messages?unreadOnly=true"), new("Cupones vencen en 7 días", coupons, "/Admin/Coupons")]
+            Alerts = [
+                new("Pedidos pendientes", pending?.Pending ?? 0, "/Admin/Orders?status=Pending", StorePermissions.OrdersView),
+                new("Comprobantes por revisar", pendingProofs, "/Admin/Orders?attention=proofs", StorePermissions.PaymentsReviewProof),
+                new("Envíos por confirmar", pending?.Shipping ?? 0, "/Admin/Orders?attention=shipping", StorePermissions.OrdersSetShipping),
+                new("Stock bajo", inventory?.Low ?? 0, "/Admin/Inventory", StorePermissions.InventoryAdjust),
+                new("Agotados", inventory?.Empty ?? 0, "/Admin/Inventory", StorePermissions.InventoryAdjust),
+                new("Pendientes hace más de 48 h", pending?.Old ?? 0, "/Admin/Orders?attention=old", StorePermissions.OrdersView),
+                new("Pagos pendientes", pending?.Unpaid ?? 0, "/Admin/Orders?attention=unpaid", StorePermissions.PaymentsUpdate),
+                new("Reseñas por aprobar", reviews, "/Admin/Reviews?pendingOnly=true", StorePermissions.ReviewsModerate),
+                new("Mensajes sin leer", messages, "/Admin/Messages?unreadOnly=true", StorePermissions.MessagesView),
+                new("Cupones vencen en 7 días", coupons, "/Admin/Coupons", StorePermissions.CouponsManage)
+            ]
         };
     }
 }

@@ -17,7 +17,7 @@ public interface IOrderService
 
     Task<List<OrderDto>> GetByUserAsync(string userId, CancellationToken cancellationToken = default);
 
-    Task<PaginatedOrdersResult> GetPagedAsync(int page, int pageSize, OrderStatus? status = null, string? search = null, CancellationToken cancellationToken = default);
+    Task<PaginatedOrdersResult> GetPagedAsync(int page, int pageSize, OrderStatus? status = null, string? search = null, CancellationToken cancellationToken = default, string? attention = null);
 
     Task<bool> UpdateStatusAsync(int orderId, OrderStatus status, string? adminNotes = null, CancellationToken cancellationToken = default);
 

@@ -3,6 +3,8 @@
 @{
     var currentUser = await UserManager.GetUserAsync(User);
     var displayName = currentUser != null ? $"{currentUser.FirstName} {currentUser.LastName}" : "Administrador";
+    var currentRoles = currentUser is null ? Array.Empty<string>() : (await UserManager.GetRolesAsync(currentUser)).ToArray();
+    string RoleLabel(string role) => role switch { "Developer" => "Desarrollador", "Owner" => "Propietaria", "Operator" => "Operador", "Customer" => "Cliente", _ => "Administración" };
     async Task<bool> Allowed(string permission) => (await Authorization.AuthorizeAsync(User, null, permission)).Succeeded;
 }
 <!DOCTYPE html>
@@ -27,10 +29,13 @@
         </button>
         <a class="brand" asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-gem me-2"></i>Dann's Bisutería</a>
         <strong class="admin-page-title">@ViewData["Title"]</strong>
+        @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.AdminSearch))
+        {
         <form asp-area="Admin" asp-controller="Search" asp-action="Index" method="get" class="admin-search" role="search"><label for="admin-search" class="visually-hidden">Buscar pedidos o productos</label><i class="bi bi-search" aria-hidden="true"></i><input id="admin-search" name="q" maxlength="200" placeholder="Buscar pedidos, clientes, productos o SKU…" /><button class="visually-hidden-focusable" type="submit">Buscar</button></form>
+        }
         @await Component.InvokeAsync("AdminNotifications")
         <button type="button" class="btn btn-outline-light btn-sm" id="adminTheme" aria-label="Cambiar modo oscuro" aria-pressed="false"><i class="bi bi-moon" aria-hidden="true"></i></button>
-        <details class="admin-profile"><summary aria-label="Menú del perfil"><i class="bi bi-person-circle" aria-hidden="true"></i></summary><div class="admin-popover"><strong>@displayName</strong><a href="/Account/Profile">Mi perfil</a><a href="/Account/Authenticator">Seguridad en dos pasos</a></div></details>
+        <details class="admin-profile"><summary aria-label="Menú del perfil"><i class="bi bi-person-circle" aria-hidden="true"></i></summary><div class="admin-popover"><strong>@displayName</strong><span class="badge text-bg-secondary">@string.Join(", ", currentRoles.Select(RoleLabel))</span><a href="/Account/Profile">Mi perfil</a><a href="/Account/Authenticator">Seguridad en dos pasos</a></div></details>
         <a class="btn btn-outline-light btn-sm" asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-shop me-1"></i>Ver tienda</a>
         <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
             @Html.AntiForgeryToken()
@@ -41,6 +46,7 @@
     <nav class="admin-sidebar" id="adminSidebar" aria-label="Administración"><a href="/Admin" class="sidebar-brand"><img src="/img/logo-mark.svg" alt="" /><strong>DANN’S<small>Bisutería y accesorios</small></strong></a>
         <div class="nav flex-column gap-1">
             @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView)) { <a class="nav-link" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i>Panel de administración</a> }
+            @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.DashboardView)) { <a class="nav-link" asp-area="Admin" asp-controller="Activity" asp-action="Index"><i class="bi bi-clock-history"></i>Mi actividad</a> }
             @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.ProductsManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Products" asp-action="Index"><i class="bi bi-box-seam"></i>Productos</a> }
             @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.CategoriesManage)) { <a class="nav-link" asp-area="Admin" asp-controller="Categories" asp-action="Index"><i class="bi bi-tags"></i>Categorías</a> }
             @if (await Allowed(Bisuteria.Domain.Security.StorePermissions.OrdersView)) { <a class="nav-link" asp-area="Admin" asp-controller="Orders" asp-action="Index"><i class="bi bi-receipt"></i>Pedidos</a> }

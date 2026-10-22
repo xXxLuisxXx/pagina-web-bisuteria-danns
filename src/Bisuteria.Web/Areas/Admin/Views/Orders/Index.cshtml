@@ -3,8 +3,10 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="admin-title mb-0">Pedidos</h1>
     <form asp-action="Index" method="get" class="d-flex gap-2">
-        <input type="search" name="search" class="form-control" placeholder="Número, cliente o correo..." value="@ViewBag.Search" />
-        <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+        <input type="hidden" name="attention" value="@ViewBag.Attention" />
+        <label class="visually-hidden" for="order-search">Buscar pedidos</label>
+        <input id="order-search" type="search" name="search" class="form-control" placeholder="Número, cliente o correo..." value="@ViewBag.Search" />
+        <button class="btn btn-outline-secondary" type="submit" aria-label="Buscar pedidos"><i class="bi bi-search" aria-hidden="true"></i></button>
     </form>
 </div>
 
@@ -18,8 +20,12 @@
     }
 </div>
 
+@if (ViewBag.AttentionLabel is string attentionLabel)
+{
+    <p class="alert alert-info" role="status">@attentionLabel. <a asp-action="Index">Quitar filtro de atención</a></p>
+}
 <div class="card-admin">
-    <div class="table-responsive">
+    <div class="table-responsive" tabindex="0" role="region" aria-label="Tabla de pedidos; desplázate horizontalmente para ver todas las columnas">
         <table class="table table-admin mb-0">
             <thead>
                 <tr>
@@ -40,7 +46,7 @@
                         <td>@order.CustomerName<br><small class="text-muted">@order.CustomerEmail</small></td>
                         <td>@order.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
                         <td class="text-center">
-                            <span class="badge badge-status @(order.PaymentStatus == PaymentStatus.Paid ? "bg-success" : order.PaymentStatus == PaymentStatus.Failed ? "bg-danger" : "bg-warning text-dark")">@order.PaymentStatus</span>
+                            <span class="badge badge-status @(order.PaymentStatus == PaymentStatus.Paid ? "bg-success" : order.PaymentStatus == PaymentStatus.Failed ? "bg-danger" : "bg-warning text-dark")">@order.PaymentStatus.GetLabel()</span>
                         </td>
                         <td class="text-center">
                             <span class="badge badge-status @order.Status.GetBadgeClass()">@order.StatusLabel</span>
@@ -67,16 +73,16 @@
     <nav class="mt-4">
         <ul class="pagination justify-content-center">
             <li class="page-item @(Model.Page > 1 ? "" : "disabled")">
-                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search"><i class="bi bi-chevron-left"></i></a>
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search" asp-route-attention="@ViewBag.Attention"><i class="bi bi-chevron-left"></i></a>
             </li>
             @for (var i = 1; i <= Model.TotalPages; i++)
             {
                 <li class="page-item @(i == Model.Page ? "active" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search">@i</a>
+                    <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search" asp-route-attention="@ViewBag.Attention">@i</a>
                 </li>
             }
             <li class="page-item @(Model.Page < Model.TotalPages ? "" : "disabled")">
-                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search"><i class="bi bi-chevron-right"></i></a>
+                <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-status="@ViewBag.Status" asp-route-search="@ViewBag.Search" asp-route-attention="@ViewBag.Attention"><i class="bi bi-chevron-right"></i></a>
             </li>
         </ul>
     </nav>

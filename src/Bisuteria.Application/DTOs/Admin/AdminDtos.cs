@@ -313,4 +313,9 @@ public class StockMovementRow
     public DateTime CreatedAt { get; set; }
 }
 
-public sealed record DashboardAlert(string Label, int Count, string Url);
+public sealed record DashboardAlert(string Label, int Count, string Url, string Permission);
+
+public sealed record AdminNotificationSummary(IReadOnlyList<DashboardAlert> Alerts)
+{
+    public int Total => Alerts.Sum(alert => alert.Count);
+}
