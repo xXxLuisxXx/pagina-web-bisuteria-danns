@@ -20,7 +20,7 @@ public interface IAdminService
     /// <summary>Historial de movimientos de inventario (más recientes primero).</summary>
     Task<List<StockMovementRow>> GetStockMovementsAsync(int? productId = null, int limit = 100, CancellationToken cancellationToken = default);
 
-    Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default, int page = 1, int pageSize = 25, string? userId = null);
+    Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default, int page = 1, int pageSize = 25, string? userId = null, bool businessAccountsOnly = false);
 
     Task<bool> SetUserActiveAsync(string userId, bool isActive, CancellationToken cancellationToken = default);
 

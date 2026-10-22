@@ -681,7 +681,8 @@ namespace Bisuteria.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
@@ -695,6 +696,8 @@ namespace Bisuteria.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
 
                     b.HasIndex("Status", "CreatedAt");
 

@@ -1,6 +1,6 @@
 # Revisión integral del proyecto
 
-Fecha: 15 de octubre de 2026. Rama: `mejoras/integral`. Alcance: fases 1–10 del encargo, respetando ASP.NET Core MVC, .NET 10, EF Core, SQL Server y la arquitectura existente.
+Fecha: 21 de octubre de 2026. Rama: `mejoras/integral`. Alcance: fases 1–12 del encargo, respetando ASP.NET Core MVC, .NET 10, EF Core, SQL Server y la arquitectura existente.
 
 ## Estado por fases
 
@@ -14,8 +14,10 @@ Fecha: 15 de octubre de 2026. Rama: `mejoras/integral`. Alcance: fases 1–10 de
 | 6. Validaciones | Implementada en los formularios revisados | Se conservan validación de servidor y cliente, límites y mensajes en español en MVC. La suite cubre regresiones conocidas; no es una verificación formal exhaustiva de cada combinación posible. |
 | 7. Correo | Implementada, SMTP pendiente | La cola EmailOutbox es durable, protegida y reintenta fallos; invitaciones usan token almacenado como hash y contenido protegido en la cola. Developer puede inspeccionar mensajes pendientes con destinatarios enmascarados y reencolar fallidos con auditoría. Falta SMTP real, prueba de entregabilidad y una política de retención acordada. |
 | 8. Panel | Implementada localmente | Dashboard Admin rediseñado y vistas separadas del Developer para matriz, auditoría y estado. Las capturas adaptables se generan como evidencia local ignorada por Git. No hay medición de carga productiva. |
-| 9. Auditoría y privacidad | Implementada con alcance limitado | Registra acciones administrativas, sesiones privilegiadas, cambios y exportaciones con metadatos; enmascara datos de clientes y audita su revelación al Developer. No se almacenan cuerpos sensibles de formularios en el log. |
-| 10. Calidad y operación | Implementada localmente, despliegue pendiente | Arquitectura y CI existente, health checks, pruebas SQL portables, migraciones aditivas y documentación. La migración `SqlDistributedSessionStore` agrega la tabla compatible con `IDistributedCache`; se probó el intercambio entre dos hosts. El script idempotente se generó sin ejecutarlo en una base real. |
+| 9. UX, accesibilidad y SEO | Auditada, con contraste pendiente de decisión visual | Auditoría completa: 111 capturas, seis flujos aprobados y cero errores estructurales. axe detecta 84 instancias de contraste insuficiente en la paleta existente; se reportan sin cambiar los colores solicitados. Lighthouse móvil 64/94/100/100. Ver [fase 9](fase-9-diagnostico-2026-10-20.md). |
+| 10. Paneles y dashboard | Implementada localmente | Avisos accionables y filtros con permiso, vistas efectivas de Developer, actividad propia, línea de tiempo y controles de UI coherentes con la autorización. 234 pruebas Release correctas; sin prueba de carga productiva. Ver [fase 10](fase-10-revision-2026-10-20.md). |
+| 11. Privacidad de clientes | Implementada en código | Edición y baja segura de clientes; pedidos conservados con PII anonimizados; operadores no ven contactos; accesos de Owner/Developer y comprobantes registrados. Revisar obligaciones de conservación antes de aplicar en cuentas reales. Ver [fase 11](fase-11-privacidad-2026-10-21.md). |
+| 12. Rendimiento y CI | Implementada localmente | Filtro de usuarios en SQL, roles y pedidos por lote, índice Orders.UserId, comprobación de navegador y dependencias en CI. Migración revisada y aplicada solo en SQL temporal; staging/producción pendientes. Ver [fase 12](fase-12-calidad-rendimiento-2026-10-21.md). |
 
 ## Hallazgos H-01 a H-19
 
@@ -35,12 +37,12 @@ Fecha: 15 de octubre de 2026. Rama: `mejoras/integral`. Alcance: fases 1–10 de
 
 | Comando | Resultado real |
 |---|---|
-| `dotnet build Bisuteria.slnx -c Release` | Correcto después de los cambios de reautenticación; 0 errores y 0 advertencias. |
-| `dotnet test tests/Bisuteria.Tests/Bisuteria.Tests.csproj -c Release --no-build --logger "console;verbosity=minimal"` | 159 correctas; 0 fallidas; 0 omitidas. Fixture SQL aislada `BisuteriaAudit_<GUID>`. Incluye progresión de bloqueo, reautenticación, reintento de correo y caché compartida SQL. |
-| `dotnet list Bisuteria.slnx package --vulnerable --include-transitive` | Cinco proyectos sin paquetes vulnerables según los orígenes NuGet consultados. |
-| `dotnet ef migrations script --idempotent --project src/Bisuteria.Infrastructure --startup-project src/Bisuteria.Web --configuration Release --output audit/migraciones-integral.sql` | Generó un script de 38.424 bytes; revisión estática sin `DROP TABLE`, `DROP COLUMN` ni `DROP INDEX`. No se ejecutó contra ninguna base. |
-| `npm install --no-package-lock --ignore-scripts` en `tests/visual` | 2 paquetes instalados; 0 vulnerabilidades reportadas por npm. |
-| `npm run check` en `tests/visual` | 54 comprobaciones en 390, 768 y 1440 px; `issues: []`. Incluye las cuatro vistas Developer y las 10 interacciones de menú, notificaciones, modo oscuro y personalizador. Capturas locales en `audit/screenshots` (incluye Admin oscuro); no se versionan. |
+| `dotnet build Bisuteria.slnx -c Release` | Correcto; 0 errores y 0 advertencias. |
+| `dotnet test tests/Bisuteria.Tests/Bisuteria.Tests.csproj -c Release` | 234 aprobadas, 0 fallidas y 1 omitida (auditoría de navegador, ejecutada aparte). Fixtures SQL `BisuteriaAudit_<GUID>` desechables. |
+| Auditoría real `BROWSER_AUDIT=1`, fase `after` | Aprobada; 111 capturas, seis flujos, cero fallos estructurales. axe reportó 84 instancias serias de contraste; Lighthouse 64/94/100/100. Detalles en [fase 9](fase-9-diagnostico-2026-10-20.md). |
+| `dotnet list Bisuteria.slnx package --vulnerable --include-transitive` | Cinco proyectos sin paquetes vulnerables según NuGet. |
+| `npm audit --prefix tests/visual` | Cero vulnerabilidades. `node --check tests/visual/browser-audit.cjs` y `git diff --check` también pasaron. |
+| Migración nueva `IndexOrderUserId` | Probada por la suite sobre SQL desechable. No se aplicó a ninguna base real; verificar longitudes existentes antes de staging. |
 
 La búsqueda exacta de la cuenta histórica y el escaneo por patrones descritos en [fase 1](fase-1-credenciales.md) no hallaron coincidencias en los 15 commits alcanzables revisados entonces. Ese resultado no prueba que nunca se haya publicado otro secreto con un formato distinto. Si una credencial real se expuso en Git, hay que rotarla; la limpieza del historial queda como procedimiento manual coordinado, no como cambio aplicado.
 

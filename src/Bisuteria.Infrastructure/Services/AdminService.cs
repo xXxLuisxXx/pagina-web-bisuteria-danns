@@ -137,10 +137,15 @@ public partial class AdminService : IAdminService
         return movements;
     }
 
-    public async Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default, int page = 1, int pageSize = 25, string? userId = null)
+    public async Task<List<UserDto>> GetUsersAsync(CancellationToken ct = default, int page = 1, int pageSize = 25, string? userId = null, bool businessAccountsOnly = false)
     {
-        var users = await _userManager.Users.AsNoTracking()
-            .Where(u => userId == null || u.Id == userId)
+        var userQuery = _userManager.Users.AsNoTracking()
+            .Where(u => userId == null || u.Id == userId);
+        if (businessAccountsOnly)
+            userQuery = userQuery.Where(u => _context.UserRoles.Count(link => link.UserId == u.Id) == 1 &&
+                _context.UserRoles.Any(link => link.UserId == u.Id && _context.Roles.Any(role => role.Id == link.RoleId &&
+                    (role.Name == Bisuteria.Domain.Security.StoreRoles.Customer || role.Name == Bisuteria.Domain.Security.StoreRoles.Operator))));
+        var users = await userQuery
             .OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id)
             .Skip((Math.Clamp(page, 1, 10000) - 1) * Math.Clamp(pageSize, 1, 100))
             .Take(Math.Clamp(pageSize, 1, 100)).ToListAsync(ct);

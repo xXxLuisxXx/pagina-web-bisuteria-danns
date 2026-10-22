@@ -4,7 +4,7 @@ Tienda ASP.NET Core MVC en .NET 10: catálogo público, personalización, carrit
 
 ## Requisitos
 
-- .NET SDK 10; comprobado con SDK 10.0.401.
+- .NET SDK 10 (verificado en esta revisión con 10.0.402).
 - SQL Server accesible; las pruebas aceptan `BISUTERIA_TEST_CONNECTION` y crean su propia base temporal.
 - HTTPS para cookies de autenticación y carrito.
 - Node.js y Edge/Playwright solo para las comprobaciones visuales.
@@ -45,9 +45,9 @@ dotnet user-secrets set "Payments:EnabledMethods:0" "CashOnDelivery" --project s
 
 ## Correo de recuperación
 
-Configura privadamente `Smtp:Host`, `Smtp:Port` (587 por defecto), `Smtp:UseSsl` (true), `Smtp:From`, `Smtp:Username` y `Smtp:Password`. Sus equivalentes de entorno usan doble guion bajo, por ejemplo `Smtp__Password`. Configura también `PublicBaseUrl` con el origen HTTPS real para los enlaces de recuperación.
+Configura privadamente `Smtp:Host`, `Smtp:Port` (587 por defecto), `Smtp:UseSsl` (true), `Smtp:From`, `Smtp:User` y `Smtp:Password`. Sus equivalentes de entorno usan doble guion bajo, por ejemplo `Smtp__Password`. Configura también `PublicBaseUrl` con el origen HTTPS real para los enlaces de recuperación.
 
-Sin SMTP, desarrollo registra solo un aviso y conserva el correo pendiente; **no imprime el enlace ni el token**. La cola SQL conserva el trabajo para reintentos si falta configuración o falla SMTP; se mantiene el mensaje público genérico. Las pruebas capturan el enlace con un doble de correo y verifican el token y su uso único. **El envío real SMTP está pendiente de configuración y prueba externa.**
+En `Development`, el transporte guarda correos ficticios de prueba como `.eml` en `src/Bisuteria.Web/App_Data/MailDrop`; el directorio no se publica ni se incluye en Git. El envío real requiere `Smtp:Enabled=true` en ese entorno, además de la configuración SMTP completa. Nunca imprimas enlaces ni tokens en la terminal. Las pruebas usan un doble de correo y verifican el token y su uso único. **El envío real SMTP está pendiente de configuración y prueba externa.**
 
 ## Arquitectura
 
@@ -91,7 +91,7 @@ node --check src/Bisuteria.Web/wwwroot/js/site.js
 
 Las pruebas requieren permiso para crear/eliminar una base **temporal** `BisuteriaAudit_<GUID>` en `localhost`. Verifican su nombre antes de migrar y antes de eliminarla; no usan `BisuteriaDb`. No son pruebas con EF InMemory. El doble SMTP no envía mensajes. Los correos `example.test` y contraseñas en la fixture son datos ficticios aislados.
 
-Para las capturas, primero ejecuta satisfactoriamente `ExportRenderedPagesForResponsiveChecks` (incluida en la suite). Después:
+Para la inspección HTML rápida:
 
 ```powershell
 cd tests/visual
@@ -99,9 +99,21 @@ npm install
 npm run check
 ```
 
-Usa Edge instalado o define `BROWSER_PATH` con el ejecutable de Chromium compatible. El script comprueba 14 páginas en 390, 768 y 1440 px; guarda `audit/screenshots` y `audit/visual-results.json`. Falla ante desbordamiento de página, imágenes rotas o errores JavaScript. Las tablas pueden desplazarse dentro de su contenedor. Es una inspección del HTML generado, no un reemplazo de las pruebas HTTP ni una certificación en dispositivos físicos.
+Para la auditoría de navegador real, con Node.js y SQL Server de pruebas disponibles:
 
-## Estado de la revisión integral (15 de octubre de 2026)
+```powershell
+npm ci --prefix tests/visual
+npx --prefix tests/visual playwright install chromium
+dotnet build Bisuteria.slnx -c Release
+$env:BROWSER_AUDIT = "1"
+$env:BROWSER_AUDIT_PHASE = "before"
+dotnet test tests/Bisuteria.Tests/Bisuteria.Tests.csproj -c Release --no-build --filter Category=Browser
+Remove-Item Env:BROWSER_AUDIT, Env:BROWSER_AUDIT_PHASE
+```
+
+La medición final usa `BROWSER_AUDIT_PHASE="after"`. Playwright recorre las rutas reales en 360, 768 y 1366 px, ejecuta axe, prueba flujos con datos ficticios y genera Lighthouse móvil; guarda capturas y JSON/HTML de Lighthouse en `audit/browser/before` y `audit/browser/after`. La fixture confirma que utiliza `BisuteriaAudit_<GUID>` y elimina esa base temporal. La prueba se omite en la suite normal salvo que `BROWSER_AUDIT=1`. axe y Lighthouse aportan diagnóstico, no certificación WCAG ni garantía de rendimiento en producción.
+
+## Estado de la revisión integral (21 de octubre de 2026)
 
 El alcance ampliado se trabaja en la rama `mejoras/integral`. La matriz de permisos y el modelo de invitaciones están en [la documentación de roles y cuentas](docs/fase-2-3-roles-y-cuentas.md) y [la matriz de permisos](docs/matriz-permisos.md). Los resultados completos y los pendientes externos se registran en [el informe final](docs/revision-integral-final.md). Los informes de octubre 11–13 son históricos y corresponden a revisiones anteriores.
 

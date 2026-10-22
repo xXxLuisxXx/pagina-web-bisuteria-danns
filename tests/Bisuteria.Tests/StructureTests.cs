@@ -38,4 +38,19 @@ public partial class AuditTests
         var selected = await service.GetUsersAsync(userId: first[0].Id);
         Assert.Equal(first[0].Id, Assert.Single(selected).Id);
     }
+
+    [Fact]
+    public async Task BusinessAccountFilterRunsBeforePaginationAndExcludesPrivilegedRoles()
+    {
+        using var scope = f.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IAdminService>();
+        var page = await service.GetUsersAsync(page: 1, pageSize: 100, businessAccountsOnly: true);
+        Assert.NotEmpty(page);
+        Assert.All(page, user =>
+        {
+            Assert.Single(user.Roles);
+            Assert.Contains(user.Roles[0], new[] { "Customer", "Operator" });
+        });
+        Assert.DoesNotContain(page, user => user.Roles.Contains("Owner") || user.Roles.Contains("Developer"));
+    }
 }
