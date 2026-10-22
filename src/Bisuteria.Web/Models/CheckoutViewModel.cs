@@ -40,6 +40,9 @@ public class CheckoutViewModel
     public string? City { get; set; }
 
     [Display(Name = "Sector")]
+    [StringLength(Bisuteria.Application.Validators.DeliverySectorRules.MaxLength, ErrorMessage = "El sector no puede superar 60 caracteres.")]
+    [RegularExpression(Bisuteria.Application.Validators.DeliverySectorRules.Pattern, ErrorMessage = "Escribe un sector válido, sin símbolos especiales.")]
+    public string? DeliverySector { get; set; }
     public int? DeliveryZoneId { get; set; }
 
     [BindNever]
@@ -76,6 +79,8 @@ public class CheckoutViewModel
         CustomerPhone = CustomerPhone,
         AddressLine1 = AddressLine1 ?? string.Empty,
         AddressLine2 = AddressLine2,
+        City = City,
+        DeliverySector = DeliverySector,
         DeliveryZoneId = DeliveryZoneId,
         Observations = Observations,
         PaymentMethod = PaymentMethod,

@@ -2,6 +2,7 @@
 @using Bisuteria.Web.Cart
 @inject ISettingService Settings
 @inject CartManager Cart
+@inject IConfiguration Configuration
 @inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
 @{
     var settings = await Settings.GetAllAsync();
@@ -16,6 +17,15 @@
     var pageTitle = ViewData["Title"] is string t && t.Length > 0 ? t + " · " + storeName : storeName + " | Bisutería personalizada hecha a mano";
     var pageDescription = ViewData["Description"] is string description && description.Length > 0 ? description : storeDescription;
     var robots = ViewData["Robots"] as string;
+    var publicBaseUrl = Configuration["PublicBaseUrl"]?.TrimEnd('/');
+    var publicPage = Context.Request.Method == "GET" && (Context.Request.Path == "/" || Context.Request.Path.StartsWithSegments("/Catalog") || Context.Request.Path.StartsWithSegments("/Home"));
+    string? canonicalUrl = null;
+    if (publicPage && Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out var publicUri) && publicUri.Scheme == "https")
+    {
+        canonicalUrl = publicBaseUrl + Context.Request.PathBase + Context.Request.Path;
+        if (Context.Request.Path.Equals("/Catalog/Details", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(Context.Request.Query["slug"]))
+            canonicalUrl += "?slug=" + Uri.EscapeDataString(Context.Request.Query["slug"].ToString());
+    }
 }
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="light">
@@ -31,15 +41,20 @@
     <meta property="og:site_name" content="@storeName" />
     <meta property="og:title" content="@pageTitle" />
     <meta property="og:description" content="@pageDescription" />
-    <meta property="og:image" content="~/img/logo-danns.svg" />
+    @if (canonicalUrl is not null)
+    {
+        <link rel="canonical" href="@canonicalUrl" />
+        <meta property="og:url" content="@canonicalUrl" />
+        <meta property="og:image" content="@(publicBaseUrl + Url.Content("~/img/logo-danns.svg"))" />
+    }
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@pageTitle" />
     <meta name="twitter:description" content="@pageDescription" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="icon" type="image/svg+xml" href="~/img/favicon.svg" />
 </head>
@@ -47,11 +62,6 @@
     <a class="visually-hidden-focusable" href="#contenido">Saltar al contenido</a>
     @Html.AntiForgeryToken()
     <noscript><link rel="stylesheet" href="~/css/site-noscript.css" /></noscript>
-
-    <!-- Loader -->
-    <div class="loader-overlay" id="appLoader">
-        <div class="loader-diamond"></div>
-    </div>
 
     <!-- Barra superior -->
     <div class="topbar d-none d-lg-block">
@@ -196,7 +206,7 @@
                     </div>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <h5 class="footer-title">Tienda</h5>
+                    <h2 class="footer-title">Tienda</h2>
                     <ul class="footer-links">
                         <li><a asp-area="" asp-controller="Home" asp-action="Index">Inicio</a></li>
                         <li><a asp-area="" asp-controller="Catalog" asp-action="Index">Catálogo</a></li>
@@ -208,7 +218,7 @@
                     </ul>
                 </div>
                 <div class="col-6 col-lg-3">
-                    <h5 class="footer-title">Empresa</h5>
+                    <h2 class="footer-title">Empresa</h2>
                     <ul class="footer-links">
                         <li><a asp-area="" asp-controller="Home" asp-action="About">Nuestra Historia</a></li>
                         <li><a asp-area="" asp-controller="Blog" asp-action="Index">Blog</a></li>

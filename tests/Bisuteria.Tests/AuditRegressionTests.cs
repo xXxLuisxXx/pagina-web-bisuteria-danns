@@ -157,12 +157,15 @@ public partial class AuditTests
     }
 
     [Fact]
-    public void CheckoutRequiresZoneOnlyWhenShipping()
+    public void CheckoutAllowsUnlistedSectorButValidatesItsText()
     {
         var checkout = Checkout();
         Assert.True(new CheckoutValidator().Validate(checkout).IsValid);
         checkout.DeliveryZoneId = null;
-        Assert.Contains(new CheckoutValidator().Validate(checkout).Errors, error => error.PropertyName == nameof(checkout.DeliveryZoneId));
+        checkout.DeliverySector = "Sector Nuevo";
+        Assert.True(new CheckoutValidator().Validate(checkout).IsValid);
+        checkout.DeliverySector = "<script>alert(1)</script>";
+        Assert.Contains(new CheckoutValidator().Validate(checkout).Errors, error => error.PropertyName == nameof(checkout.DeliverySector));
     }
 
     [Fact]
@@ -195,7 +198,7 @@ public partial class AuditTests
         {
             ["CheckoutToken"] = token, ["__RequestVerificationToken"] = await AuditFactory.Token(client, "/Checkout"),
             ["CustomerName"] = "Ensayo concurrente", ["CustomerEmail"] = "concurrent@example.test",
-            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Manta", ["DeliveryZoneId"] = f.DeliveryZoneId.ToString(),
+            ["CustomerPhone"] = "2025550100", ["AddressLine1"] = "Ensayo", ["City"] = "Manta", ["DeliverySector"] = "Otro sector (por confirmar)", ["DeliveryZoneId"] = f.DeliveryZoneId.ToString(),
             ["PaymentMethod"] = "CashOnDelivery", ["DeliveryMethod"] = "Shipping"
         };
         var responses = await Task.WhenAll(client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)), client.PostAsync("/Checkout", new FormUrlEncodedContent(fields)));

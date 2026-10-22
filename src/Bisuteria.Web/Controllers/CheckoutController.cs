@@ -84,6 +84,7 @@ public class CheckoutController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("public-forms")]
     public async Task<IActionResult> Index(CheckoutViewModel model, CancellationToken ct)
     {
         ViewData["Title"] = "Finalizar compra";
@@ -93,6 +94,7 @@ public class CheckoutController : Controller
             return BadRequest("La sesión de compra expiró. Recarga el formulario.");
         var cart = await _cart.GetCartAsync(ct);
         model.Cart = cart;
+        model.DeliverySector = Bisuteria.Application.Validators.DeliverySectorRules.Clean(model.DeliverySector);
         await PopulateDeliveryOptionsAsync(model, ct);
         if (model.CheckoutIntentRefreshZones)
         {
@@ -109,14 +111,8 @@ public class CheckoutController : Controller
 
         var validation = new Bisuteria.Application.Validators.CheckoutValidator().Validate(model.ToDto());
         foreach (var error in validation.Errors) ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-        if (model.DeliveryMethod != DeliveryMethod.Pickup)
-        {
-            var selectedZone = model.DeliveryZones.SingleOrDefault(zone => zone.Id == model.DeliveryZoneId);
-            if (selectedZone is null)
-                ModelState.AddModelError(nameof(model.DeliveryZoneId), "Selecciona un sector activo de Manta o Jaramijó.");
-            else if (!string.Equals(model.City, selectedZone.City, StringComparison.Ordinal))
-                ModelState.AddModelError(nameof(model.DeliveryZoneId), "El sector no corresponde a la ciudad seleccionada.");
-        }
+        if (model.DeliveryMethod != DeliveryMethod.Pickup && model.City is not ("Manta" or "Jaramijó"))
+            ModelState.AddModelError(nameof(model.City), "Selecciona Manta o Jaramijó.");
         if (!availablePayments.Contains(model.PaymentMethod))
             ModelState.AddModelError(string.Empty, "No hay un método de pago habilitado para esta solicitud. Contacta con la tienda.");
         if (!ModelState.IsValid)
@@ -257,25 +253,30 @@ public class CheckoutController : Controller
             .ToListAsync(ct);
     }
 
-    private async Task ApplyShippingSummaryAsync(CheckoutViewModel model, CancellationToken ct)
+    private Task ApplyShippingSummaryAsync(CheckoutViewModel model, CancellationToken ct)
     {
         model.ShippingCost = 0m;
         model.ShippingToConfirm = false;
-        if (model.DeliveryMethod == DeliveryMethod.Pickup) return;
-        if (!model.DeliveryZoneId.HasValue)
+        model.DeliveryZoneId = null;
+        if (model.DeliveryMethod == DeliveryMethod.Pickup) return Task.CompletedTask;
+        var sector = model.DeliverySector?.Trim();
+        if (string.IsNullOrWhiteSpace(sector) || model.City is not ("Manta" or "Jaramijó"))
         {
             model.ShippingToConfirm = true;
-            return;
+            return Task.CompletedTask;
         }
-        var zone = await _db.DeliveryZones.AsNoTracking().SingleOrDefaultAsync(item =>
-            item.Id == model.DeliveryZoneId && item.IsActive && item.Province == "Manabí" &&
-            (item.City == "Manta" || item.City == "Jaramijó"), ct);
+        var zones = model.DeliveryZones.Where(item => item.City == model.City);
+        var normalized = Bisuteria.Application.Validators.DeliverySectorRules.Key(sector);
+        var matches = zones.Where(item => Bisuteria.Application.Validators.DeliverySectorRules.Key(item.Sector) == normalized).ToList();
+        var zone = matches.Count == 1 ? matches[0] : null;
+        model.DeliveryZoneId = zone?.Id;
         if (zone is null || zone.RequiresConfirmation || (!zone.IsFree && zone.Cost <= 0m))
         {
             model.ShippingToConfirm = true;
-            return;
+            return Task.CompletedTask;
         }
         model.ShippingCost = zone.IsFree ? 0m : zone.Cost;
+        return Task.CompletedTask;
     }
 
     private async Task<PaymentMethod[]> GetAvailablePaymentsAsync(CancellationToken ct)

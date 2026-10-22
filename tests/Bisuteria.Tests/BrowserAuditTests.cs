@@ -52,6 +52,7 @@ public sealed class BrowserAuditTests
                     Province = "Manabí", City = "Manta", Sector = "Sector de prueba (auditoría)",
                     Cost = 2.50m, IsActive = true, SortOrder = 0
                 });
+                db.DeliveryZones.Add(new DeliveryZone { Province = "Manabí", City = "Jaramijó", Sector = "Sector gratis de auditoría", IsFree = true, Cost = 0m, IsActive = true });
                 db.BlogPosts.Add(new BlogPost
                 {
                     Title = "Cómo cuidar tus accesorios", Slug = "browser-audit", Excerpt = "Consejos de ejemplo para la auditoría.",

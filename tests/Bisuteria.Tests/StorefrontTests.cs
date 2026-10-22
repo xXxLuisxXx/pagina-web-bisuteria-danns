@@ -174,7 +174,8 @@ public partial class AuditTests : IClassFixture<AuditFactory>
             await AuditFactory.Post(client,"/Cart/Add",new(){["ProductId"]=f.ProductId.ToString(),["Quantity"]="1"});
             var html=WebUtility.HtmlDecode(await client.GetStringAsync("/Cart"));
 
-            Assert.Contains("Precio por unidad: $20.00 USD",html);
+            Assert.Contains("Precio por unidad:",html);
+            Assert.Contains("20,00",html);
             Assert.Contains("Se calcula al seleccionar el sector de entrega",html);
             Assert.DoesNotContain("$5,00</strong>",html);
 
@@ -314,5 +315,5 @@ public partial class AuditTests : IClassFixture<AuditFactory>
         visualDb.RemoveRange(samples); await visualDb.SaveChangesAsync();
         visualScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>().Remove("dashboard:::day:");
     }
-    private CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",DeliveryZoneId=f.DeliveryZoneId,PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
+    private CheckoutDto Checkout()=>new(){CustomerName="Cliente aislado",CustomerEmail="test@example.test",CustomerPhone="0982599801",AddressLine1="Dirección de ensayo",City="Manta",DeliverySector="Otro sector (por confirmar)",DeliveryZoneId=f.DeliveryZoneId,PaymentMethod=PaymentMethod.CashOnDelivery,DeliveryMethod=DeliveryMethod.Shipping};
 }

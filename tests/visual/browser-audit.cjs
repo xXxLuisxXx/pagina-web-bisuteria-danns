@@ -185,9 +185,8 @@ async function main() {
       await page.locator('#CustomerPhone').fill('+1 202 555 0101');
       await page.locator('input[name="DeliveryMethod"][value="Shipping"]').check();
       await page.locator('#AddressLine1').fill('Dirección ficticia de auditoría');
-      const auditZone = await page.locator('#DeliveryZoneId option').filter({ hasText: 'Sector de prueba (auditoría)' }).getAttribute('value');
-      assert.ok(auditZone, 'La zona de tarifa ficticia no apareció en el checkout.');
-      await page.locator('#DeliveryZoneId').selectOption(auditZone);
+      await page.locator('#DeliverySector').fill('sector de prueba (auditoria)');
+      assert.ok(await page.locator('#DeliverySector').evaluate(element => window.jQuery(element).valid()), 'El navegador rechazó un sector válido.');
       assert.match(await page.locator('#shippingDisplay').innerText(), /2[.,]50/, 'El costo del sector no aparece antes de confirmar.');
       await page.locator('input[name="PaymentMethod"][value="BankTransfer"]').check();
       await page.getByRole('button', { name: /Confirmar pedido/ }).click();
@@ -213,6 +212,32 @@ async function main() {
       await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.getByRole('button', { name: 'Consultar pedido' }).click()]);
       assert.ok((await page.locator('body').innerText()).includes(orderNumber), 'El seguimiento de invitado no mostró el pedido autorizado.');
       assert.ok(!(await page.locator('body').innerText()).includes('Dirección ficticia de auditoría'), 'El seguimiento público expuso la dirección.');
+      await page.close();
+    });
+
+    for (const destination of [
+      { name: 'sector-desconocido-por-cotizar', city: 'Manta', sector: 'Barrio nuevo de prueba', pending: true },
+      { name: 'sector-con-envio-gratis', city: 'Jaramijó', sector: 'sector gratis de auditoria', pending: false }
+    ]) await runFlow(destination.name, async () => {
+      const page = await anonymous.newPage();
+      await page.setViewportSize({ width: 360, height: 900 });
+      await page.goto(base + '/Catalog/Details?slug=audit-product', { waitUntil: 'domcontentloaded' });
+      await Promise.all([page.waitForURL('**/Cart'), page.locator('form[action*="Cart/Add"] button[type="submit"]').click()]);
+      await page.goto(base + '/Checkout', { waitUntil: 'domcontentloaded' });
+      assert.equal(await page.locator('#checkoutOrderDetails').getAttribute('open'), null, 'El resumen móvil debe iniciar plegado.');
+      await page.locator('#CustomerName').fill('Cliente de prueba');
+      await page.locator('#CustomerEmail').fill('browser-destination@example.test');
+      await page.locator('#CustomerPhone').fill('2025550100');
+      await page.locator('#City').selectOption(destination.city);
+      await page.locator('#DeliverySector').fill(destination.sector);
+      await page.locator('#AddressLine1').fill('Dirección ficticia de prueba');
+      assert.match(await page.locator('#deliveryZoneHelp').innerText(), destination.pending ? /cotizamos/ : /Envío gratis/);
+      await page.locator('#checkoutOrderDetails summary').click();
+      assert.match(await page.locator('#shippingDisplay').innerText(), destination.pending ? /por confirmar/ : /Envío gratis/);
+      await page.getByRole('button', { name: destination.pending ? 'Enviar pedido para cotización' : 'Confirmar pedido' }).click();
+      await page.waitForURL('**/Checkout/Confirmation**', { timeout: 10000 });
+      const content = await page.locator('body').innerText();
+      assert.match(content, destination.pending ? /pendiente de confirmar|confirme el recargo/ : /Gracias/);
       await page.close();
     });
 

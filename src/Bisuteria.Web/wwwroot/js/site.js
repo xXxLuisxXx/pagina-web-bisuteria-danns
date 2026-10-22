@@ -60,24 +60,6 @@
         input.value = Math.max(Number(input.min) || 1, Math.min(Number(input.max) || 50, (Number(input.value) || 1) + Number(button.dataset.dir)));
         input.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    // ---------- Loader ----------
-    window.addEventListener('load', function () {
-        var loader = document.getElementById('appLoader');
-        if (loader) {
-            setTimeout(function () {
-                loader.classList.add('hidden');
-            }, 350);
-        }
-    });
-
-    // Fallback: ocultar loader tras 3s por si el evento load no dispara.
-    setTimeout(function () {
-        var loader = document.getElementById('appLoader');
-        if (loader) {
-            loader.classList.add('hidden');
-        }
-    }, 3000);
-
     // ---------- Tema oscuro / claro ----------
     function applyTheme(theme) {
         document.documentElement.setAttribute('data-bs-theme', theme);

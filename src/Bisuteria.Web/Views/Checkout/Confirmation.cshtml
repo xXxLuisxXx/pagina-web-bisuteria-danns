@@ -102,7 +102,7 @@
                         <ul class="mb-0">
                             @foreach (var proof in paymentProofs)
                             {
-                                <li><a asp-action="PaymentProof" asp-route-id="@proof.Id" asp-route-orderNumber="@Model.OrderNumber" asp-route-accessToken="@ViewBag.AccessToken">Comprobante @proof.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</a> · @proof.Status @if (!string.IsNullOrWhiteSpace(proof.ReviewNote)) { <span>— @proof.ReviewNote</span> }</li>
+                                <li><a asp-action="PaymentProof" asp-route-id="@proof.Id" asp-route-orderNumber="@Model.OrderNumber" asp-route-accessToken="@ViewBag.AccessToken">Comprobante @proof.CreatedAt.ToLocalTime().ToString("dd MMM HH:mm")</a> · @(proof.Status switch { PaymentProofStatus.Approved => "Aprobado", PaymentProofStatus.Rejected => "Rechazado", _ => "Pendiente de revisión" }) @if (!string.IsNullOrWhiteSpace(proof.ReviewNote)) { <span>— @proof.ReviewNote</span> }</li>
                             }
                         </ul>
                     }

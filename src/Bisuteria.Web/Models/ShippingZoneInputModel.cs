@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using Bisuteria.Application.Validators;
 
 namespace Bisuteria.Web.Models;
 
 public sealed class ShippingZoneInputModel : IValidatableObject
 {
+    private string _sector = string.Empty;
+
     [Range(0, int.MaxValue, ErrorMessage = "La zona no es válida.")]
     public int Id { get; set; }
 
@@ -12,9 +15,10 @@ public sealed class ShippingZoneInputModel : IValidatableObject
     public string City { get; set; } = "Manta";
 
     [Required(ErrorMessage = "El sector es obligatorio.")]
-    [StringLength(120, ErrorMessage = "El sector no puede superar 120 caracteres.")]
+    [StringLength(DeliverySectorRules.MaxLength, ErrorMessage = "El sector no puede superar 60 caracteres.")]
+    [RegularExpression(DeliverySectorRules.Pattern, ErrorMessage = "Escribe un sector válido, sin símbolos especiales.")]
     [Display(Name = "Sector")]
-    public string Sector { get; set; } = string.Empty;
+    public string Sector { get => _sector; set => _sector = DeliverySectorRules.Clean(value); }
 
     [Range(typeof(decimal), "0", "10000", ParseLimitsInInvariantCulture = true, ErrorMessage = "La tarifa debe estar entre 0 y 10 000 USD.")]
     [Display(Name = "Tarifa de envío (USD)")]

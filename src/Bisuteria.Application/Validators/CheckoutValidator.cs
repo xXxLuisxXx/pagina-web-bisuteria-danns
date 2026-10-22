@@ -30,11 +30,21 @@ public class CheckoutValidator : AbstractValidator<CheckoutDto>
 
         RuleFor(x => x.AddressLine2).MaximumLength(200).WithMessage("La dirección complementaria no puede superar 200 caracteres.");
 
-        RuleFor(x => x.DeliveryZoneId)
-            .NotNull().When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
-            .WithMessage("Selecciona un sector de entrega.")
-            .GreaterThan(0).When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
-            .WithMessage("Selecciona un sector de entrega válido.");
+        RuleFor(x => x.City)
+            .Must(city => city is "Manta" or "Jaramijó")
+            .When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup)
+            .WithMessage("Selecciona Manta o Jaramijó.");
+
+        RuleFor(x => x.DeliverySector)
+            .NotEmpty().WithMessage("Escribe el sector de entrega.")
+            .When(x => x.DeliveryMethod != Bisuteria.Domain.Enums.DeliveryMethod.Pickup);
+
+        RuleFor(x => x.DeliverySector)
+            .Must(sector => DeliverySectorRules.Clean(sector).Length <= DeliverySectorRules.MaxLength)
+            .WithMessage("El sector no puede superar 60 caracteres.")
+            .Must(sector => System.Text.RegularExpressions.Regex.IsMatch(DeliverySectorRules.Clean(sector), DeliverySectorRules.Pattern))
+            .WithMessage("Escribe un sector válido, sin símbolos especiales.")
+            .When(x => !string.IsNullOrWhiteSpace(x.DeliverySector));
 
         RuleFor(x => x.Observations)
             .MaximumLength(1000).WithMessage("Las observaciones no pueden superar 1000 caracteres.");

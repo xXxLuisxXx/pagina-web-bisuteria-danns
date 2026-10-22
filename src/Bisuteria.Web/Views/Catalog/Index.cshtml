@@ -16,7 +16,8 @@
             <form asp-action="Index" method="get" class="row g-2">
                 <div class="col-md-5">
                     <div class="input-group">
-                        <input type="search" name="search" class="form-control" placeholder="Buscar producto..." value="@Model.Query.Search" />
+                        <label class="visually-hidden" for="catalog-search">Buscar producto</label>
+                        <input id="catalog-search" type="search" name="search" class="form-control" placeholder="Buscar producto..." value="@Model.Query.Search" />
                     </div>
                 </div>
                 <div class="col-4 col-md-3">
@@ -30,7 +31,8 @@
                     </select>
                 </div>
                 <div class="col-4 col-md-2">
-                    <input type="number" name="maxPrice" class="form-control" placeholder="Máx $" value="@Model.Query.MaxPrice" min="0" />
+                    <label class="visually-hidden" for="catalog-max-price">Precio máximo en dólares</label>
+                    <input id="catalog-max-price" type="number" name="maxPrice" class="form-control" placeholder="Máx $" value="@Model.Query.MaxPrice" min="0" step="0.01" inputmode="decimal" />
                 </div>
                 <div class="col-4 col-md-2 d-grid">
                     <button class="btn btn-brand" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
@@ -51,7 +53,7 @@
         @foreach (var category in Model.Categories)
         {
             <a class="btn btn-sm @(Model.Query.CategorySlug == category.Slug ? "btn-dark-brand" : "btn-outline-brand")"
-               asp-action="Index" asp-route-categorySlug="@category.Slug" asp-route-search="@Model.Query.Search" asp-route-sort="@Model.Query.Sort">
+               asp-action="Index" asp-route-categorySlug="@category.Slug" asp-route-search="@Model.Query.Search" asp-route-sort="@Model.Query.Sort" asp-route-maxPrice="@Model.Query.MaxPrice">
                 @category.Name
             </a>
         }
@@ -104,19 +106,19 @@
             <nav class="mt-5" aria-label="Paginación">
                 <ul class="pagination justify-content-center">
                     <li class="page-item @(Model.Products.HasPrevious ? "" : "disabled")">
-                        <a class="page-link" asp-action="Index"
+                        <a class="page-link" asp-action="Index" aria-label="Página anterior" aria-disabled="@(!Model.Products.HasPrevious ? "true" : "false")" tabindex="@(Model.Products.HasPrevious ? 0 : -1)"
                            asp-route-page="@(Model.Products.Page - 1)"
                            asp-route-categorySlug="@Model.Query.CategorySlug"
                            asp-route-search="@Model.Query.Search"
                            asp-route-sort="@Model.Query.Sort"
                            asp-route-maxPrice="@Model.Query.MaxPrice">
-                            <i class="bi bi-chevron-left"></i>
+                            <i class="bi bi-chevron-left" aria-hidden="true"></i>
                         </a>
                     </li>
                     @for (var i = 1; i <= Model.Products.TotalPages; i++)
                     {
                         <li class="page-item @(i == Model.Products.Page ? "active" : "")">
-                            <a class="page-link" asp-action="Index"
+                            <a class="page-link" asp-action="Index" aria-label="Página @i" aria-current="@(i == Model.Products.Page ? "page" : null)"
                                asp-route-page="@i"
                                asp-route-categorySlug="@Model.Query.CategorySlug"
                                asp-route-search="@Model.Query.Search"
@@ -125,13 +127,13 @@
                         </li>
                     }
                     <li class="page-item @(Model.Products.HasNext ? "" : "disabled")">
-                        <a class="page-link" asp-action="Index"
+                        <a class="page-link" asp-action="Index" aria-label="Página siguiente" aria-disabled="@(!Model.Products.HasNext ? "true" : "false")" tabindex="@(Model.Products.HasNext ? 0 : -1)"
                            asp-route-page="@(Model.Products.Page + 1)"
                            asp-route-categorySlug="@Model.Query.CategorySlug"
                            asp-route-search="@Model.Query.Search"
                            asp-route-sort="@Model.Query.Sort"
                            asp-route-maxPrice="@Model.Query.MaxPrice">
-                            <i class="bi bi-chevron-right"></i>
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
                         </a>
                     </li>
                 </ul>

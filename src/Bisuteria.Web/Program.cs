@@ -15,6 +15,11 @@ using Bisuteria.Domain.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddStoreSecurity();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.MimeTypes = ["text/css", "application/javascript", "text/javascript", "image/svg+xml"];
+});
 builder.Services.AddSingleton(TimeProvider.System);
 if (builder.Environment.IsProduction() && builder.Configuration.GetValue("Database:ApplyMigrations", false))
     throw new InvalidOperationException("En producción aplica las migraciones como paso controlado antes de iniciar la aplicación.");
@@ -154,7 +159,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseResponseCompression();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Request.Query.ContainsKey("v") &&
+            (context.File.Name.EndsWith(".css", StringComparison.OrdinalIgnoreCase) || context.File.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase)))
+            context.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable";
+    }
+});
 
 app.UseRequestLocalization();
 

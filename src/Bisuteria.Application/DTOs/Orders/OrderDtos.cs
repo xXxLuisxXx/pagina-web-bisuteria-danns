@@ -19,6 +19,10 @@ public class CheckoutDto
 
     public string? AddressLine2 { get; set; }
 
+    public string? City { get; set; }
+
+    public string? DeliverySector { get; set; }
+
     public int? DeliveryZoneId { get; set; }
 
     public string? Observations { get; set; }

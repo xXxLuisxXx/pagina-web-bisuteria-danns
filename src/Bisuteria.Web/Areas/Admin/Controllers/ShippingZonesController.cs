@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Bisuteria.Application.Validators;
 using Bisuteria.Domain.Entities;
 using Bisuteria.Domain.Security;
 using Bisuteria.Infrastructure.Data;
@@ -55,10 +56,13 @@ public sealed class ShippingZonesController(AppDbContext db, SecurityAuditLogger
         ViewData["Title"] = model.Id == 0 ? "Nueva zona de entrega" : "Editar zona de entrega";
         if (!ModelState.IsValid) return View(model);
 
-        model.Sector = model.Sector.Trim();
+        model.Sector = DeliverySectorRules.Clean(model.Sector);
         model.EstimatedTime = string.IsNullOrWhiteSpace(model.EstimatedTime) ? null : model.EstimatedTime.Trim();
-        if (await db.DeliveryZones.AnyAsync(zone => zone.Id != model.Id && zone.Province == ProvinceName &&
-                zone.City == model.City && zone.Sector == model.Sector, ct))
+        var sectorKey = DeliverySectorRules.Key(model.Sector);
+        var existingSectors = await db.DeliveryZones.AsNoTracking()
+            .Where(zone => zone.Id != model.Id && zone.Province == ProvinceName && zone.City == model.City)
+            .Select(zone => zone.Sector).ToListAsync(ct);
+        if (existingSectors.Any(sector => DeliverySectorRules.Key(sector) == sectorKey))
         {
             ModelState.AddModelError(nameof(model.Sector), "Ya existe una zona para este sector y ciudad. Edita la zona existente.");
             return View(model);

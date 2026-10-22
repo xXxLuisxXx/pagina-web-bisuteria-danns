@@ -38,6 +38,7 @@ public class OrderService : IOrderService
 
     private async Task<OrderDto> CreateCoreAsync(CheckoutDto checkout, CartDto cart, string? userId, CancellationToken ct = default)
     {
+        checkout.DeliverySector = DeliverySectorRules.Clean(checkout.DeliverySector);
         InputValidation.Check(new CheckoutValidator(), checkout);
         if (cart.Items.Any(i => i.Quantity < 1 || i.Quantity > 50 || i.UnitPrice < 0))
             throw new Bisuteria.Application.Services.BusinessRuleException("El carrito contiene cantidades o precios inválidos.");
@@ -115,14 +116,16 @@ public class OrderService : IOrderService
         DeliveryZone? deliveryZone = null;
         if (checkout.DeliveryMethod != DeliveryMethod.Pickup)
         {
-            if (!checkout.DeliveryZoneId.HasValue)
-                throw new BusinessRuleException("Selecciona un sector de entrega.");
-            deliveryZone = await _unitOfWork.Repository<DeliveryZone>().FirstOrDefaultAsync(zone =>
-                zone.Id == checkout.DeliveryZoneId.Value && zone.IsActive && zone.Province == "Manabí" &&
-                (zone.City == "Manta" || zone.City == "Jaramijó"), ct);
+            var city = checkout.City?.Trim();
+            var sector = checkout.DeliverySector;
+            var normalizedSector = DeliverySectorRules.Key(sector);
+            var zones = await _unitOfWork.Repository<DeliveryZone>().ListAsync(zone =>
+                zone.IsActive && zone.Province == "Manabí" && zone.City == city, ct);
+            var matches = zones.Where(zone => DeliverySectorRules.Key(zone.Sector) == normalizedSector).ToList();
+            deliveryZone = matches.Count == 1 ? matches[0] : null;
             if (deliveryZone is null)
-                throw new BusinessRuleException("El sector seleccionado ya no está disponible. Actualiza la página y elige otro.");
-            if (deliveryZone.RequiresConfirmation)
+                shippingToConfirm = true;
+            else if (deliveryZone.RequiresConfirmation)
             {
                 if (deliveryZone.IsFree || deliveryZone.Cost != 0m)
                     throw new BusinessRuleException("La tarifa de este sector requiere revisión de la tienda.");
@@ -153,11 +156,11 @@ public class OrderService : IOrderService
             CustomerPhone = checkout.CustomerPhone,
             AddressLine1 = checkout.AddressLine1,
             AddressLine2 = checkout.AddressLine2,
-            City = deliveryZone?.City ?? string.Empty,
-            Province = deliveryZone?.Province ?? string.Empty,
-            DeliverySector = deliveryZone?.Sector,
+            City = checkout.DeliveryMethod == DeliveryMethod.Pickup ? string.Empty : deliveryZone?.City ?? checkout.City!.Trim(),
+            Province = checkout.DeliveryMethod == DeliveryMethod.Pickup ? string.Empty : "Manabí",
+            DeliverySector = checkout.DeliveryMethod == DeliveryMethod.Pickup ? null : deliveryZone?.Sector ?? checkout.DeliverySector,
             DeliveryZoneId = deliveryZone?.Id,
-            DeliveryZoneName = deliveryZone?.Sector,
+            DeliveryZoneName = checkout.DeliveryMethod == DeliveryMethod.Pickup ? null : deliveryZone?.Sector ?? checkout.DeliverySector,
             Observations = checkout.Observations,
             Status = OrderStatus.Pending,
             PaymentMethod = checkout.PaymentMethod,
