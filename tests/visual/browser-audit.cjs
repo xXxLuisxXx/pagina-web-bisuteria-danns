@@ -85,7 +85,17 @@ async function inspect(context, name, route, allowedStatus = 200) {
           if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 3 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 3) overlapping.push([describe(left), describe(right)]);
         }
         return {
-          viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+          viewport: innerWidth, actualPath: location.pathname, scrollWidth: document.documentElement.scrollWidth,
+          checkoutLineCount: document.querySelectorAll('.checkout-line').length,
+          checkoutLayoutIssues: [...document.querySelectorAll('.checkout-line')].flatMap(line => {
+            const container = line.getBoundingClientRect();
+            const children = ['.checkout-thumb', '.checkout-line__content', '.checkout-line__price']
+              .map(selector => line.querySelector(selector)).filter(Boolean);
+            return children.filter(child => {
+              const box = child.getBoundingClientRect();
+              return box.left < container.left - 1 || box.right > container.right + 1;
+            }).map(child => ({ lineWidth: Math.round(container.width), target: child.className }));
+          }),
           brokenImages: [...document.images].filter(image => !image.complete || image.naturalWidth === 0).map(image => new URL(image.src).pathname),
           overflowElements: [...document.querySelectorAll('body *')].filter(element => visible(element) && element.getBoundingClientRect().right > innerWidth + 2 && getComputedStyle(element).position !== 'fixed').slice(0, 12).map(describe),
           overlappingControls: overlapping.slice(0, 12),
@@ -111,8 +121,29 @@ async function inspect(context, name, route, allowedStatus = 200) {
       };
       report.pages.push(record);
       await page.screenshot({ path: path.join(directory, `${name}-${width}.png`), fullPage: true, animations: 'disabled' });
-      if (record.status !== allowedStatus || record.scrollWidth > width + 1 || record.brokenImages.length || record.errors.length || record.loaderVisible)
+      const requiresCheckoutLine = ['checkout', 'confirmation', 'order-details'].includes(name);
+      if (record.status !== allowedStatus || record.scrollWidth > width + 1 || record.checkoutLayoutIssues.length || (requiresCheckoutLine && record.checkoutLineCount === 0) || record.brokenImages.length || record.errors.length || record.loaderVisible)
         report.failures.push({ name, width, reason: 'HTTP, desborde, imagen, JavaScript/CSP o loader; ver detalle de página.' });
+      if (['checkout', 'confirmation', 'order-details'].includes(name)) {
+        const priorTheme = await page.locator('html').getAttribute('data-bs-theme');
+        await page.locator('html').evaluate(element => element.setAttribute('data-bs-theme', 'dark'));
+        await settle(page);
+        const darkMetrics = await page.evaluate(() => ({
+          scrollWidth: document.documentElement.scrollWidth,
+          checkoutLayoutIssues: [...document.querySelectorAll('.checkout-line')].flatMap(line => {
+            const container = line.getBoundingClientRect();
+            return ['.checkout-thumb', '.checkout-line__content', '.checkout-line__price']
+              .map(selector => line.querySelector(selector)).filter(Boolean)
+              .filter(child => { const box = child.getBoundingClientRect(); return box.left < container.left - 1 || box.right > container.right + 1; })
+              .map(child => ({ lineWidth: Math.round(container.width), target: child.className }));
+          })
+        }));
+        await page.screenshot({ path: path.join(directory, `${name}-${width}-dark.png`), fullPage: true, animations: 'disabled' });
+        if (darkMetrics.scrollWidth > width + 1 || darkMetrics.checkoutLayoutIssues.length)
+          report.failures.push({ name, width, theme: 'dark', reason: 'Desborde del resumen en tema oscuro.' });
+        if (priorTheme) await page.locator('html').evaluate((element, theme) => element.setAttribute('data-bs-theme', theme), priorTheme);
+        else await page.locator('html').evaluate(element => element.removeAttribute('data-bs-theme'));
+      }
     }
   } catch (error) { report.failures.push({ name, reason: clean(error.message) }); }
   finally { await page.close(); }
@@ -147,6 +178,8 @@ async function main() {
       await inspect(anonymous, 'cart', '/Cart');
       await inspect(anonymous, 'checkout', '/Checkout');
       await page.goto(base + '/Checkout', { waitUntil: 'domcontentloaded' });
+      assert.equal(new URL(page.url()).pathname, '/Checkout', 'El checkout redirigió antes de mostrar el resumen.');
+      assert.ok(await page.locator('.checkout-line').count(), 'El checkout no mostró artículos en el resumen.');
       await page.locator('#CustomerName').fill('Cliente navegador');
       await page.locator('#CustomerEmail').fill('browser-order@example.test');
       await page.locator('#CustomerPhone').fill('+1 202 555 0101');
@@ -173,9 +206,10 @@ async function main() {
     });
 
     if (process.env.BROWSER_AUDIT_QUICK === '1') {
-      for (const [name, route] of [['home', '/'], ['cart', '/Cart'], ['checkout', '/Checkout']]) await inspect(anonymous, name, route);
+      // La compra ya dejó el carrito vacío; el checkout con artículos se inspeccionó antes de confirmar.
+      for (const [name, route] of [['home', '/'], ['cart', '/Cart']]) await inspect(anonymous, name, route);
       await login(owner, 'Owner');
-      if (orderNumber) await inspect(owner, 'admin-order-detail', '/Admin/Orders/Details?orderNumber=' + encodeURIComponent(orderNumber));
+      if (orderNumber) await inspect(owner, 'order-details', '/Order/Details?orderNumber=' + encodeURIComponent(orderNumber));
       return;
     }
 
@@ -209,6 +243,7 @@ async function main() {
       await login(owner, 'Owner');
       for (const [name, route] of [['admin', '/Admin'], ['admin-orders', '/Admin/Orders'], ['admin-products', '/Admin/Products'], ['admin-users', '/Admin/Users'], ['admin-settings', '/Admin/Settings']]) await inspect(owner, name, route);
       if (orderNumber) await inspect(owner, 'admin-order-detail', '/Admin/Orders/Details?orderNumber=' + encodeURIComponent(orderNumber));
+      if (orderNumber) await inspect(owner, 'order-details', '/Order/Details?orderNumber=' + encodeURIComponent(orderNumber));
     });
     await runFlow('sesion-developer-panel', async () => {
       await login(developer, 'Developer');

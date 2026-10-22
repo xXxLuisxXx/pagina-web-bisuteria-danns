@@ -14,16 +14,16 @@
                 <h5 class="mb-3"><i class="bi bi-box-seam me-2 text-gold"></i>Artículos</h5>
                 @foreach (var item in Model.Items)
                 {
-                    <div class="d-flex gap-3 mb-3 align-items-center">
+                    <div class="checkout-line mb-3">
                         <div class="checkout-thumb"><img src="@(item.ImageUrl ?? "/img/placeholder.svg")" alt="@item.ProductName"></div>
-                        <div class="flex-grow-1">
-                            <div>@item.ProductName <span class="text-muted">x @item.Quantity</span></div>
+                        <div class="checkout-line__content">
+                            <div class="checkout-line__name">@item.ProductName <span class="text-muted">x @item.Quantity</span></div>
                             @if (!string.IsNullOrWhiteSpace(item.CustomizationSummary))
                             {
-                                <div class="text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
+                                <div class="checkout-line__customization text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
                             }
                         </div>
-                        <strong>@item.LineTotal.ToString("C")</strong>
+                        <strong class="checkout-line__price">@item.LineTotal.ToString("C")</strong>
                     </div>
                 }
                 <hr>

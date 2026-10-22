@@ -150,16 +150,16 @@
                 <h5 class="mb-3">Tu pedido</h5>
                 @foreach (var item in Model.Cart.Items)
                 {
-                    <div class="d-flex gap-2 mb-2 align-items-center">
+                    <div class="checkout-line mb-2">
                         <div class="checkout-thumb"><img src="@(item.ImageUrl ?? "/img/placeholder.svg")" alt="@item.Name"></div>
-                        <div class="flex-grow-1 small">
-                            <div>@item.Name <span class="text-muted">x @item.Quantity</span></div>
+                        <div class="checkout-line__content small">
+                            <div class="checkout-line__name">@item.Name <span class="text-muted">x @item.Quantity</span></div>
                             @if (item.IsPersonalized)
                             {
-                                <div class="text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
+                                <div class="checkout-line__customization text-gold small"><i class="bi bi-magic"></i> @item.CustomizationSummary</div>
                             }
                         </div>
-                        <strong class="small">@item.LineTotal.ToString("C")</strong>
+                        <strong class="checkout-line__price small">@item.LineTotal.ToString("C")</strong>
                     </div>
                 }
                 <hr>

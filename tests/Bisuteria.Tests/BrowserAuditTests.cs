@@ -45,6 +45,8 @@ public sealed class BrowserAuditTests
                     if (settings.TryGetValue(key, out var setting)) setting.Value = value;
                     else db.SiteSettings.Add(new SiteSetting { Key = key, Value = value });
                 }
+                var auditProduct = await db.Products.SingleAsync(product => product.Id == factory.ProductId);
+                auditProduct.Name = "Pieza de ensayo aislada con identificador de prueba extraordinariamente largo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
                 db.BlogPosts.Add(new BlogPost
                 {
                     Title = "Cómo cuidar tus accesorios", Slug = "browser-audit", Excerpt = "Consejos de ejemplo para la auditoría.",
