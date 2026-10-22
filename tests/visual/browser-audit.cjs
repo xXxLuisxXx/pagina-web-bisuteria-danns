@@ -3,37 +3,23 @@ const { chromium } = require('playwright');
 const { default: AxeBuilder } = require('@axe-core/playwright');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../..');
 const base = process.env.AUDIT_BASE_URL;
 const phase = process.env.AUDIT_PHASE === 'after' ? 'after' : 'before';
 const directory = path.join(root, 'audit/browser', phase);
 const report = { phase, generatedAt: new Date().toISOString(), viewportSizes: [360, 768, 1366], pages: [], flows: [], links: [], lighthouse: null, failures: [] };
-const required = ['AUDIT_BASE_URL', 'AUDIT_PASSWORD', 'AUDIT_PRODUCT_ID', 'AUDIT_CATEGORY_ID', 'AUDIT_DEVELOPER_TOTP', 'AUDIT_OWNER_TOTP'];
+const required = ['AUDIT_BASE_URL', 'AUDIT_PASSWORD', 'AUDIT_PRODUCT_ID', 'AUDIT_CATEGORY_ID'];
 for (const key of required) if (!process.env[key]) throw new Error(`Falta la variable de auditoría ${key}.`);
 if (!/^https:\/\/(127\.0\.0\.1|localhost):\d+$/.test(base)) throw new Error('La auditoría solo permite el servidor HTTPS local temporal.');
 const internalLinks = new Map();
-const redactions = new Set([process.env.AUDIT_PASSWORD, process.env.AUDIT_DEVELOPER_TOTP, process.env.AUDIT_OWNER_TOTP].filter(Boolean));
+const redactions = new Set([process.env.AUDIT_PASSWORD].filter(Boolean));
 const clean = value => {
   let result = String(value).replace(/(accessToken|token|password|code)=[^&\s]+/gi, '$1=[redactado]');
   for (const secret of redactions) result = result.split(secret).join('[redactado]');
   return result;
 };
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-function totp(base32) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const letter of base32.toUpperCase().replace(/[=\s]/g, '')) bits += alphabet.indexOf(letter).toString(2).padStart(5, '0');
-  const bytes = [];
-  for (let index = 0; index + 8 <= bits.length; index += 8) bytes.push(parseInt(bits.slice(index, index + 8), 2));
-  const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
-  const hash = crypto.createHmac('sha1', Buffer.from(bytes)).update(counter).digest();
-  const offset = hash[hash.length - 1] & 15;
-  return ((hash.readUInt32BE(offset) & 0x7fffffff) % 1000000).toString().padStart(6, '0');
-}
 
 async function settle(page) {
   await page.locator('#appLoader').waitFor({ state: 'hidden', timeout: 12000 }).catch(() => {});
@@ -54,15 +40,6 @@ async function login(context, role) {
   await page.locator('#Email').fill(`${role.toLowerCase()}@example.test`);
   await page.locator('#Password').fill(process.env.AUDIT_PASSWORD);
   await Promise.all([page.waitForURL(url => !url.pathname.endsWith('/Login')), page.locator('form[action*="Login"] button[type="submit"]').click()]);
-  if (new URL(page.url()).pathname === '/Account/TwoFactor') {
-    const key = process.env[`AUDIT_${role.toUpperCase()}_TOTP`];
-    assert.ok(key, 'La prueba requiere la clave TOTP temporal del rol.');
-    const code = totp(key);
-    redactions.add(code);
-    await page.locator('#Code').fill(code);
-    if (await page.locator('#RememberClient').count()) await page.locator('#RememberClient').check();
-    await Promise.all([page.waitForURL(url => !url.pathname.endsWith('/TwoFactor')), page.getByRole('button', { name: 'Verificar', exact: true }).click()]);
-  }
   assert.ok(!/\/(Login|TwoFactor|Authenticator)$/.test(new URL(page.url()).pathname), `El acceso temporal de ${role} no terminó.`);
   await page.close();
 }

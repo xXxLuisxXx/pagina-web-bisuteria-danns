@@ -29,8 +29,6 @@ public sealed class BrowserAuditTests
                 .Addresses.Single(value => value.StartsWith("https://", StringComparison.Ordinal));
             factory.Services.GetRequiredService<IConfiguration>()["PublicBaseUrl"] = address;
 
-            string developerKey;
-            string ownerKey;
             using (var scope = factory.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -55,9 +53,6 @@ public sealed class BrowserAuditTests
                 });
                 db.GalleryImages.Add(new GalleryImage { Title = "Diseño de prueba", Description = "Contenido ficticio de auditoría", Category = "Prueba", ImageUrl = "/img/placeholder.svg" });
                 await db.SaveChangesAsync();
-                var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                developerKey = (await users.GetAuthenticatorKeyAsync((await users.FindByEmailAsync("developer@example.test"))!))!;
-                ownerKey = (await users.GetAuthenticatorKeyAsync((await users.FindByEmailAsync("owner@example.test"))!))!;
             }
 
             var root = FindRepositoryRoot();
@@ -72,8 +67,6 @@ public sealed class BrowserAuditTests
             start.Environment["AUDIT_BASE_URL"] = address;
             start.Environment["AUDIT_PHASE"] = phase;
             start.Environment["AUDIT_PASSWORD"] = AuditFactory.Password;
-            start.Environment["AUDIT_DEVELOPER_TOTP"] = developerKey;
-            start.Environment["AUDIT_OWNER_TOTP"] = ownerKey;
             start.Environment["AUDIT_PRODUCT_ID"] = factory.ProductId.ToString();
             start.Environment["AUDIT_CATEGORY_ID"] = factory.CategoryId.ToString();
             using var process = Process.Start(start)!;

@@ -6,7 +6,7 @@
 
 La pantalla Developer permite modificar permisos de Owner y Operator. Al guardar, actualiza la matriz y el security stamp de cada usuario afectado. El Developer inicial recibe todos los permisos; Owner recibe permisos comerciales y gestión de Operators; Operator recibe lectura de pedidos, cambios válidos de estado e inventario. Customer no recibe permisos administrativos. `Admin` queda como rol legado sin concesiones automáticas.
 
-Owner puede invitar únicamente Operators. Developer puede invitar Owner u Operator. Los enlaces son aleatorios, de un solo uso, expiran a las 24 horas y solo se almacena el hash en `StaffInvitations`; el correo pendiente se entrega a través de `EmailOutbox`. El invitado configura su propia contraseña. Owner debe activar TOTP antes de entrar al panel. El panel permite revocar invitaciones y activar/desactivar miembros con límites según el rol; una cuenta no puede desactivar al último Developer activo.
+Owner puede invitar únicamente Operators. Developer puede invitar Owner u Operator. Los enlaces son aleatorios, de un solo uso, expiran a las 24 horas y solo se almacena el hash en `StaffInvitations`; el correo pendiente se entrega a través de `EmailOutbox`. El invitado configura su propia contraseña. Owner no requiere TOTP para entrar al panel (requisito retirado el 21 de octubre de 2026). El panel permite revocar invitaciones y activar/desactivar miembros con límites según el rol; una cuenta no puede desactivar al último Developer activo.
 
 ## Primer Developer
 
@@ -20,11 +20,11 @@ dotnet user-secrets set "InitialDeveloper:Password" "UNA_CLAVE_TEMPORAL_SEGURA" 
 
 En producción usa las variables `InitialDeveloper__Email` y `InitialDeveloper__Password` del proveedor de secretos; no las agregues al repositorio ni a comandos compartidos. El inicializador crea el usuario solo cuando no hay ningún Developer. En producción, si faltan ambas opciones y no existe un Developer, el arranque falla explícitamente. Después del primer uso, retira la clave temporal del proveedor de configuración.
 
-El primer inicio exige cambiar esa clave. Luego obliga a configurar TOTP; el enrolamiento termina cerrando la sesión, por lo que la próxima autenticación requiere la contraseña nueva y el código TOTP. Owner también queda forzado a configurar TOTP tras activar su invitación.
+El primer inicio exige cambiar esa clave. Developer y Owner no necesitan configurar TOTP. Si una de esas cuentas conserva MFA antiguo, el próximo inicio de sesión lo desactiva y limpia el indicador de enrolamiento. Los clientes aún pueden activar TOTP voluntariamente.
 
 Las contraseñas requieren mínimo 12 caracteres, mayúscula, minúscula, número y símbolo; se rechazan palabras comunes y contraseñas que contengan el correo o nombre de usuario. El correo no incluye contraseñas. Los enlaces y claves nunca se escriben en logs.
 
-La invitación de Owner es por correo y vence en 24 horas. La cuenta queda activada tras escoger contraseña y puede usar el panel después del enrolamiento TOTP. El propietario define su propio secreto de autenticación.
+La invitación de Owner es por correo y vence en 24 horas. La cuenta queda activada tras escoger contraseña y puede usar el panel al iniciar sesión. El segundo factor no es requisito para Owner.
 
 ## Reautenticación y bloqueo progresivo
 

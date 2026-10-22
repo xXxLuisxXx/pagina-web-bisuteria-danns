@@ -56,7 +56,7 @@ public partial class AuditTests
     }
 
     [Fact]
-    public async Task InitialDeveloperMustChangePasswordEnrollTotpAndCannotReuseInitialPassword()
+    public async Task InitialDeveloperMustChangePasswordAndCannotReuseInitialPassword()
     {
         var isolated = new AuditFactory { ProcessEmail = false };
         try
@@ -75,7 +75,7 @@ public partial class AuditTests
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?> { ["InitialDeveloper:Email"] = email, ["InitialDeveloper:Password"] = password }).Build();
         await Bisuteria.Infrastructure.Seed.DbInitializer.InitializeAsync(db, users, roles, config);
         var user = (await users.FindByEmailAsync(email))!;
-        Assert.True(user.MustChangePassword); Assert.True(user.RequireTwoFactorSetup); Assert.True(user.EmailConfirmed); Assert.True(await users.IsInRoleAsync(user, "Developer"));
+        Assert.True(user.MustChangePassword); Assert.False(user.RequireTwoFactorSetup); Assert.False(await users.GetTwoFactorEnabledAsync(user)); Assert.True(user.EmailConfirmed); Assert.True(await users.IsInRoleAsync(user, "Developer"));
         using var client = isolated.Client();
         await AuditFactory.Post(client, "/Account/Login", new() { ["Email"] = email, ["Password"] = password });
         Assert.Equal("/Account/ChangePassword", (await client.GetAsync("/Admin")).Headers.Location!.OriginalString);
@@ -87,17 +87,10 @@ public partial class AuditTests
         var reused = await AuditFactory.Post(client, "/Account/ChangePassword", new() { ["CurrentPassword"] = changed, ["Password"] = password, ["ConfirmPassword"] = password }, "/Account/ChangePassword");
         Assert.Equal(HttpStatusCode.OK, reused.StatusCode);
         Assert.Contains("diferente", await reused.Content.ReadAsStringAsync());
-        Assert.Equal("/Account/Authenticator", (await client.GetAsync("/Admin")).Headers.Location!.OriginalString);
-        await AuditFactory.Post(client, "/Account/Authenticator", new() { ["Password"] = changed }, "/Account/Authenticator");
-        var key = (await users.GetAuthenticatorKeyAsync(user))!;
-        var enrolled = await AuditFactory.Post(client, "/Account/Authenticator", new()
-        { ["Password"] = changed, ["Code"] = TestTotp.Generate(key) }, "/Account/Authenticator");
-        Assert.Equal(HttpStatusCode.OK, enrolled.StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await client.GetAsync("/Admin")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/Admin")).StatusCode);
         using var reauthenticated = isolated.Client();
         var login = await AuditFactory.Post(reauthenticated, "/Account/Login", new() { ["Email"] = email, ["Password"] = changed });
-        Assert.StartsWith("/Account/TwoFactor", login.Headers.Location!.OriginalString);
-        await AuditFactory.Post(reauthenticated, "/Account/TwoFactor", new() { ["Code"] = TestTotp.Generate(key) }, "/Account/TwoFactor");
+        Assert.DoesNotContain("TwoFactor", login.Headers.Location!.OriginalString);
         Assert.Equal(HttpStatusCode.OK, (await reauthenticated.GetAsync("/Admin")).StatusCode);
         }
         finally { await ((IAsyncLifetime)isolated).DisposeAsync(); }

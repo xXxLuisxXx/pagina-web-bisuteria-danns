@@ -82,7 +82,7 @@ public static class DbInitializer
                     FirstName = "Desarrollador",
                     EmailConfirmed = true,
                     MustChangePassword = true,
-                    RequireTwoFactorSetup = true,
+                    RequireTwoFactorSetup = false,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -92,7 +92,7 @@ public static class DbInitializer
                 developer.InitialPasswordHash = developer.PasswordHash;
                 Ensure(await userManager.UpdateAsync(developer), logger, "guardar la protección de contraseña inicial");
                 Ensure(await userManager.AddToRoleAsync(developer, StoreRoles.Developer), logger, "asignar el rol Developer");
-                logger?.LogInformation("Se creó la cuenta Developer inicial; el primer acceso exige cambiar contraseña y configurar TOTP.");
+                logger?.LogInformation("Se creó la cuenta Developer inicial; el primer acceso exige cambiar la contraseña.");
             }
             else
                 throw new InvalidOperationException("El correo configurado para InitialDeveloper ya pertenece a otra cuenta. No se convirtió automáticamente al rol Developer.");

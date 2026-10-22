@@ -66,7 +66,7 @@ public sealed class StaffInvitationController(
                 Email = invitation.Email,
                 EmailConfirmed = true,
                 IsActive = true,
-                RequireTwoFactorSetup = invitation.RoleName == StoreRoles.Owner
+                RequireTwoFactorSetup = false
             };
             var create = await users.CreateAsync(user, model.Password);
             if (!create.Succeeded)

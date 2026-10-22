@@ -2,7 +2,7 @@
 
 ## Implementación
 
-InitialDeveloper:Email e InitialDeveloper:Password se leen de configuración privada. El inicializador comprueba los resultados de creación, rol y actualización. La cuenta Developer tiene correo confirmado, debe cambiar la clave inicial y registrar TOTP antes de usar el panel. Se guarda el hash de la clave inicial para impedir reutilizarla tanto al cambiar como al restablecer la contraseña. Los fallos de inicialización detienen producción. No se convierte una cuenta existente del antiguo rol Admin automáticamente.
+InitialDeveloper:Email e InitialDeveloper:Password se leen de configuración privada. El inicializador comprueba los resultados de creación, rol y actualización. La cuenta Developer tiene correo confirmado y debe cambiar la clave inicial antes de usar el panel. El cambio del 21 de octubre de 2026 retiró el requisito TOTP de Owner/Developer; las cuentas existentes limpian una configuración anterior al volver a iniciar sesión. Se guarda el hash de la clave inicial para impedir reutilizarla tanto al cambiar como al restablecer la contraseña. Los fallos de inicialización detienen producción. No se convierte una cuenta existente del antiguo rol Admin automáticamente.
 
 EmailOutbox se guarda en SQL. Las notificaciones de pedidos, pago, contacto, bienvenida, cambio de contraseña y stock se agregan al mismo SaveChangesAsync que el evento de negocio. Los eventos de pedido incluyen invitados y el correo de la compra. Se conserva la arquitectura: captura de persistencia en Infrastructure, transporte SMTP y worker en Web. No se añadieron dependencias.
 

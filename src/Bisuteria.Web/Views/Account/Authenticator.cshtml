@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Seguridad en dos pasos"; }
 <div class="container py-5">
     <h1>Seguridad en dos pasos</h1>
-    <p>@(Model.RequiresTwoFactor ? "Esta cuenta necesita verificación en dos pasos para acceder a los paneles." : "Puedes activar la verificación en dos pasos para proteger tu cuenta.")</p>
+    <p>@(Model.CanEnableTwoFactor ? "Puedes activar la verificación en dos pasos para proteger tu cuenta." : "La verificación en dos pasos está desactivada para las cuentas Owner y Developer.")</p>
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
     @if (Model.Enabled)
     {

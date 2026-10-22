@@ -97,11 +97,6 @@ public sealed class AuditFactory : WebApplicationFactory<Program>, IAsyncLifetim
             var user = new ApplicationUser { UserName=$"{role.ToLower()}@example.test", Email=$"{role.ToLower()}@example.test", FirstName=role, IsActive=true };
             Assert.True((await users.CreateAsync(user, Password)).Succeeded);
             Assert.True((await users.AddToRoleAsync(user, role)).Succeeded);
-            if (role is StoreRoles.Developer or StoreRoles.Owner)
-            {
-                Assert.True((await users.ResetAuthenticatorKeyAsync(user)).Succeeded);
-                Assert.True((await users.SetTwoFactorEnabledAsync(user, true)).Succeeded);
-            }
         }
         var category = new Category { Name="Pruebas aisladas", Slug="audit", IsActive=true };
         var product = new Product { Name="Pieza de ensayo aislada", Slug="audit-product", Price=20, Stock=100, Category=category, IsActive=true, IsCustomizable=true, IsFeatured=true };

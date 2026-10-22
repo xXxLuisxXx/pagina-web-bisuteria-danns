@@ -48,11 +48,12 @@ public partial class AccountController
         var user = await _userManager.GetUserAsync(User);
         if (user is not { IsActive: true }) return Challenge();
         var roles = await _userManager.GetRolesAsync(user);
-        var mandatory = roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner);
+        var staffAccount = roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner);
         return View(new AuthenticatorViewModel
         {
             Enabled = await _userManager.GetTwoFactorEnabledAsync(user),
-            RequiresTwoFactor = mandatory
+            RequiresTwoFactor = false,
+            CanEnableTwoFactor = !staffAccount
         });
     }
 
@@ -64,7 +65,9 @@ public partial class AccountController
         if (user is not { IsActive: true }) return Challenge();
         model.Enabled = await _userManager.GetTwoFactorEnabledAsync(user);
         var roles = await _userManager.GetRolesAsync(user);
-        model.RequiresTwoFactor = roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner);
+        var staffAccount = roles.Any(role => role is Bisuteria.Domain.Security.StoreRoles.Developer or Bisuteria.Domain.Security.StoreRoles.Owner);
+        model.RequiresTwoFactor = false;
+        model.CanEnableTwoFactor = !staffAccount;
         if (!ModelState.IsValid) return View(model);
         var password = await _signInManager.CheckPasswordSignInAsync(user, model.Password, lockoutOnFailure: true);
         ModelState.Remove(nameof(model.Password));
@@ -72,6 +75,11 @@ public partial class AccountController
         if (!password.Succeeded)
         {
             ModelState.AddModelError("", "No se pudo verificar tu identidad.");
+            return View(model);
+        }
+        if (staffAccount && !model.DisableTwoFactor)
+        {
+            ModelState.AddModelError(string.Empty, "La verificación en dos pasos está desactivada para las cuentas de Owner y Developer.");
             return View(model);
         }
         if (model.DisableTwoFactor && model.Enabled)
@@ -106,7 +114,7 @@ public partial class AccountController
         if (!(await _userManager.SetTwoFactorEnabledAsync(user, true)).Succeeded) return StatusCode(503);
         model.RecoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         if (model.RecoveryCodes is null) return StatusCode(503);
-        var mandatorySetup = user.RequireTwoFactorSetup || model.RequiresTwoFactor;
+        var mandatorySetup = user.RequireTwoFactorSetup;
         if (mandatorySetup)
         {
             user.RequireTwoFactorSetup = false;

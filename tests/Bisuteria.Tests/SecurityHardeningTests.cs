@@ -35,16 +35,6 @@ public partial class AuditTests
         { ["Email"] = "developer@example.test", ["Password"] = AuditFactory.Password });
         Assert.Equal(HttpStatusCode.Redirect, login.StatusCode);
 
-        using (var scope = host.Services.CreateScope())
-        {
-            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var developer = (await users.FindByEmailAsync("developer@example.test"))!;
-            var key = (await users.GetAuthenticatorKeyAsync(developer))!;
-            var verified = await AuditFactory.Post(client, "/Account/TwoFactor", new()
-            { ["Code"] = TestTotp.Generate(key), ["RememberClient"] = "true" }, "/Account/TwoFactor");
-            Assert.Equal(HttpStatusCode.Redirect, verified.StatusCode);
-        }
-
         clock.Advance(TimeSpan.FromMinutes(16));
         var response = await AuditFactory.Post(client, "/Developer/Roles/Save", new() { ["role"] = "Operator" }, "/Developer/Roles");
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);

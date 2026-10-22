@@ -7,6 +7,10 @@ Decisiones confirmadas en esta conversación:
 - Owner puede invitar exclusivamente operadores.
 - Se conserva el botón de WhatsApp con un mensaje preparado que el cliente envía voluntariamente. No se integra la API oficial.
 - La solicitud más reciente exige mínimo 12 caracteres y TOTP obligatorio en Developer/Owner; sustituye los ajustes previos de ocho caracteres y desactivación de TOTP. Se mantiene recordar el dispositivo.
+
+## Corrección solicitada después (2026-10-21)
+
+El usuario pidió quitar el segundo factor para las cuentas de panel. Owner y Developer ya no tienen enrolamiento ni desafío TOTP obligatorio; los inicios de sesión de esas cuentas limpian una configuración 2FA heredada. TOTP se conserva como opción voluntaria para clientes. Se mantiene el cambio obligatorio de la contraseña inicial de Developer.
 - Los datos bancarios, de contacto y del negocio se completan desde ajustes; no se inventan ni se incluyen valores reales en código o documentación.
 
 | Fase | Estado de esta ronda | Evidencia |

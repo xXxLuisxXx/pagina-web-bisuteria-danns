@@ -113,10 +113,28 @@ public partial class AccountController : Controller
             await ApplyProgressiveLockoutAsync(user);
         if (result.Succeeded && user.IsActive)
         {
-            var login = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
-            if (login.RequiresTwoFactor)
-                return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
-            if (!login.Succeeded) return RedirectToAction(nameof(Login));
+            var roles = await _userManager.GetRolesAsync(user);
+            var staffAccount = roles.Any(role => role is StoreRoles.Developer or StoreRoles.Owner);
+            if (staffAccount)
+            {
+                if (await _userManager.GetTwoFactorEnabledAsync(user))
+                {
+                    if (!await DisableTwoFactorAsync(user)) return StatusCode(503);
+                }
+                else if (user.RequireTwoFactorSetup)
+                {
+                    user.RequireTwoFactorSetup = false;
+                    if (!(await _userManager.UpdateAsync(user)).Succeeded) return StatusCode(503);
+                }
+                await _signInManager.SignInAsync(user, model.RememberMe);
+            }
+            else
+            {
+                var login = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: true);
+                if (login.RequiresTwoFactor)
+                    return RedirectToAction(nameof(TwoFactor), new { returnUrl = model.ReturnUrl, rememberMe = model.RememberMe });
+                if (!login.Succeeded) return RedirectToAction(nameof(Login));
+            }
             await ResetLockoutProgressAsync(user);
             await _audit.PrivilegedLoginAsync(user);
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
