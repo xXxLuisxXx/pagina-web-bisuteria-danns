@@ -109,8 +109,8 @@ public partial class AuditTests
         var savedOrder = await db.Orders.AsNoTracking().SingleAsync(x => x.Id == orderId);
         var savedPayment = await db.Payments.AsNoTracking().SingleAsync(x => x.OrderId == orderId);
         var savedProof = await db.PaymentProofs.AsNoTracking().SingleAsync(x => x.Id == pendingProofId);
-        Assert.Equal(PaymentStatus.Paid, savedOrder.PaymentStatus);
-        Assert.Equal(savedOrder.Total, savedPayment.Amount);
+        Assert.Equal(PaymentStatus.PartiallyPaid, savedOrder.PaymentStatus);
+        Assert.Equal(Bisuteria.Application.Services.Pricing.CalculateDeposit(savedOrder.Total), savedPayment.Amount);
         Assert.Equal(OrderStatus.Confirmed, savedOrder.Status);
         Assert.Equal(PaymentProofStatus.Approved, savedProof.Status);
         Assert.NotEqual(accessToken, await db.Orders.AsNoTracking().Where(x => x.Id == orderId).Select(x => x.GuestAccessTokenHash).SingleAsync());

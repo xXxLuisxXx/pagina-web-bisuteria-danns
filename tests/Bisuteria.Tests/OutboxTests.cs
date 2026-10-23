@@ -49,6 +49,7 @@ public partial class AuditTests
         var order = await orders.CreateAsync(Checkout(), new CartDto { Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1 }] }, null);
         Assert.True(await db.Set<EmailOutbox>().AnyAsync(x => x.Subject == "Confirmación de pedido" && x.TextBody.Contains(order.OrderNumber)));
         Assert.True(await orders.ConfirmShippingAsync(order.Id, 0m, "test-owner", StoreRoles.Owner));
+        Assert.True(await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.PartiallyPaid));
         Assert.True(await orders.UpdateStatusAsync(order.Id, OrderStatus.Confirmed));
         Assert.True(await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
         Assert.True(await db.Set<EmailOutbox>().AnyAsync(x => x.Subject == "Estado de tu pedido" && x.TextBody.Contains(order.OrderNumber)));

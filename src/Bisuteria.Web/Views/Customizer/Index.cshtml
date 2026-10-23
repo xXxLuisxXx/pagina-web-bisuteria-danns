@@ -38,10 +38,10 @@
                 <div class="card card-body mt-3 bg-white shadow-sm">
                     <h6 class="mb-2"><i class="bi bi-palette me-2 text-gold"></i>Elige el color de tu personalización</h6>
                     <div class="d-flex gap-2 flex-wrap">
-                        @foreach (var opt in new[] { ("#8B6914", "Oro", "swatch-gold"), ("#C0C0C0", "Plata", "swatch-silver"), ("#E8A0B4", "Rosa", "swatch-pink"), ("#111", "Negro", "swatch-black"), ("#fff", "Blanco", "swatch-white") })
+                        @foreach (var opt in new[] { ("#8B6914", "Dorado", "swatch-gold"), ("#C0C0C0", "Plata", "swatch-silver"), ("#E8A0B4", "Rosa", "swatch-pink"), ("#111", "Negro", "swatch-black"), ("#fff", "Blanco", "swatch-white") })
                         {
                             <label class="color-swatch" title="@opt.Item2">
-                                <input type="radio" name="Customization.Color" value="@opt.Item1" aria-label="@opt.Item2" @(opt.Item2 == "Oro" ? "checked" : "") />
+                                <input type="radio" name="Customization.Color" value="@opt.Item1" aria-label="@opt.Item2" @(opt.Item2 == "Dorado" ? "checked" : "") />
                                 <span class="@opt.Item3"></span>
                             </label>
                         }
@@ -125,7 +125,6 @@
                             <select class="form-select" name="Customization.Material" id="cMaterial">
                                 <option value="Acero inoxidable dorado">Acero inoxidable dorado</option>
                                 <option value="Acero inoxidable plateado">Acero inoxidable plateado</option>
-                                <option value="Baño de oro 18k">Baño de oro 18k</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -143,12 +142,6 @@
                                 <button type="button" class="btn-qty" aria-label="Disminuir cantidad" data-cqty="-1"><i class="bi bi-dash"></i></button>
                             <input type="number" id="cQtyInput" value="1" min="1" max="50" class="qty-input" readonly aria-label="Cantidad de piezas personalizadas" />
                                 <button type="button" class="btn-qty" aria-label="Aumentar cantidad" data-cqty="1"><i class="bi bi-plus"></i></button>
-                            </div>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-center">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="Customization.GiftWrap" id="cGift" value="true" />
-                                <label class="form-check-label" for="cGift">Empaque de regalo (+$3)</label>
                             </div>
                         </div>
                     </div>
@@ -173,7 +166,7 @@
     <script nonce="@Context.Items["CspNonce"]">
         (function () {
             const prices = {
-                Text: 4, Initials: 3, Date: 3, Phrase: 5, Charm: 5, GiftWrap: 3
+                Text: 4, Initials: 3, Date: 3, Phrase: 5, Charm: 5
             };
             const charmIcons = { heart: 'bi-heart-fill', star: 'bi-star-fill', butterfly: 'bi-flower2', moon: 'bi-moon-stars-fill', cross: 'bi-emoji-heart-eyes' };
 
@@ -188,7 +181,6 @@
                 if (document.getElementById('cDate').value) total += prices.Date;
                 if (document.getElementById('cPhrase').value.trim()) total += prices.Phrase;
                 if (document.getElementById('cCharm').value) total += prices.Charm;
-                if (document.getElementById('cGift').checked) total += prices.GiftWrap;
                 const qty = parseInt(document.getElementById('cQuantity').value || '1');
                 total *= qty;
                 return total;
@@ -258,7 +250,6 @@
             });
 
             // Cantidad
-            document.getElementById('cGift').addEventListener('change', render);
             document.querySelectorAll('[data-cqty]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const q = Math.max(1, Math.min(50, (parseInt(document.getElementById('cQuantity').value) || 1) + parseInt(btn.dataset.cqty)));

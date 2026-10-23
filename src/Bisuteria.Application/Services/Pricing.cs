@@ -14,6 +14,9 @@ public static class Pricing
     public const decimal CharmPrice = 5.00m;
     public const decimal GiftWrapPrice = 3.00m;
 
+    public static decimal CalculateDeposit(decimal total)
+        => decimal.Round(Math.Max(0m, total) * 0.5m, 2, MidpointRounding.AwayFromZero);
+
     /// <summary>Calcula el precio final de un producto con su personalización.</summary>
     public static decimal ComputeCustomizationPrice(CustomizationInputDto dto, decimal basePrice)
     {

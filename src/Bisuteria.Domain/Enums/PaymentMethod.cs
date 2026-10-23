@@ -5,7 +5,7 @@ namespace Bisuteria.Domain.Enums;
 /// </summary>
 public enum PaymentMethod
 {
-    /// <summary>Pago contra entrega.</summary>
+    /// <summary>Abono inicial y saldo en efectivo coordinados con la tienda.</summary>
     CashOnDelivery = 1,
 
     /// <summary>Transferencia bancaria.</summary>

@@ -36,7 +36,9 @@ public class CustomizationInputValidator : AbstractValidator<CustomizationInputD
         RuleFor(x => x.Color).MaximumLength(60).WithMessage("Color demasiado largo.");
         RuleFor(x => x.Font).MaximumLength(60).WithMessage("Fuente demasiado larga.");
         RuleFor(x => x.Charm).MaximumLength(120).WithMessage("Dije demasiado largo.");
-        RuleFor(x => x.Material).MaximumLength(120).WithMessage("Material demasiado largo.");
+        RuleFor(x => x.Material)
+            .Must(x => string.IsNullOrWhiteSpace(x) || x is "Acero inoxidable dorado" or "Acero inoxidable plateado")
+            .WithMessage("Selecciona uno de los materiales disponibles.");
         RuleFor(x => x.Size).MaximumLength(60).WithMessage("Talla demasiado larga.");
         RuleFor(x => x.Note).MaximumLength(1000).WithMessage("La nota no puede superar 1000 caracteres.");
     }

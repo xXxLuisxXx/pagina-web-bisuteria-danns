@@ -85,8 +85,7 @@ public sealed class PaymentProofService(IUnitOfWork unitOfWork, IOrderService or
 
             if (approve)
             {
-                if (!await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid, ct)) return false;
-                if (order.Status == OrderStatus.Pending && !await orders.UpdateStatusAsync(order.Id, OrderStatus.Confirmed, cancellationToken: ct)) return false;
+                if (!await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.PartiallyPaid, ct)) return false;
             }
 
             await unitOfWork.Repository<AuditLog>().AddAsync(new AuditLog

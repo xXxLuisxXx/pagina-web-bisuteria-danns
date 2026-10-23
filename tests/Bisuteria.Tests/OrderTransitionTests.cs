@@ -45,10 +45,10 @@ public partial class AuditTests
     }
 
     [Theory]
-    [InlineData(OrderStatus.Pending, OrderStatus.Confirmed, true)]
-    [InlineData(OrderStatus.Confirmed, OrderStatus.Preparing, true)]
-    [InlineData(OrderStatus.Preparing, OrderStatus.Ready, true)]
-    [InlineData(OrderStatus.Ready, OrderStatus.Shipped, true)]
+    [InlineData(OrderStatus.Pending, OrderStatus.Confirmed, false)]
+    [InlineData(OrderStatus.Confirmed, OrderStatus.Preparing, false)]
+    [InlineData(OrderStatus.Preparing, OrderStatus.Ready, false)]
+    [InlineData(OrderStatus.Ready, OrderStatus.Shipped, false)]
     [InlineData(OrderStatus.Shipped, OrderStatus.Delivered, true)]
     [InlineData(OrderStatus.Pending, OrderStatus.Delivered, false)]
     [InlineData(OrderStatus.Delivered, OrderStatus.Cancelled, false)]
@@ -89,5 +89,32 @@ public partial class AuditTests
         Assert.Equal(paidAt, (await db.Payments.AsNoTracking().SingleAsync(p => p.OrderId == order.Id)).PaidAt);
         Assert.True(await service.UpdateStatusAsync(order.Id, OrderStatus.Cancelled));
         Assert.False(await service.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
+    }
+
+    [Fact]
+    public async Task DepositConfirmsOrderAndFullPaymentClosesRemainingBalance()
+    {
+        using var scope = f.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var service = scope.ServiceProvider.GetRequiredService<IOrderService>();
+        var order = await service.CreateAsync(Checkout(), new CartDto { Items = [new CartItemDto { ProductId = f.ProductId, Quantity = 1 }] }, null);
+        Assert.True(await service.ConfirmShippingAsync(order.Id, 0m, "test-owner", StoreRoles.Owner));
+        Assert.False(await service.UpdateStatusAsync(order.Id, OrderStatus.Confirmed));
+        Assert.True(await service.UpdatePaymentStatusAsync(order.Id, PaymentStatus.PartiallyPaid));
+
+        var afterDeposit = await db.Orders.AsNoTracking().SingleAsync(item => item.Id == order.Id);
+        var paymentAfterDeposit = await db.Payments.AsNoTracking().SingleAsync(item => item.OrderId == order.Id);
+        Assert.Equal(OrderStatus.Confirmed, afterDeposit.Status);
+        Assert.Equal(PaymentStatus.PartiallyPaid, afterDeposit.PaymentStatus);
+        Assert.Equal(Bisuteria.Application.Services.Pricing.CalculateDeposit(afterDeposit.Total), paymentAfterDeposit.Amount);
+        Assert.True(await service.UpdateStatusAsync(order.Id, OrderStatus.Preparing));
+        Assert.False(await service.UpdateStatusAsync(order.Id, OrderStatus.Cancelled));
+
+        Assert.True(await service.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));
+        var payments = await db.Payments.AsNoTracking().Where(item => item.OrderId == order.Id).ToListAsync();
+        Assert.Equal(2, payments.Count);
+        Assert.Equal(afterDeposit.Total, payments.Sum(item => item.Amount));
+        Assert.Contains(payments, payment => payment.Status == PaymentStatus.PartiallyPaid);
+        Assert.Contains(payments, payment => payment.Status == PaymentStatus.Paid);
     }
 }

@@ -2,6 +2,7 @@ using System.Net;
 using Bisuteria.Application.Interfaces;
 using Bisuteria.Application.Services;
 using Bisuteria.Application.DTOs.Cart;
+using Bisuteria.Application.Validators;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -20,12 +21,25 @@ public partial class AuditTests
     {
         using var scope = f.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<CartPreparationService>();
-        var input = new CustomizationInputDto { Text = "Test", PriceOverride = 0.01m };
+        var input = new CustomizationInputDto { Text = "Test", GiftWrap = true, PriceOverride = 0.01m };
         var id = await service.PrepareAsync(f.ProductId, 1, 0, input, "isolated-test");
         var saved = await scope.ServiceProvider.GetRequiredService<Bisuteria.Infrastructure.Data.AppDbContext>().Set<Bisuteria.Domain.Entities.Customization>().FindAsync(id!.Value);
         Assert.Equal(24m, saved!.PriceOverride);
+        Assert.False(saved.GiftWrap);
+        Assert.Null(await service.PrepareAsync(f.ProductId, 1, 0, new CustomizationInputDto { GiftWrap = true }, "isolated-test"));
         await Assert.ThrowsAsync<BusinessRuleException>(() => service.PrepareAsync(f.ProductId, 50, 1, null, "isolated-test"));
     }
+
+    [Fact]
+    public void CustomizerRejectsGoldPlatingAndAllowsAvailableSteelFinishes()
+    {
+        var validator = new CustomizationInputValidator();
+
+        Assert.False(validator.Validate(new CustomizationInputDto { Material = "Baño de oro 18k" }).IsValid);
+        Assert.True(validator.Validate(new CustomizationInputDto { Material = "Acero inoxidable dorado" }).IsValid);
+        Assert.True(validator.Validate(new CustomizationInputDto { Material = "Acero inoxidable plateado" }).IsValid);
+    }
+
     [Fact]
     public async Task UsersHaveStablePaginationAndRoles()
     {

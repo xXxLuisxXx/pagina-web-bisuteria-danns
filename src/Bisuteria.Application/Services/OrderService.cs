@@ -205,7 +205,7 @@ public class OrderService : IOrderService
         {
             Method = checkout.PaymentMethod,
             Status = PaymentStatus.Pending,
-            Amount = order.Total
+            Amount = Pricing.CalculateDeposit(order.Total)
         });
 
         await orderRepo.AddAsync(order, ct);
@@ -246,7 +246,7 @@ public class OrderService : IOrderService
         else if (attention == "shipping")
             q = q.Where(o => o.ShippingToConfirm && o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered);
         else if (attention == "unpaid")
-            q = q.Where(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus == PaymentStatus.Pending);
+            q = q.Where(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus != PaymentStatus.Paid && o.PaymentStatus != PaymentStatus.Refunded);
         else if (attention == "old")
         {
             var oldLimit = DateTime.UtcNow.AddDays(-2);
@@ -334,13 +334,36 @@ public class OrderService : IOrderService
             return false;
 
         if (!OrderTransitions.AllowsPayment(order.Status, order.PaymentStatus, status)) return false;
-        if (order.ShippingToConfirm && status == PaymentStatus.Paid) return false;
+        if (order.ShippingToConfirm && status is PaymentStatus.Paid or PaymentStatus.PartiallyPaid) return false;
+        var recordingBalancePayment = order.PaymentStatus == PaymentStatus.PartiallyPaid && status == PaymentStatus.Paid;
         order.PaymentStatus = status;
-        foreach (var payment in order.Payments)
+        if (recordingBalancePayment)
         {
-            payment.Status = status;
-            if (status == PaymentStatus.Paid && payment.PaidAt is null)
-                payment.PaidAt = DateTime.UtcNow;
+            order.Payments.Add(new Payment
+            {
+                Method = order.PaymentMethod,
+                Status = PaymentStatus.Paid,
+                Amount = order.Total - Pricing.CalculateDeposit(order.Total),
+                PaidAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            foreach (var payment in order.Payments)
+            {
+                payment.Status = status;
+                if (status == PaymentStatus.PartiallyPaid)
+                    payment.Amount = Pricing.CalculateDeposit(order.Total);
+                else if (status == PaymentStatus.Paid)
+                    payment.Amount = order.Total;
+                if ((status is PaymentStatus.PartiallyPaid or PaymentStatus.Paid) && payment.PaidAt is null)
+                    payment.PaidAt = DateTime.UtcNow;
+            }
+        }
+        if (status == PaymentStatus.PartiallyPaid && order.Status == OrderStatus.Pending)
+        {
+            if (!OrderTransitions.Allows(order.Status, OrderStatus.Confirmed, status)) return false;
+            order.Status = OrderStatus.Confirmed;
         }
         order.UpdatedAt = DateTime.UtcNow;
         repo.Update(order);
@@ -355,7 +378,7 @@ public class OrderService : IOrderService
                 string.IsNullOrWhiteSpace(actorId) || actorRole is not (StoreRoles.Owner or StoreRoles.Developer or StoreRoles.LegacyAdmin)) return false;
             var order = await _unitOfWork.Repository<Order>().Query().Include(o => o.Payments).Include(o => o.PaymentProofs)
                 .FirstOrDefaultAsync(o => o.Id == orderId, ct);
-            if (order is null || order.DeliveryMethod == DeliveryMethod.Pickup || order.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Refunded ||
+            if (order is null || order.DeliveryMethod == DeliveryMethod.Pickup || order.PaymentStatus is PaymentStatus.PartiallyPaid or PaymentStatus.Paid or PaymentStatus.Refunded ||
                 order.Status is OrderStatus.Cancelled or OrderStatus.Delivered ||
                 order.PaymentProofs.Any(proof => proof.Status is PaymentProofStatus.Pending or PaymentProofStatus.Approved))
                 return false;
@@ -366,7 +389,7 @@ public class OrderService : IOrderService
             order.Total = Math.Max(0m, order.Subtotal - order.Discount) + order.ShippingCost;
             order.ShippingToConfirm = false;
             order.UpdatedAt = DateTime.UtcNow;
-            foreach (var payment in order.Payments) payment.Amount = order.Total;
+            foreach (var payment in order.Payments) payment.Amount = Pricing.CalculateDeposit(order.Total);
             _unitOfWork.Repository<Order>().Update(order);
             await _unitOfWork.Repository<AuditLog>().AddAsync(new AuditLog
             {

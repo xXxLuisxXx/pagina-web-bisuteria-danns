@@ -29,6 +29,7 @@ public partial class AppDbContext
                 .Select(o => new Order { Id = o.Id, OrderNumber = o.OrderNumber, CustomerEmail = o.CustomerEmail })
                 .ToListAsync(cancellationToken);
         static string Money(decimal value) => value.ToString("F2", CultureInfo.InvariantCulture) + " USD";
+        static decimal Deposit(decimal total) => decimal.Round(Math.Max(0m, total) * 0.5m, 2, MidpointRounding.AwayFromZero);
         string PublicUrl(string path) => _publicBaseUri is null ? path : new Uri(_publicBaseUri, path).AbsoluteUri;
         string BankInstructions(Order order)
         {
@@ -67,13 +68,18 @@ public partial class AppDbContext
                 if (order.GuestAccessToken is not null)
                     confirmationPath += $"&accessToken={Uri.EscapeDataString(order.GuestAccessToken)}";
                 var customerAccess = $"\nConsulta tu pedido: {PublicUrl(confirmationPath)}\nNo compartas este enlace privado.";
-                var summary = $"Pedido {order.OrderNumber}\n{items}\nSubtotal: {Money(order.Subtotal)}\nDescuento: {Money(order.Discount)}\n{delivery}\n{(order.ShippingToConfirm ? $"Total parcial, pendiente de confirmar envío: {Money(order.Total)}" : $"Total: {Money(order.Total)}")}\nEntrega: {order.DeliveryMethod.GetLabel()}\nMétodo: {(order.PaymentMethod == PaymentMethod.BankTransfer ? "Transferencia bancaria" : "Pago contra entrega")}. El pago está pendiente de verificación.";
+                var deposit = order.ShippingToConfirm ? "El abono del 50% se calcula cuando la tienda confirme el envío." : $"Abono inicial requerido (50%): {Money(Deposit(order.Total))}\nSaldo restante: {Money(order.Total - Deposit(order.Total))}";
+                var paymentMethod = order.PaymentMethod == PaymentMethod.BankTransfer ? "Transferencia bancaria" : "Efectivo";
+                var paymentInstructions = order.PaymentMethod == PaymentMethod.BankTransfer
+                    ? "Transfiere el abono inicial y carga el comprobante. El pedido pasa a preparación después de que la tienda lo apruebe; el saldo se paga al recibir o retirar el pedido."
+                    : "Coordina con la tienda la entrega del abono en efectivo. El pedido pasa a preparación después de que el equipo registre el abono recibido; el saldo se paga al recibir o retirar el pedido.";
+                var summary = $"Pedido {order.OrderNumber}\n{items}\nSubtotal: {Money(order.Subtotal)}\nDescuento: {Money(order.Discount)}\n{delivery}\n{(order.ShippingToConfirm ? $"Total parcial, pendiente de confirmar envío: {Money(order.Total)}" : $"Total: {Money(order.Total)}")}\n{deposit}\nEntrega: {order.DeliveryMethod.GetLabel()}\nMétodo: {paymentMethod}. {paymentInstructions}";
                 var text = summary + BankInstructions(order) + customerAccess;
                 Queue(order.CustomerEmail, "Confirmación de pedido", text);
                 var address = order.DeliveryMethod == DeliveryMethod.Pickup ? "Retiro en tienda" :
                     string.Join(", ", new[] { order.AddressLine1, order.AddressLine2, order.DeliverySector, order.City, order.Province }.Where(x => !string.IsNullOrWhiteSpace(x)));
                 Queue(storeEmail, "Compra pendiente de aprobación · " + order.OrderNumber,
-                    "Acción requerida: revisa y aprueba esta compra desde el panel administrativo antes de preparar el pedido o confirmar el pago.\n\n" +
+                    "Acción requerida: revisa esta solicitud y confirma el abono inicial del 50%. No inicies la preparación hasta que el abono esté registrado.\n\n" +
                     summary + $"\nCliente: {order.CustomerName}\nCorreo: {order.CustomerEmail}\nTeléfono: {order.CustomerPhone}\nDestino: {address}" +
                     (string.IsNullOrWhiteSpace(order.Observations) ? "" : $"\nObservaciones: {order.Observations}") +
                     (order.IsGift ? $"\nRegalo para: {order.GiftRecipientName}\nMensaje: {order.GiftMessage}" : "") +
@@ -86,8 +92,13 @@ public partial class AppDbContext
                     var status = order.Status switch { OrderStatus.Confirmed => "confirmado", OrderStatus.Preparing => "en preparación", OrderStatus.Ready => "listo", OrderStatus.Shipped => "enviado", OrderStatus.Delivered => "entregado", OrderStatus.Cancelled => "cancelado", _ => "pendiente" };
                     Queue(order.CustomerEmail, "Estado de tu pedido", $"El pedido {order.OrderNumber} está {status}." + (order.Status == OrderStatus.Shipped && !string.IsNullOrWhiteSpace(order.TrackingNumber) ? $" Guía: {order.TrackingNumber}." : ""));
                 }
-                if (entry.Property(o => o.PaymentStatus).OriginalValue != order.PaymentStatus && order.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Refunded)
-                    Queue(order.CustomerEmail, "Estado de tu pago", $"El pago del pedido {order.OrderNumber} fue registrado como {(order.PaymentStatus == PaymentStatus.Paid ? "recibido" : "reembolsado")} por la tienda.");
+                if (entry.Property(o => o.PaymentStatus).OriginalValue != order.PaymentStatus && order.PaymentStatus is PaymentStatus.PartiallyPaid or PaymentStatus.Paid or PaymentStatus.Refunded)
+                    Queue(order.CustomerEmail, "Estado de tu pago", order.PaymentStatus switch
+                    {
+                        PaymentStatus.PartiallyPaid => $"La tienda registró el abono inicial del 50% del pedido {order.OrderNumber}. El pedido ya puede pasar a preparación; el saldo restante se paga al completar la compra.",
+                        PaymentStatus.Paid => $"El pago completo del pedido {order.OrderNumber} fue registrado por la tienda.",
+                        _ => $"El pago del pedido {order.OrderNumber} fue reembolsado por la tienda."
+                    });
                 if (entry.Property(o => o.ShippingCost).OriginalValue != order.ShippingCost ||
                     (entry.Property(o => o.ShippingToConfirm).OriginalValue && !order.ShippingToConfirm))
                     Queue(order.CustomerEmail, "Recargo de envío confirmado", $"El envío del pedido {order.OrderNumber} quedó en {Money(order.ShippingCost)}. El total actualizado es {Money(order.Total)}. Puedes continuar con el pago." + BankInstructions(order));

@@ -27,8 +27,8 @@ public class CheckoutController : Controller
     private readonly IPaymentProofStorage _proofStorage;
     private readonly AppDbContext _db;
     private readonly IOrderNotificationChannel _orderNotificationChannel;
-    private PaymentMethod[] ConfiguredPayments => (_configuration.GetSection("Payments:EnabledMethods").Get<string[]>() ?? [])
-        .Select(x => Enum.TryParse<PaymentMethod>(x, out var method) && method is PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer ? (PaymentMethod?)method : null)
+    private PaymentMethod[] ConfiguredPayments => (_configuration.GetSection("Payments:EnabledMethods").Get<string[]>() ?? [nameof(PaymentMethod.CashOnDelivery)])
+                .Select(x => Enum.TryParse<PaymentMethod>(x, out var method) && method is PaymentMethod.CashOnDelivery or PaymentMethod.BankTransfer ? (PaymentMethod?)method : null)
         .Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToArray();
 
     public CheckoutController(CartManager cart, IOrderService orders, ISettingService settings, IConfiguration configuration,
@@ -146,7 +146,7 @@ public class CheckoutController : Controller
     [HttpGet]
     public async Task<IActionResult> Confirmation(string orderNumber, string? accessToken, CancellationToken ct)
     {
-        ViewData["Title"] = "Pedido confirmado";
+        ViewData["Title"] = "Solicitud de pedido";
         var order = await _orders.GetByNumberAsync(orderNumber, ct);
         if (order is null)
             return NotFound();

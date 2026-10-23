@@ -177,6 +177,20 @@
             <h6 class="fw-semibold mb-3"><i class="bi bi-credit-card me-2 text-gold"></i>Pago</h6>
             <p class="mb-2"><strong>Método:</strong> @Model.PaymentMethodLabel</p>
             <p class="mb-2"><strong>Estado:</strong> @Model.PaymentStatus.GetLabel()</p>
+            @if (!Model.ShippingToConfirm)
+            {
+                var depositAmount = Bisuteria.Application.Services.Pricing.CalculateDeposit(Model.Total);
+                <p class="mb-2"><strong>Abono inicial (50%):</strong> @depositAmount.ToString("C")</p>
+                <p class="mb-2"><strong>Saldo restante:</strong> @Math.Max(0m, Model.Total - depositAmount).ToString("C")</p>
+            }
+            @if (Model.PaymentStatus == PaymentStatus.Pending && Model.PaymentMethod == PaymentMethod.CashOnDelivery)
+            {
+                <p class="small text-muted">Al recibir el abono en efectivo, registra «Abono del 50% recibido». El sistema confirmará el pedido para que pueda prepararse.</p>
+            }
+            else if (Model.PaymentStatus == PaymentStatus.PartiallyPaid)
+            {
+                <p class="small text-muted">El abono ya fue registrado y el pedido está confirmado. Marca «Pagado» cuando la tienda reciba el saldo restante.</p>
+            }
             @if (ViewBag.CanUpdatePayment is true)
             {
             <p class="small text-muted">Marca «Reembolsado» únicamente después de devolver el dinero por el medio acordado. Esta acción no realiza una devolución bancaria.</p>

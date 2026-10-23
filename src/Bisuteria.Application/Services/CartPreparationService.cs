@@ -13,8 +13,10 @@ public sealed class CartPreparationService(ICatalogService catalog, ICustomizati
         if (quantity < 1 || existingQuantity < 0 || (long)quantity + existingQuantity > Math.Min(50, product.Stock))
             throw new BusinessRuleException("La cantidad supera las existencias disponibles o el límite de 50 unidades.");
         var input = customization ?? new CustomizationInputDto();
+        // El empaque de regalo ya no se ofrece en el personalizador; ignora valores enviados manualmente.
+        input.GiftWrap = false;
         InputValidation.Check(new CustomizationInputValidator(), input);
-        var hasCustomization = new[] { input.Text, input.Initials, input.Date, input.Phrase, input.Color, input.Font, input.Charm, input.Material, input.Size, input.Note }.Any(x => !string.IsNullOrWhiteSpace(x)) || input.GiftWrap;
+        var hasCustomization = new[] { input.Text, input.Initials, input.Date, input.Phrase, input.Color, input.Font, input.Charm, input.Material, input.Size, input.Note }.Any(x => !string.IsNullOrWhiteSpace(x));
         if (!hasCustomization) return null;
         if (!product.IsCustomizable) throw new BusinessRuleException("Este producto no admite personalización.");
         input.ProductId = productId;

@@ -200,7 +200,7 @@ public partial class AuditTests
         Assert.False(saved.ShippingToConfirm);
         Assert.Equal(4.75m, saved.ShippingCost);
         Assert.Equal(saved.Subtotal - saved.Discount + 4.75m, saved.Total);
-        Assert.Equal(saved.Total, payment.Amount);
+        Assert.Equal(Bisuteria.Application.Services.Pricing.CalculateDeposit(saved.Total), payment.Amount);
         Assert.True(await db.Set<AuditLog>().AnyAsync(x => x.Action == "Order.ShippingConfirmed" && x.EntityId == order.Id.ToString()));
         Assert.True(await db.Set<EmailOutbox>().AnyAsync(x => x.Recipient == order.CustomerEmail && x.Subject == "Recargo de envío confirmado"));
         Assert.True(await orders.UpdatePaymentStatusAsync(order.Id, PaymentStatus.Paid));

@@ -79,7 +79,7 @@ public class OrderDto
 
     public string PaymentMethodLabel => PaymentMethod switch
     {
-        PaymentMethod.CashOnDelivery => "Contra entrega",
+        PaymentMethod.CashOnDelivery => "Efectivo",
         PaymentMethod.BankTransfer => "Transferencia bancaria",
         PaymentMethod.Card => "Tarjeta",
         _ => PaymentMethod.ToString()

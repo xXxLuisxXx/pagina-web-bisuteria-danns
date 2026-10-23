@@ -15,7 +15,7 @@
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" role="alert" class="text-danger"></div>
 
-        <div class="col-lg-7">
+        <div class="col-lg-6">
             <div class="card card-body shadow-sm mb-4">
                 <h5 class="mb-3"><i class="bi bi-person me-2 text-gold"></i>Datos de contacto</h5>
                 <div class="row g-3">
@@ -139,14 +139,20 @@
                 }
                 @foreach (var method in methods)
                 {
-                    <label class="payment-option"><input type="radio" asp-for="PaymentMethod" value="@method" />
-                    @(method == Bisuteria.Domain.Enums.PaymentMethod.BankTransfer ? "Transferencia bancaria" : "Contra entrega")</label>
+                    <label class="payment-option payment-option--checkout">
+                        <input type="radio" asp-for="PaymentMethod" value="@method" />
+                        <i class="bi @(method == Bisuteria.Domain.Enums.PaymentMethod.BankTransfer ? "bi-bank" : "bi-cash-coin")" aria-hidden="true"></i>
+                        <span>
+                            <strong>@(method == Bisuteria.Domain.Enums.PaymentMethod.BankTransfer ? "Transferencia bancaria" : "Efectivo")</strong>
+                            <span class="d-block small text-muted">@(method == Bisuteria.Domain.Enums.PaymentMethod.BankTransfer ? "Realiza el abono inicial del 50% y envía el comprobante." : "Coordina con la tienda la entrega del abono inicial del 50%.")</span>
+                        </span>
+                    </label>
                 }
-
+                <p class="small text-muted mb-0 mt-2">El pedido pasa a preparación cuando la tienda confirma el abono. El saldo restante se paga al recibir o retirar el pedido.</p>
             </div>
         </div>
 
-        <div class="col-lg-5">
+        <div class="col-lg-6">
             <div class="cart-summary card shadow-sm sticky-lg-top checkout-summary">
                 <details id="checkoutOrderDetails" open>
                 <summary class="checkout-order-toggle d-lg-none">Resumen del pedido <span class="small" id="mobileTotalDisplay">@TotalText(Model.Cart, Model.DeliveryMethod, Model.ShippingCost, Model.ShippingToConfirm)</span></summary>
@@ -184,6 +190,11 @@
                     <strong class="fs-4 text-gold" id="totalDisplay">@TotalText(Model.Cart, Model.DeliveryMethod, Model.ShippingCost, Model.ShippingToConfirm)</strong>
                 </div>
                 </details>
+                <div class="checkout-deposit mb-3" role="status" aria-live="polite">
+                    <span class="fw-semibold">Abono inicial requerido (50%)</span>
+                    <strong id="depositDisplay">@DepositText(Model.Cart, Model.DeliveryMethod, Model.ShippingCost, Model.ShippingToConfirm)</strong>
+                    <span class="small text-muted d-block">El otro 50% queda pendiente para completar el pago.</span>
+                </div>
                 <button class="btn btn-brand btn-lg w-100" type="submit" data-confirm-order disabled="@(methods.Length == 0)">
                     <i class="bi bi-check2-circle me-2"></i>Confirmar pedido
                 </button>
@@ -223,6 +234,7 @@
             var zones = JSON.parse(document.getElementById('deliveryZonesData').textContent);
             var subtotal = @((Model.Cart.Subtotal - Model.Cart.Discount).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var totalRow = document.getElementById('totalDisplay');
+            var depositRow = document.getElementById('depositDisplay');
             var orderDetails = document.getElementById('checkoutOrderDetails');
             var desktop = window.matchMedia('(min-width: 992px)');
             function resizeSummary() { orderDetails.open = desktop.matches; }
@@ -263,6 +275,9 @@
                 totalRow.textContent = pending
                     ? 'Envío por confirmar'
                     : Math.max(0, subtotal + cost).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
+                depositRow.textContent = pending
+                    ? 'Se calcula al confirmar el envío'
+                    : (Math.round((Math.max(0, subtotal + cost) * 0.5 + Number.EPSILON) * 100) / 100).toLocaleString('es-EC', { style: 'currency', currency: 'USD' });
                 document.getElementById('mobileTotalDisplay').textContent = totalRow.textContent;
             }
 
@@ -288,5 +303,12 @@
         if (method != Bisuteria.Domain.Enums.DeliveryMethod.Pickup && pending) return "Envío por confirmar";
         var total = Math.Max(0m, cart.Subtotal - cart.Discount) + (method == Bisuteria.Domain.Enums.DeliveryMethod.Pickup ? 0m : shippingCost);
         return total.ToString("C");
+    }
+
+    private static string DepositText(Bisuteria.Application.DTOs.Cart.CartDto cart, Bisuteria.Domain.Enums.DeliveryMethod method, decimal shippingCost, bool pending)
+    {
+        if (method != Bisuteria.Domain.Enums.DeliveryMethod.Pickup && pending) return "Se calcula al confirmar el envío";
+        var total = Math.Max(0m, cart.Subtotal - cart.Discount) + (method == Bisuteria.Domain.Enums.DeliveryMethod.Pickup ? 0m : shippingCost);
+        return Bisuteria.Application.Services.Pricing.CalculateDeposit(total).ToString("C");
     }
 }

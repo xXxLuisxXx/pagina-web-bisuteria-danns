@@ -46,7 +46,7 @@
                         <td>@order.CustomerName<br><small class="text-muted">@order.CustomerEmail</small></td>
                         <td>@order.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
                         <td class="text-center">
-                            <span class="badge badge-status @(order.PaymentStatus == PaymentStatus.Paid ? "bg-success" : order.PaymentStatus == PaymentStatus.Failed ? "bg-danger" : "bg-warning text-dark")">@order.PaymentStatus.GetLabel()</span>
+                            <span class="badge badge-status @(order.PaymentStatus == PaymentStatus.Paid ? "bg-success" : order.PaymentStatus == PaymentStatus.Failed ? "bg-danger" : order.PaymentStatus == PaymentStatus.PartiallyPaid ? "bg-info text-dark" : "bg-warning text-dark")">@order.PaymentStatus.GetLabel()</span>
                         </td>
                         <td class="text-center">
                             <span class="badge badge-status @order.Status.GetBadgeClass()">@order.StatusLabel</span>

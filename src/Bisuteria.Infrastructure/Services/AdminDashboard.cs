@@ -67,7 +67,7 @@ public partial class AdminService
         var pending = await _context.Orders.GroupBy(o => 1).Select(g => new {
             Total = g.Count(), Pending = g.Count(o => o.Status == OrderStatus.Pending),
             Old = g.Count(o => o.Status == OrderStatus.Pending && o.CreatedAt < oldLimit),
-            Unpaid = g.Count(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus == PaymentStatus.Pending),
+            Unpaid = g.Count(o => o.Status != OrderStatus.Cancelled && o.PaymentStatus != PaymentStatus.Paid && o.PaymentStatus != PaymentStatus.Refunded),
             Shipping = g.Count(o => o.ShippingToConfirm && o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.Delivered)
         }).SingleOrDefaultAsync(ct);
         var pendingProofs = await _context.PaymentProofs.CountAsync(proof => proof.Status == PaymentProofStatus.Pending &&
